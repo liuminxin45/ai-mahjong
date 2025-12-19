@@ -242,23 +242,46 @@ export class GameOrchestrator {
         const validation = this.discardValidator.validateDiscard(state, actor, action.tile);
         
         if (!validation.valid) {
-          console.error(`[Validator] ❌ ${actor} attempted invalid discard:`, validation.reason);
-          console.error(`[Validator] This should not happen - AI or rule logic error!`);
+          // 记录详细的错误信息
+          const errorDetails = {
+            timestamp: new Date().toISOString(),
+            player: actor,
+            attemptedTile: `${action.tile.suit}${action.tile.rank}`,
+            reason: validation.reason,
+            hand: state.hands[actor].map(t => `${t.suit}${t.rank}`).join(' '),
+            legalDiscards: this.discardValidator.getLegalDiscards(state, actor).map(t => `${t.suit}${t.rank}`).join(' '),
+            phase: state.phase,
+            turn: state.turn,
+          };
           
-          // 获取合法的出牌选项
-          const legalDiscards = this.discardValidator.getLegalDiscards(state, actor);
-          console.log(`[Validator] Legal discards for ${actor}:`, legalDiscards);
+          console.error('='.repeat(80));
+          console.error('[VALIDATION ERROR] Invalid discard detected!');
+          console.error('='.repeat(80));
+          console.error('Player:', errorDetails.player);
+          console.error('Attempted tile:', errorDetails.attemptedTile);
+          console.error('Reason:', errorDetails.reason);
+          console.error('Current hand:', errorDetails.hand);
+          console.error('Legal discards:', errorDetails.legalDiscards);
+          console.error('Phase:', errorDetails.phase);
+          console.error('Turn:', errorDetails.turn);
+          console.error('Timestamp:', errorDetails.timestamp);
+          console.error('='.repeat(80));
           
-          // 对于 AI，这是一个严重错误，应该记录
-          if (actor !== 'P0' || this.ss.p0IsAI) {
-            console.error(`[Validator] AI ${actor} violated discard rules!`);
-          }
+          // 记录到游戏日志
+          gameLogger.logStateChange(state, `VALIDATION ERROR: ${actor} attempted invalid discard ${errorDetails.attemptedTile} - ${validation.reason}`);
           
-          // 继续游戏但记录错误
-          gameLogger.logAction(state, actor, { type: 'PASS' });
-        } else {
-          console.log(`[Validator] ✅ ${actor} discard validated`);
+          // 停止游戏
+          this.stop();
+          
+          // 在 UI 上显示错误
+          const errorMessage = `❌ VALIDATION ERROR\n\nPlayer: ${actor}\nAttempted: ${errorDetails.attemptedTile}\n\nReason: ${validation.reason}\n\nLegal discards: ${errorDetails.legalDiscards}\n\nGame stopped. Check console for details.`;
+          alert(errorMessage);
+          
+          // 抛出异常
+          throw new Error(`Validation failed: ${actor} attempted to discard ${errorDetails.attemptedTile}. ${validation.reason}. Legal discards: ${errorDetails.legalDiscards}`);
         }
+        
+        console.log(`[Validator] ✅ ${actor} discard validated`);
       }
 
       const ctx: AgentDecisionContext = { style: makeAgentStyleContext(state, actor) };
