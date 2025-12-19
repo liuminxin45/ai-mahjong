@@ -28,10 +28,10 @@ export interface MutationConfig {
 }
 
 export const DEFAULT_MUTATION_CONFIG: MutationConfig = {
-  mutationRate: 0.3, // 30% 参数变异
-  mutationScale: 0.1, // 10% 范围内变异
-  minMutations: 1,
-  maxMutations: 5,
+  mutationRate: 0.5, // 50% 参数变异 (从30%增加)
+  mutationScale: 0.3, // 30% 范围内变异 (从10%大幅增加)
+  minMutations: 2, // 最少变异参数数量 (从1增加)
+  maxMutations: 8, // 最多变异参数数量 (从5增加)
 };
 
 /**

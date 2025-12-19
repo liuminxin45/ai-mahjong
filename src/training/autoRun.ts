@@ -5,11 +5,11 @@
 
 import type { GameOrchestrator } from '../orchestration/GameOrchestrator';
 import type { RuleId } from '../store/settingsStore';
+import { settingsStore } from '../store/settingsStore';
 import { setAIParams } from '../agents/algo/aiParams';
 import { loadParams, saveParams } from './paramPersistence';
 import { OnlineOptimizer, getParamDiff } from './optimizer';
 import { extractMetrics } from './metrics';
-import type { TrainingState } from './paramPersistence';
 
 export interface TrainingConfig {
   totalGames: number;
@@ -54,6 +54,7 @@ export class AutoTrainer {
   private progress: TrainingProgress;
   private isRunning: boolean = false;
   private shouldStop: boolean = false;
+  private gameCounter: number = 0; // 添加游戏计数器
 
   constructor(
     orchestrator: GameOrchestrator,
@@ -110,6 +111,11 @@ export class AutoTrainer {
       return;
     }
 
+    // 自动开启 P0 AI 模式（训练需要 AI vs AI 环境）
+    const wasP0AIEnabled = settingsStore.p0IsAI;
+    settingsStore.setP0IsAI(true);
+    console.log('[Training] Auto-enabled P0 AI mode for training');
+
     this.isRunning = true;
     this.shouldStop = false;
     this.progress.isRunning = true;
@@ -119,10 +125,16 @@ export class AutoTrainer {
       message: `Starting training: ${this.config.totalGames} games, mode=${this.config.mode}, blocking=${this.config.blocking}`,
     });
 
-    if (this.config.blocking) {
-      await this.runBlocking();
-    } else {
-      await this.runNonBlocking();
+    try {
+      if (this.config.blocking) {
+        await this.runBlocking();
+      } else {
+        await this.runNonBlocking();
+      }
+    } finally {
+      // 恢复原始的 P0 AI 设置
+      settingsStore.setP0IsAI(wasP0AIEnabled);
+      console.log('[Training] Restored P0 AI mode to:', wasP0AIEnabled);
     }
 
     this.isRunning = false;
@@ -174,14 +186,24 @@ export class AutoTrainer {
    * 运行单局游戏
    */
   private async runSingleGame(): Promise<void> {
+    // 增加游戏计数器
+    this.gameCounter++;
+    
     // 1. 生成候选参数
     const candidateParams = this.optimizer.generateCandidate();
     const paramDiff = getParamDiff(this.optimizer.getState().currentParams, candidateParams);
+    
+    console.log(`[DEBUG] Game #${this.gameCounter} - Candidate params generated. Changes: ${paramDiff.length}`);
+    if (paramDiff.length > 0) {
+      console.log(`[DEBUG] First change: ${paramDiff[0].key} ${paramDiff[0].from} → ${paramDiff[0].to}`);
+    }
 
     // 2. 设置参数
     setAIParams(candidateParams);
 
     // 3. 运行游戏
+    // 传递唯一的游戏种子
+    (globalThis as any).__trainingGameSeed = Date.now() + this.gameCounter * 1000000;
     this.orchestrator.startNewMatch(this.config.ruleId);
     
     // 等待游戏结束（简化版，实际需要监听游戏状态）
@@ -195,9 +217,11 @@ export class AutoTrainer {
     }
 
     const metrics = extractMetrics(state, this.config.trainPlayerId);
+    console.log(`[DEBUG] Game result: ${metrics.result}, score: ${metrics.finalScore}, isFirstHu: ${metrics.isFirstHu}`);
 
     // 5. 更新优化器
     const updateResult = this.optimizer.update(metrics, candidateParams);
+    console.log(`[DEBUG] Update result: fitness=${updateResult.fitness.toFixed(1)}, accepted=${updateResult.accepted}, reason=${updateResult.reason}`);
 
     // 6. 保存参数
     const paramsFile = loadParams();

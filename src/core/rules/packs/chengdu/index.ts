@@ -58,6 +58,38 @@ function now(): number {
   return Date.now();
 }
 
+// 带种子的随机数生成器（用于训练）
+class SeededRandom {
+  private seed: number;
+
+  constructor(seed: number) {
+    this.seed = seed;
+  }
+
+  next(): number {
+    this.seed = (this.seed * 9301 + 49297) % 233280;
+    return this.seed / 233280;
+  }
+
+  nextInt(min: number, max: number): number {
+    return Math.floor(this.next() * (max - min + 1)) + min;
+  }
+}
+
+function shuffle<T>(arr: T[], seed?: number): T[] {
+  const a = arr.slice();
+  const rng = seed !== undefined ? new SeededRandom(seed) : null;
+  
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = rng ? rng.nextInt(0, i) : Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// 全局游戏计数器，确保每次游戏种子都不一样
+let gameCounter = 0;
+
 export const chengduRulePack: RulePack = {
   ...placeholderRulePack,
   id: ruleConfig.id,
@@ -68,10 +100,58 @@ export const chengduRulePack: RulePack = {
   },
 
   buildInitialState(): GameState {
-    const baseState = placeholderRulePack.buildInitialState();
+    // 使用训练器传递的种子或生成新种子
+    const trainingSeed = (globalThis as any).__trainingGameSeed;
+    const seed = trainingSeed !== undefined ? trainingSeed : Date.now() + Math.random() * 1000000;
+    console.log(`[GameInit] Game #${gameCounter}, seed: ${seed} (training: ${trainingSeed !== undefined})`);
+    
+    // 重新洗牌手牌
+    const tiles = shuffle(this.getTileSet(), seed);
+    
+    const hands: Record<PlayerId, Tile[]> = {
+      P0: [],
+      P1: [],
+      P2: [],
+      P3: [],
+    };
+
+    let wall = tiles;
+    for (let i = 0; i < 13; i++) {
+      for (const pid of ['P0', 'P1', 'P2', 'P3'] as PlayerId[]) {
+        const t = wall[0];
+        if (!t) {
+          break;
+        }
+        hands[pid] = hands[pid].concat([t]);
+        wall = wall.slice(1);
+      }
+    }
+
     return {
-      ...baseState,
+      wall,
+      hands,
+      discards: {
+        P0: [],
+        P1: [],
+        P2: [],
+        P3: [],
+      },
+      melds: {
+        P0: [],
+        P1: [],
+        P2: [],
+        P3: [],
+      },
+      lastDiscard: null,
+      declaredHu: {
+        P0: false,
+        P1: false,
+        P2: false,
+        P3: false,
+      },
+      currentPlayer: 'P0',
       phase: 'EXCHANGE',
+      turn: 0,
       exchangeSelections: { P0: [], P1: [], P2: [], P3: [] },
       exchangeConfirmed: { P0: false, P1: false, P2: false, P3: false },
       dingQueSelection: { P0: undefined, P1: undefined, P2: undefined, P3: undefined },

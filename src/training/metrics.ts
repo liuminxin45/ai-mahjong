@@ -106,6 +106,15 @@ export function extractMetrics(
   if (didWin) {
     finalScore = 1000; // 基础胜利分
     if (isFirstHu) finalScore += 500; // 首胡额外奖励
+  } else {
+    // 输了也要给分数，否则 fitness 都是 0
+    // 根据是否有其他人胡来判断
+    const otherWinners = huPlayers.filter(pid => pid !== playerId);
+    if (otherWinners.length > 0) {
+      finalScore = -500; // 别人胡了，我输了
+    } else {
+      finalScore = 100; // 流局，小分
+    }
   }
   
   // 计算放炮次数（需要从游戏日志中统计，这里简化）

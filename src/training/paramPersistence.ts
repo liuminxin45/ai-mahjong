@@ -5,6 +5,7 @@
 
 import type { AIParams } from '../agents/algo/aiParams';
 import { DEFAULT_PARAMS } from '../agents/algo/aiParams';
+import * as fs from 'fs';
 
 export interface TrainingState {
   bestParams: AIParams;
@@ -47,7 +48,6 @@ export function loadParams(): ParamsFile {
   } else {
     // Node 环境从文件读取
     try {
-      const fs = require('fs');
       if (fs.existsSync(PARAMS_FILE_PATH)) {
         const content = fs.readFileSync(PARAMS_FILE_PATH, 'utf-8');
         return JSON.parse(content);
@@ -85,7 +85,6 @@ export function saveParams(paramsFile: ParamsFile): void {
   } else {
     // Node 环境原子写入
     try {
-      const fs = require('fs');
       const content = JSON.stringify(paramsFile, null, 2);
       
       // 1. 写入临时文件
