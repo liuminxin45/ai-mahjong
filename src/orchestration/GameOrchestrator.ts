@@ -1,7 +1,7 @@
 import type { Action } from '../core/model/action';
 import type { GameEvent } from '../core/model/event';
 import type { GameState } from '../core/model/state';
-import { PLAYER_ORDER, type PlayerId } from '../core/model/types';
+import { PLAYER_ORDER, nextPlayerId, type PlayerId } from '../core/model/types';
 import type { RulePack } from '../core/rules/RulePack';
 import type { DiscardValidator } from '../core/rules/validation/types';
 import { RuleRegistry } from '../core/rules/RuleRegistry';
@@ -183,9 +183,48 @@ export class GameOrchestrator {
   }
 
   private async loop(): Promise<void> {
+    let consecutivePassCount = 0;
+    let lastStateHash = '';
+    
     while (this.running) {
       const state = this.state;
       if (!state) break;
+
+      // 检测无限循环：如果状态没有变化且连续处理超过 10 次
+      const currentStateHash = `${state.turn}-${state.currentPlayer}-${state.lastDiscard ? 'discard' : 'nodiscard'}`;
+      if (currentStateHash === lastStateHash) {
+        consecutivePassCount++;
+        if (consecutivePassCount > 10) {
+          console.error('='.repeat(80));
+          console.error('[INFINITE LOOP DETECTED] Game stuck in reaction loop!');
+          console.error('='.repeat(80));
+          console.error('Turn:', state.turn);
+          console.error('Current player:', state.currentPlayer);
+          console.error('Has lastDiscard:', !!state.lastDiscard);
+          console.error('Consecutive passes:', consecutivePassCount);
+          console.error('='.repeat(80));
+          
+          // 强制清除 lastDiscard 并继续
+          if (state.lastDiscard) {
+            console.warn('[LOOP FIX] Forcing lastDiscard clear and advancing game');
+            const nextP = nextPlayerId(state.lastDiscard.from);
+            this.state = { ...state, lastDiscard: null, currentPlayer: nextP };
+            this.gs.applyState(this.state);
+            consecutivePassCount = 0;
+            lastStateHash = '';
+            await timers.yield();
+            continue;
+          }
+          
+          // 如果还是卡住，停止游戏
+          this.stop();
+          alert('Game stuck in infinite loop. Game stopped. Check console for details.');
+          throw new Error('Infinite loop detected in game loop');
+        }
+      } else {
+        consecutivePassCount = 0;
+        lastStateHash = currentStateHash;
+      }
 
       if (state.lastDiscard) {
         const resolved = await this.collectAndResolveReactions(state);
