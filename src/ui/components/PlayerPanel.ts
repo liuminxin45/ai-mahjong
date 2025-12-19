@@ -108,10 +108,17 @@ export function renderPlayerPanel(
   discardsLabel.style.color = '#666';
   discardsLabel.textContent = `Discards (${discards.length}):`;
 
+  // 弃牌容器，添加滚动和最大高度限制
+  const discardsContainer = document.createElement('div');
+  discardsContainer.style.maxHeight = '120px';
+  discardsContainer.style.overflowY = 'auto';
+  discardsContainer.style.overflowX = 'hidden';
+  discardsContainer.appendChild(renderDiscardGrid(discards));
+
   panel.appendChild(header);
   panel.appendChild(handInfo);
   panel.appendChild(discardsLabel);
-  panel.appendChild(renderDiscardGrid(discards));
+  panel.appendChild(discardsContainer);
 
   return panel;
 }

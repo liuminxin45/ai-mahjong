@@ -424,9 +424,68 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   root.appendChild(container);
 }
 
-function renderEndPhase(root: HTMLElement, _ctx: UiCtx, state: any): void {
+function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   root.innerHTML = '';
   
+  // 检查是否需要显示确认界面（非 P0 AI 模式）
+  const needConfirmation = !ctx.settingsStore.p0IsAI;
+  const hasConfirmed = (state as any).endConfirmed || false;
+  
+  // 如果需要确认但还未确认，显示简单的确认界面
+  if (needConfirmation && !hasConfirmed) {
+    const confirmContainer = document.createElement('div');
+    confirmContainer.style.maxWidth = '600px';
+    confirmContainer.style.margin = '100px auto';
+    confirmContainer.style.padding = '40px';
+    confirmContainer.style.border = '2px solid #4a90e2';
+    confirmContainer.style.borderRadius = '12px';
+    confirmContainer.style.backgroundColor = '#f0f8ff';
+    confirmContainer.style.textAlign = 'center';
+    
+    const message = document.createElement('div');
+    message.style.fontSize = '24px';
+    message.style.marginBottom = '30px';
+    message.style.fontWeight = '600';
+    
+    // 判断结果
+    const isWin = state.declaredHu.P0;
+    const isLose = (['P1', 'P2', 'P3'] as const).some(pid => state.declaredHu[pid]);
+    
+    if (isWin) {
+      message.textContent = '🎊 You Win! 🎊';
+      message.style.color = '#28a745';
+    } else if (isLose) {
+      message.textContent = '😢 You Lose';
+      message.style.color = '#dc3545';
+    } else {
+      message.textContent = '🤝 Draw';
+      message.style.color = '#6c757d';
+    }
+    
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = 'View Results';
+    confirmBtn.style.padding = '15px 40px';
+    confirmBtn.style.fontSize = '18px';
+    confirmBtn.style.backgroundColor = '#4a90e2';
+    confirmBtn.style.color = '#fff';
+    confirmBtn.style.border = 'none';
+    confirmBtn.style.borderRadius = '8px';
+    confirmBtn.style.cursor = 'pointer';
+    
+    confirmBtn.onclick = () => {
+      // 标记已确认
+      (state as any).endConfirmed = true;
+      // 重新渲染
+      renderEndPhase(root, ctx, state);
+    };
+    
+    confirmContainer.appendChild(message);
+    confirmContainer.appendChild(confirmBtn);
+    root.appendChild(confirmContainer);
+    return;
+  }
+  
+  // 显示完整的游戏结束界面
   const container = document.createElement('div');
   container.style.maxWidth = '800px';
   container.style.margin = '40px auto';
@@ -503,10 +562,40 @@ function renderEndPhase(root: HTMLElement, _ctx: UiCtx, state: any): void {
   
   container.appendChild(finalHandsSection);
   
+  // 按钮组
+  const buttonGroup = document.createElement('div');
+  buttonGroup.style.marginTop = '30px';
+  buttonGroup.style.display = 'flex';
+  buttonGroup.style.gap = '15px';
+  buttonGroup.style.justifyContent = 'center';
+  
+  // 复制日志按钮
+  const copyLogBtn = document.createElement('button');
+  copyLogBtn.textContent = '📋 Copy Game Log';
+  copyLogBtn.style.padding = '15px 30px';
+  copyLogBtn.style.fontSize = '16px';
+  copyLogBtn.style.backgroundColor = '#28a745';
+  copyLogBtn.style.color = '#fff';
+  copyLogBtn.style.border = 'none';
+  copyLogBtn.style.borderRadius = '8px';
+  copyLogBtn.style.cursor = 'pointer';
+  
+  copyLogBtn.onclick = () => {
+    // 调用全局的 exportGameLog 函数
+    if ((globalThis as any).exportGameLog) {
+      (globalThis as any).exportGameLog();
+      copyLogBtn.textContent = '✅ Copied!';
+      setTimeout(() => {
+        copyLogBtn.textContent = '📋 Copy Game Log';
+      }, 2000);
+    } else {
+      alert('Game log not available');
+    }
+  };
+  
   // 重新开始按钮
   const restartBtn = document.createElement('button');
   restartBtn.textContent = 'New Game';
-  restartBtn.style.marginTop = '30px';
   restartBtn.style.padding = '15px 40px';
   restartBtn.style.fontSize = '18px';
   restartBtn.style.backgroundColor = '#4a90e2';
@@ -519,7 +608,9 @@ function renderEndPhase(root: HTMLElement, _ctx: UiCtx, state: any): void {
     window.location.reload();
   };
   
-  container.appendChild(restartBtn);
+  buttonGroup.appendChild(copyLogBtn);
+  buttonGroup.appendChild(restartBtn);
+  container.appendChild(buttonGroup);
   root.appendChild(container);
 }
 
