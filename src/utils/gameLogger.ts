@@ -15,12 +15,33 @@ interface GameLogEntry {
   actor: PlayerId;
   action: Action;
   handSizes: Record<PlayerId, number>;
-  actorHand?: string[];
-  actorMelds?: Array<{ type: string; tile: string; from: PlayerId }>;
-  actorDiscards?: string[];
+  // 所有玩家的完整数据（用于 AI 分析）
+  allHands: Record<PlayerId, string[]>;
+  allMelds: Record<PlayerId, Array<{ type: string; tile: string; from: PlayerId }>>;
+  allDiscards: Record<PlayerId, string[]>;
+  // 换三张阶段数据
+  exchangeData?: {
+    selectedTiles?: Partial<Record<PlayerId, string[]>>;
+    receivedTiles?: Partial<Record<PlayerId, string[]>>;
+  };
   lastDiscard?: { tile: string; from: PlayerId } | null;
   dingQueSelection?: Partial<Record<PlayerId, 'W' | 'B' | 'T' | undefined>>;
   legalActionTypes?: string[];
+  // AI 决策过程（仅当 actor 是 AI 时记录）
+  aiDecision?: {
+    candidateActions: Array<{
+      action: string;
+      shanten: number;
+      ukeire: number;
+      dangerScore: number;
+      expectedValue: number;
+      winProbability?: number;
+      expectedScore?: number;
+    }>;
+    selectedAction: string;
+    selectedEV: number;
+    reasoning?: string;
+  };
   timestamp: number;
 }
 
@@ -45,23 +66,44 @@ class GameLogger {
     gameLogStore.addLog(`Time: ${new Date().toLocaleString()}`, 'info');
   }
 
-  logAction(state: GameState, actor: PlayerId, action: Action) {
-    // 始终记录动作到内部日志
-    // 控制台输出可以通过浏览器控制台过滤
+  logAction(state: GameState, actor: PlayerId, action: Action, aiDecision?: GameLogEntry['aiDecision']) {
+    // 记录所有玩家的完整数据
+    const allHands: Record<PlayerId, string[]> = {
+      P0: state.hands.P0.map((t) => this.formatTile(t)),
+      P1: state.hands.P1.map((t) => this.formatTile(t)),
+      P2: state.hands.P2.map((t) => this.formatTile(t)),
+      P3: state.hands.P3.map((t) => this.formatTile(t)),
+    };
 
-    const actorHand = state.hands[actor].map((t) => this.formatTile(t));
-    const actorMelds = state.melds[actor].map((m) => ({
-      type: m.type,
-      tile: this.formatTile(m.tile),
-      from: m.from,
-    }));
-    const actorDiscards = state.discards[actor].map((t) => this.formatTile(t));
+    const allMelds: Record<PlayerId, Array<{ type: string; tile: string; from: PlayerId }>> = {
+      P0: state.melds.P0.map((m) => ({ type: m.type, tile: this.formatTile(m.tile), from: m.from })),
+      P1: state.melds.P1.map((m) => ({ type: m.type, tile: this.formatTile(m.tile), from: m.from })),
+      P2: state.melds.P2.map((m) => ({ type: m.type, tile: this.formatTile(m.tile), from: m.from })),
+      P3: state.melds.P3.map((m) => ({ type: m.type, tile: this.formatTile(m.tile), from: m.from })),
+    };
+
+    const allDiscards: Record<PlayerId, string[]> = {
+      P0: state.discards.P0.map((t) => this.formatTile(t)),
+      P1: state.discards.P1.map((t) => this.formatTile(t)),
+      P2: state.discards.P2.map((t) => this.formatTile(t)),
+      P3: state.discards.P3.map((t) => this.formatTile(t)),
+    };
 
     const dingQueSelection = (state as any).dingQueSelection as
       | Partial<Record<PlayerId, 'W' | 'B' | 'T' | undefined>>
       | undefined;
 
     const legalActionTypes = (globalThis as any).__lastLegalActions?.[actor] as string[] | undefined;
+
+    // 换三张阶段数据
+    let exchangeData: GameLogEntry['exchangeData'];
+    if (state.phase === 'EXCHANGE' && action.type === 'EXCHANGE_SELECT') {
+      const globalExchangeData = (globalThis as any).__exchangeData || {};
+      exchangeData = {
+        selectedTiles: globalExchangeData.selectedTiles,
+        receivedTiles: globalExchangeData.receivedTiles,
+      };
+    }
 
     const entry: GameLogEntry = {
       turn: state.turn,
@@ -74,14 +116,16 @@ class GameLogger {
         P2: state.hands.P2.length,
         P3: state.hands.P3.length,
       },
-      actorHand,
-      actorMelds,
-      actorDiscards,
+      allHands,
+      allMelds,
+      allDiscards,
+      exchangeData,
       lastDiscard: state.lastDiscard
         ? { tile: this.formatTile(state.lastDiscard.tile), from: state.lastDiscard.from }
         : null,
       dingQueSelection,
       legalActionTypes,
+      aiDecision,
       timestamp: Date.now() - this.gameStartTime,
     };
 

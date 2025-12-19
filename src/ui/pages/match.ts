@@ -1,6 +1,7 @@
 import type { UiCtx } from '../context';
 import { renderDebugMode } from '../renderers/matchDebugRenderer';
 import { renderTableMode } from '../renderers/matchTableRenderer';
+import { languageStore } from '../../store/languageStore';
 
 export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   root.innerHTML = '';
@@ -11,8 +12,10 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
     inFlight: false,
   };
 
+  const t = languageStore.t();
+  
   const title = document.createElement('h2');
-  title.textContent = 'Match';
+  title.textContent = t.game.phasePlaying;
 
   const header = document.createElement('div');
   header.style.display = 'flex';
@@ -25,18 +28,18 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   controls.style.gap = '8px';
 
   const back = document.createElement('button');
-  back.textContent = 'Home';
+  back.textContent = t.common.back;
   back.onclick = () => ctx.navigate('#/');
 
   const exportBtn = document.createElement('button');
-  exportBtn.textContent = 'Export Replay';
+  exportBtn.textContent = t.game.copyLog;
   exportBtn.onclick = () => {
     ctx.orchestrator.exportReplay();
     ctx.navigate('#/replay');
   };
 
   const stopBtn = document.createElement('button');
-  stopBtn.textContent = 'Stop';
+  stopBtn.textContent = t.common.close;
   stopBtn.onclick = () => ctx.orchestrator.stop();
 
   const switchBtn = document.createElement('button');
@@ -64,7 +67,7 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
 
   const render = () => {
     const currentMode = ctx.settingsStore.uiMode;
-    switchBtn.textContent = currentMode === 'DEBUG' ? 'Switch to Table' : 'Switch to Debug';
+    switchBtn.textContent = currentMode === 'DEBUG' ? `${t.settings.uiModeTable}` : `${t.settings.uiModeDebug}`;
     switchBtn.onclick = () => {
       const newMode = currentMode === 'DEBUG' ? 'TABLE' : 'DEBUG';
       ctx.settingsStore.setUiMode(newMode);

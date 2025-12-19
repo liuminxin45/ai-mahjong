@@ -1,11 +1,11 @@
-export type Difficulty = 'low' | 'mid' | 'high';
+export type Difficulty = 'high';
 export type RuleId = 'placeholder' | 'chengdu';
 export type UiMode = 'DEBUG' | 'TABLE';
 
 type Listener = () => void;
 
 class SettingsStore {
-  difficulty: Difficulty = 'mid';
+  difficulty: Difficulty = 'high';
   ruleId: RuleId = 'chengdu';
   analysisEnabled = false;
   llmEnabled = false;

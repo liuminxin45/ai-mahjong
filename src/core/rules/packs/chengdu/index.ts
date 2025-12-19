@@ -773,4 +773,21 @@ export const chengduRulePack: RulePack = {
       events: [{ type: 'TURN', playerId: nextP, turn: next.turn, ts: baseTs }],
     };
   },
+
+  isRoundEnd(state: GameState): boolean {
+    return state.wall.length === 0 || state.phase === 'END';
+  },
+
+  settleRound(state: GameState): { winners: PlayerId[]; scores: Record<PlayerId, number> } {
+    const winners: PlayerId[] = [];
+    const scores: Record<PlayerId, number> = { P0: 0, P1: 0, P2: 0, P3: 0 };
+    
+    for (const pid of ['P0', 'P1', 'P2', 'P3'] as PlayerId[]) {
+      if (state.declaredHu[pid]) {
+        winners.push(pid);
+      }
+    }
+    
+    return { winners, scores };
+  },
 };

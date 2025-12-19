@@ -145,6 +145,14 @@ export class GameOrchestrator {
     this.running = false;
   }
 
+  getState(): GameState | null {
+    return this.state;
+  }
+
+  isRunning(): boolean {
+    return this.running;
+  }
+
   dispatchHumanAction(action: Action): void {
     // 如果是出牌动作且有校验器，先进行校验
     if (action.type === 'DISCARD' && this.discardValidator && this.state) {
@@ -321,8 +329,11 @@ export class GameOrchestrator {
         action = recoveryAction;
       }
 
-      // 记录动作
-      gameLogger.logAction(state, actor, action);
+      // 记录动作（包含 AI 决策数据）
+      const aiDecision = (globalThis as any).__aiDecision;
+      gameLogger.logAction(state, actor, action, aiDecision);
+      // 清除全局 AI 决策数据
+      (globalThis as any).__aiDecision = undefined;
 
       // 对所有玩家的出牌动作进行校验
       if (action.type === 'DISCARD' && this.discardValidator) {
@@ -444,11 +455,13 @@ export class GameOrchestrator {
         this.setLastLegalActions(pid, legal);
         if (legal.length === 0) return null;
         if (legal.length === 1 && legal[0].type === 'PASS') {
-          gameLogger.logAction(state, pid, legal[0]);
+          gameLogger.logAction(state, pid, legal[0], undefined);
           return null;
         }
         const action = await this.decideAction(pid, state, legal);
-        gameLogger.logAction(state, pid, action);
+        const aiDecision = (globalThis as any).__aiDecision;
+        gameLogger.logAction(state, pid, action, aiDecision);
+        (globalThis as any).__aiDecision = undefined;
         if (action.type === 'PASS') return null;
         return { playerId: pid, action };
       });
@@ -516,13 +529,13 @@ export class GameOrchestrator {
       
       const res = await this.human.awaitAction(legal, timeout);
       if (res) return res;
-      return this.pickAlgoAction(state, actor, legal, 'mid', ctx);
+      return this.pickAlgoAction(state, actor, legal, 'high', ctx);
     }
 
     // P0 AI 模式或其他 AI 玩家 - 直接使用算法选择，无延迟
     if (actor === 'P0' && this.ss.p0IsAI) {
       // P0 AI 模式：直接使用算法决策，快速执行
-      return this.pickAlgoAction(state, actor, legal, 'mid', ctx);
+      return this.pickAlgoAction(state, actor, legal, 'high', ctx);
     }
 
     // 其他 AI 玩家

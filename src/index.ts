@@ -5,6 +5,7 @@ import { renderSettings } from './ui/pages/settings';
 import { GameOrchestrator } from './orchestration/GameOrchestrator';
 import { gameStore } from './store/gameStore';
 import { settingsStore } from './store/settingsStore';
+import { languageStore } from './store/languageStore';
 import { storage } from './persistence/storage';
 import { HeuristicAnalyzer } from './analysis/HeuristicAnalyzer';
 import { createBrowserLLMAnalyzerFromStorage } from './analysis/LLMAnalyzer';
@@ -57,6 +58,12 @@ function mountRouter(root: HTMLElement): void {
   };
 
   window.addEventListener('hashchange', render);
+  
+  // 监听语言变化，自动重新渲染
+  languageStore.subscribe(() => {
+    render();
+  });
+  
   render();
 }
 

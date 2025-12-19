@@ -1,20 +1,23 @@
 import type { UiCtx } from '../context';
+import { languageStore } from '../../store/languageStore';
 
 export function renderHome(root: HTMLElement, ctx: UiCtx): void {
   root.innerHTML = '';
+  
+  const t = languageStore.t().home;
 
   const title = document.createElement('h2');
-  title.textContent = 'mahjong-valdi';
+  title.textContent = t.title;
 
   const start = document.createElement('button');
-  start.textContent = 'Start Match';
+  start.textContent = t.newGame;
   start.onclick = () => {
     ctx.orchestrator.startNewMatch(ctx.settingsStore.ruleId);
     ctx.navigate('#/match');
   };
 
   const settings = document.createElement('button');
-  settings.textContent = 'Settings';
+  settings.textContent = t.settings;
   settings.onclick = () => {
     ctx.navigate('#/settings');
   };

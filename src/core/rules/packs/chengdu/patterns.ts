@@ -34,6 +34,7 @@ export type YakuType =
   | 'GANG_SHANG_KAI_HUA' // 杠上开花
   | 'QIANG_GANG_HU'     // 抢杠胡
   | 'HAI_DI_LAO_YUE'    // 海底捞月
+  | 'TIAN_HU'           // 天胡（头家第一张胡牌）
   | 'ZI_MO'             // 自摸
   | 'MEN_QING'          // 门清（无副露）
   | 'JIN_GOU_DIAO';     // 金钩钓（单钓将）
@@ -195,7 +196,7 @@ export function detectYaku(
   if (!pattern.isValid) return yakuList;
 
   if (pattern.groups.length === 7 && pattern.groups.every(g => g.type === 'JIANG')) {
-    yakuList.push({ type: 'QI_DUI_ZI', fan: 4, description: '七对子' });
+    yakuList.push({ type: 'QI_DUI_ZI', fan: 3, description: '七对子' });
     if (isSelfDraw) yakuList.push({ type: 'ZI_MO', fan: 1, description: '自摸' });
     if (meldCount === 0) yakuList.push({ type: 'MEN_QING', fan: 1, description: '门清' });
     if (isGangShangKaiHua) yakuList.push({ type: 'GANG_SHANG_KAI_HUA', fan: 2, description: '杠上开花' });
@@ -206,7 +207,7 @@ export function detectYaku(
 
   const suits = new Set(hand.map(t => t.suit));
   if (suits.size === 1) {
-    yakuList.push({ type: 'QING_YI_SE', fan: 6, description: '清一色' });
+    yakuList.push({ type: 'QING_YI_SE', fan: 3, description: '清一色' });
   }
 
   const allKe = pattern.groups.filter(g => g.type !== 'JIANG').every(g => g.type === 'KE');
