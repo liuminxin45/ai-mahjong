@@ -237,6 +237,30 @@ export class GameOrchestrator {
       // 记录动作
       gameLogger.logAction(state, actor, action);
 
+      // 对所有玩家的出牌动作进行校验
+      if (action.type === 'DISCARD' && this.discardValidator) {
+        const validation = this.discardValidator.validateDiscard(state, actor, action.tile);
+        
+        if (!validation.valid) {
+          console.error(`[Validator] ❌ ${actor} attempted invalid discard:`, validation.reason);
+          console.error(`[Validator] This should not happen - AI or rule logic error!`);
+          
+          // 获取合法的出牌选项
+          const legalDiscards = this.discardValidator.getLegalDiscards(state, actor);
+          console.log(`[Validator] Legal discards for ${actor}:`, legalDiscards);
+          
+          // 对于 AI，这是一个严重错误，应该记录
+          if (actor !== 'P0' || this.ss.p0IsAI) {
+            console.error(`[Validator] AI ${actor} violated discard rules!`);
+          }
+          
+          // 继续游戏但记录错误
+          gameLogger.logAction(state, actor, { type: 'PASS' });
+        } else {
+          console.log(`[Validator] ✅ ${actor} discard validated`);
+        }
+      }
+
       const ctx: AgentDecisionContext = { style: makeAgentStyleContext(state, actor) };
 
       const next = this.rulePack.applyAction(state, action);
