@@ -4,6 +4,7 @@ import type { GameState, Meld } from '../../../model/state';
 import type { Tile } from '../../../model/tile';
 import { nextPlayerId, type PlayerId } from '../../../model/types';
 import type { RulePack } from '../../RulePack';
+import type { DiscardValidator } from '../../validation/types';
 import { placeholderRulePack } from '../placeholder';
 import { ruleConfig } from './rule.config';
 import { findWinPatterns, detectYaku, calculateScore, hasQueYiMen } from './patterns';
@@ -11,6 +12,7 @@ import { validateExchangeTiles, performExchange, removeTilesFromHand } from './e
 import { selectExchangeTiles, selectDingQueSuit } from './aiStrategy';
 import { sortTiles } from './sort';
 import { settingsStore } from '../../../../store/settingsStore';
+import { createChengduValidator } from './validator';
 import {
   tileEq,
   removeNTiles,
@@ -60,6 +62,10 @@ export const chengduRulePack: RulePack = {
   ...placeholderRulePack,
   id: ruleConfig.id,
   version: ruleConfig.version,
+
+  getDiscardValidator(): DiscardValidator {
+    return createChengduValidator();
+  },
 
   buildInitialState(): GameState {
     const baseState = placeholderRulePack.buildInitialState();

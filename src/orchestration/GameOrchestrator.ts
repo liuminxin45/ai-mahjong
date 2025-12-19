@@ -3,6 +3,7 @@ import type { GameEvent } from '../core/model/event';
 import type { GameState } from '../core/model/state';
 import { PLAYER_ORDER, type PlayerId } from '../core/model/types';
 import type { RulePack } from '../core/rules/RulePack';
+import type { DiscardValidator } from '../core/rules/validation/types';
 import { RuleRegistry } from '../core/rules/RuleRegistry';
 import { chengduRulePack } from '../core/rules/packs/chengdu';
 import { placeholderRulePack } from '../core/rules/packs/placeholder';
@@ -57,6 +58,7 @@ export class GameOrchestrator {
   private readonly analyzer: HeuristicAnalyzer | null;
 
   private rulePack: RulePack;
+  private discardValidator: DiscardValidator | null = null;
   private opponentModel = createOpponentModel();
 
   private running = false;
@@ -100,6 +102,14 @@ export class GameOrchestrator {
     const selected = ruleId ?? this.ss.ruleId;
     this.rulePack = this.registry.get(selected);
 
+    // 加载规则包的出牌校验器
+    if (this.rulePack.getDiscardValidator) {
+      this.discardValidator = this.rulePack.getDiscardValidator();
+      if (this.discardValidator) {
+        console.log('[GameOrchestrator] 📋 Discard validator loaded:', this.discardValidator.getDescription());
+      }
+    }
+
     const init = this.rulePack.buildInitialState();
     this.state = init;
 
@@ -122,6 +132,27 @@ export class GameOrchestrator {
   }
 
   dispatchHumanAction(action: Action): void {
+    // 如果是出牌动作且有校验器，先进行校验
+    if (action.type === 'DISCARD' && this.discardValidator && this.state) {
+      const validation = this.discardValidator.validateDiscard(this.state, 'P0', action.tile);
+      
+      if (!validation.valid) {
+        console.warn('[Validator] ❌ Invalid discard:', validation.reason);
+        
+        // 在 UI 上显示错误提示
+        alert(`Cannot discard this tile!\n\n${validation.reason}`);
+        
+        // 如果有建议的牌，显示给玩家
+        if (validation.suggestedTiles && validation.suggestedTiles.length > 0) {
+          console.log('[Validator] 💡 Suggested tiles:', validation.suggestedTiles);
+        }
+        
+        return; // 阻止非法出牌
+      }
+      
+      console.log('[Validator] ✅ Valid discard');
+    }
+    
     this.human.dispatch(action);
   }
 

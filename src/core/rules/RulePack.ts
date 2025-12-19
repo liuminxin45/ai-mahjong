@@ -3,6 +3,7 @@ import type { GameEvent } from '../model/event';
 import type { GameState } from '../model/state';
 import type { Tile } from '../model/tile';
 import type { PlayerId } from '../model/types';
+import type { DiscardValidator } from './validation/types';
 
 export interface RulePack {
   id: string;
@@ -10,6 +11,12 @@ export interface RulePack {
 
   getTileSet(): Tile[];
   buildInitialState(): GameState;
+  
+  /**
+   * 获取出牌校验器（可选）
+   * 如果规则包需要特殊的出牌校验规则，可以返回校验器
+   */
+  getDiscardValidator?(): DiscardValidator | null;
 
   getCurrentActor(state: GameState): PlayerId;
   getLegalActions(state: GameState, player: PlayerId): Action[];
