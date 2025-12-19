@@ -106,6 +106,72 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   rowUiMode.appendChild(uiModeLabel);
   rowUiMode.appendChild(uiMode);
 
+  const timeoutLabel = document.createElement('label');
+  timeoutLabel.textContent = 'Timeout Enabled: ';
+
+  const timeout = document.createElement('input');
+  timeout.type = 'checkbox';
+  timeout.checked = ctx.settingsStore.timeoutEnabled;
+  timeout.onchange = () => ctx.settingsStore.setTimeoutEnabled(timeout.checked);
+
+  const timeoutMsLabel = document.createElement('label');
+  timeoutMsLabel.textContent = 'Timeout (ms): ';
+
+  const timeoutMsInput = document.createElement('input');
+  timeoutMsInput.type = 'number';
+  timeoutMsInput.value = String(ctx.settingsStore.timeoutMs);
+  timeoutMsInput.min = '1000';
+  timeoutMsInput.max = '120000';
+  timeoutMsInput.step = '1000';
+  timeoutMsInput.style.width = '100px';
+  timeoutMsInput.onchange = () => {
+    const val = parseInt(timeoutMsInput.value, 10);
+    if (!isNaN(val) && val >= 1000) {
+      ctx.settingsStore.setTimeoutMs(val);
+    }
+  };
+
+  const rowTimeout = document.createElement('div');
+  rowTimeout.style.display = 'flex';
+  rowTimeout.style.gap = '8px';
+  rowTimeout.style.alignItems = 'center';
+  rowTimeout.appendChild(timeoutLabel);
+  rowTimeout.appendChild(timeout);
+
+  const rowTimeoutMs = document.createElement('div');
+  rowTimeoutMs.style.display = 'flex';
+  rowTimeoutMs.style.gap = '8px';
+  rowTimeoutMs.style.alignItems = 'center';
+  rowTimeoutMs.appendChild(timeoutMsLabel);
+  rowTimeoutMs.appendChild(timeoutMsInput);
+
+  // P0 AI 模式开关
+  const p0AILabel = document.createElement('label');
+  p0AILabel.textContent = 'P0 AI Mode (for testing): ';
+  p0AILabel.style.fontWeight = '600';
+  p0AILabel.style.color = '#d9534f';
+
+  const p0AI = document.createElement('input');
+  p0AI.type = 'checkbox';
+  p0AI.checked = ctx.settingsStore.p0IsAI;
+  p0AI.onchange = () => {
+    ctx.settingsStore.setP0IsAI(p0AI.checked);
+    if (p0AI.checked) {
+      alert('P0 AI mode enabled. Please start a new game to see full AI vs AI gameplay.');
+    }
+  };
+
+  const rowP0AI = document.createElement('div');
+  rowP0AI.style.display = 'flex';
+  rowP0AI.style.gap = '8px';
+  rowP0AI.style.alignItems = 'center';
+  rowP0AI.style.padding = '8px';
+  rowP0AI.style.backgroundColor = '#fff3cd';
+  rowP0AI.style.border = '1px solid #ffc107';
+  rowP0AI.style.borderRadius = '4px';
+  rowP0AI.appendChild(p0AILabel);
+  rowP0AI.appendChild(p0AI);
+
   root.appendChild(title);
   root.appendChild(row1);
   root.appendChild(rowRule);
@@ -113,9 +179,15 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   rowRule.style.marginBottom = '8px';
   row2.style.marginBottom = '8px';
   row3.style.marginBottom = '8px';
-  rowUiMode.style.marginBottom = '16px';
+  rowUiMode.style.marginBottom = '8px';
+  rowTimeout.style.marginBottom = '8px';
+  rowTimeoutMs.style.marginBottom = '16px';
   root.appendChild(row2);
   root.appendChild(row3);
   root.appendChild(rowUiMode);
+  root.appendChild(rowTimeout);
+  root.appendChild(rowTimeoutMs);
+  rowP0AI.style.marginBottom = '16px';
+  root.appendChild(rowP0AI);
   root.appendChild(back);
 }

@@ -6,10 +6,13 @@ type Listener = () => void;
 
 class SettingsStore {
   difficulty: Difficulty = 'mid';
-  ruleId: RuleId = 'placeholder';
+  ruleId: RuleId = 'chengdu';
   analysisEnabled = false;
   llmEnabled = false;
   uiMode: UiMode = 'TABLE';
+  timeoutEnabled = false;
+  timeoutMs = 30000;
+  p0IsAI = false; // P0 AI 模式，用于测试（默认开启）
 
   private readonly listeners = new Set<Listener>();
 
@@ -44,6 +47,21 @@ class SettingsStore {
 
   setUiMode(mode: UiMode): void {
     this.uiMode = mode;
+    this.emit();
+  }
+
+  setTimeoutEnabled(enabled: boolean): void {
+    this.timeoutEnabled = enabled;
+    this.emit();
+  }
+
+  setTimeoutMs(ms: number): void {
+    this.timeoutMs = ms;
+    this.emit();
+  }
+
+  setP0IsAI(enabled: boolean): void {
+    this.p0IsAI = enabled;
     this.emit();
   }
 }

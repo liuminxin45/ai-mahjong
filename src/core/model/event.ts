@@ -6,7 +6,9 @@ export type GameEvent = {
   playerId?: PlayerId;
   tile?: Tile;
   from?: PlayerId;
-  gangType?: 'MING' | 'BU';
+  gangType?: 'MING' | 'AN' | 'JIA' | 'BU';
   turn: number;
   ts: number;
+  meta?: Record<string, unknown>;
+  reason?: string;
 };

@@ -1,5 +1,6 @@
 import type { Tile } from '../../core/model/tile';
 import { renderTile } from './tileView';
+import { sortTiles } from '../../core/rules/packs/chengdu/sort';
 
 export function renderHand(
   hand: Tile[],
@@ -10,7 +11,10 @@ export function renderHand(
   wrap.style.flexWrap = 'wrap';
   wrap.style.gap = '6px';
 
-  for (const t of hand) {
+  // 自动排序手牌
+  const sortedHand = sortTiles(hand);
+
+  for (const t of sortedHand) {
     const el = renderTile(t) as HTMLButtonElement;
     if (onClickTile) {
       el.addEventListener('click', () => onClickTile(t));

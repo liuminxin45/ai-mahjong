@@ -17,16 +17,22 @@ export class HumanAgent implements PlayerAgent {
     }
 
     return new Promise<Action | null>((resolve) => {
-      const timer = globalThis.setTimeout(() => {
-        if (!this.pending) return;
-        this.pending = null;
-        resolve(null);
-      }, timeoutMs) as unknown as number;
+      // 如果 timeoutMs 是 Infinity，不设置超时
+      let timer: number | undefined;
+      if (isFinite(timeoutMs)) {
+        timer = globalThis.setTimeout(() => {
+          if (!this.pending) return;
+          this.pending = null;
+          resolve(null);
+        }, timeoutMs) as unknown as number;
+      }
 
       this.pending = {
         legal,
         resolve: (a) => {
-          globalThis.clearTimeout(timer as unknown as number);
+          if (timer !== undefined) {
+            globalThis.clearTimeout(timer as unknown as number);
+          }
           resolve(a);
         },
       };
@@ -35,9 +41,31 @@ export class HumanAgent implements PlayerAgent {
 
   dispatch(action: Action): void {
     const p = this.pending;
-    if (!p) return;
-    if (!p.legal.some((a) => JSON.stringify(a) === JSON.stringify(action))) return;
+    console.log('[HumanAgent.dispatch] Called with action:', action);
+    console.log('[HumanAgent.dispatch] Pending:', p ? 'yes' : 'no');
+    if (!p) {
+      console.warn('[HumanAgent.dispatch] No pending action, ignoring');
+      return;
+    }
+    console.log('[HumanAgent.dispatch] Legal actions:', p.legal);
+    
+    // 检查动作类型是否匹配
+    const isLegal = p.legal.some((a) => {
+      // 对于 EXCHANGE_SELECT，只检查类型，不检查具体的 tiles
+      if (action.type === 'EXCHANGE_SELECT' && a.type === 'EXCHANGE_SELECT') {
+        return true;
+      }
+      // 对于其他动作，使用 JSON 比较
+      return JSON.stringify(a) === JSON.stringify(action);
+    });
+    
+    console.log('[HumanAgent.dispatch] Is legal?', isLegal);
+    if (!isLegal) {
+      console.warn('[HumanAgent.dispatch] Action not in legal actions, ignoring');
+      return;
+    }
     this.pending = null;
     p.resolve(action);
+    console.log('[HumanAgent.dispatch] Action dispatched successfully');
   }
 }

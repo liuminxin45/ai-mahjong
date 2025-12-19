@@ -21,6 +21,7 @@ import type { ReplayFile } from '../persistence/replay';
 import { storage } from '../persistence/storage';
 import { finishMatchStat, recordDecisionStat, startMatchStat } from '../analysis/statistics';
 import { createOpponentModel } from '../agents/algo/opponentModel';
+import { gameLogger } from '../utils/gameLogger';
 
 function now(): number {
   return Date.now();
@@ -106,6 +107,13 @@ export class GameOrchestrator {
     this.gs.setRunning(init);
     this.pushEventAndUpdateModel({ type: 'INIT', turn: init.turn, ts: now() });
 
+    // 开始游戏日志记录
+    const gameId = makeId();
+    gameLogger.startGame(gameId);
+    if (this.ss.p0IsAI) {
+      console.log('[GameOrchestrator] 🤖 P0 AI mode ENABLED - Full AI vs AI game');
+    }
+
     void this.loop();
   }
 
@@ -171,6 +179,10 @@ export class GameOrchestrator {
         this.gs.applyState(ended);
         this.pushEventAndUpdateModel({ type: 'END', turn: ended.turn, ts: now() });
         this.gs.setEnded(ended);
+        
+        // 记录游戏结束
+        gameLogger.endGame(ended, res);
+        
         break;
       }
 
@@ -184,9 +196,15 @@ export class GameOrchestrator {
       let action: Action;
       if (legal.length === 1 && legal[0].type === 'DRAW') {
         action = legal[0];
+      } else if (legal.length === 1) {
+        // 如果只有一个合法动作，直接使用它（例如 AI 在换三张阶段自动选择）
+        action = legal[0];
       } else {
         action = await this.decideAction(actor, state, legal);
       }
+
+      // 记录动作
+      gameLogger.logAction(state, actor, action);
 
       const ctx: AgentDecisionContext = { style: makeAgentStyleContext(state, actor) };
 
@@ -286,12 +304,25 @@ export class GameOrchestrator {
       style: makeAgentStyleContext(state, actor),
       opponentSnapshot: this.opponentModel.getSnapshot(state, actor),
     };
-    if (actor === 'P0') {
-      const res = await this.human.awaitAction(legal, 30_000);
+    
+    // 检查 P0 是否为 AI 模式
+    if (actor === 'P0' && !this.ss.p0IsAI) {
+      // 换三张和定缺阶段不使用超时机制，避免卡住
+      const isSpecialPhase = state.phase === 'EXCHANGE' || state.phase === 'DING_QUE';
+      const timeout = isSpecialPhase ? Infinity : (this.ss.timeoutEnabled ? this.ss.timeoutMs : Infinity);
+      
+      const res = await this.human.awaitAction(legal, timeout);
       if (res) return res;
       return this.pickAlgoAction(state, actor, legal, 'mid', ctx);
     }
 
+    // P0 AI 模式或其他 AI 玩家 - 直接使用算法选择，无延迟
+    if (actor === 'P0' && this.ss.p0IsAI) {
+      // P0 AI 模式：直接使用算法决策，快速执行
+      return this.pickAlgoAction(state, actor, legal, 'mid', ctx);
+    }
+
+    // 其他 AI 玩家
     return await this.agents[actor].decide(state, actor, legal, ctx);
   }
 }

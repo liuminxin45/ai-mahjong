@@ -96,24 +96,114 @@
 
 - 不碰、不杠、不胡、不计分
 - 仅做 4 人轮转：
-  - 手牌 13：只能 `DRAW`
-  - 手牌 14：必须 `DISCARD`
-  - `DISCARD` 后进入“响应窗口”（`lastDiscard`），随后由 `resolveReactions` 进入下一家
-- 牌墙为空即结束：`wall.length === 0`
-- `applyAction` 为纯函数：不修改传入 `state`
-
-## chengdu 规则包说明（第三阶段：响应窗口）
 
 位置：`src/core/rules/packs/chengdu`
 
-- 在 placeholder 基础上加入“出牌响应窗口”：
-  - 出牌后，其他玩家可响应：PASS / PENG / GANG（明杠占坑）/ HU（弱判定）
-  - 胡牌弱判定：`shantenWithMelds(hand + discard, meldCount) === -1`
-- 裁决优先级：
-  - HU > GANG > PENG > PASS
-  - 支持多人同时胡（血战占坑：已胡玩家后续不再响应）
-- 裁决逻辑全部在 RulePack 内完成：
-  - `getLegalActions` 决定谁能响应什么
+### 核心功能
+
+**1. 响应窗口机制**
+- 出牌后，其他玩家可响应：PASS / PENG / GANG / HU
+- 优先级：HU > GANG > PENG > PASS
+- 支持多家同时胡牌
+
+**2. 杠牌类型与补牌**
+- **明杠（MING）**：响应他人出牌，手牌有 3 张，杠后从牌墙摸一张
+- **暗杠（AN）**：自己摸到 4 张相同牌，杠后从牌墙摸一张
+- **加杠（JIA）**：碰后再摸到第 4 张，升级为杠，杠后从牌墙摸一张
+- **杠后摸牌**：所有杠牌后自动从牌墙补一张牌
+- **抢杠胡响应窗口**：加杠时其他玩家可以抢杠胡
+
+**3. 胡牌判定**
+- **点炮胡**：响应他人出牌
+- **自摸胡**：自己摸牌胡
+- **杠上开花**：杠后摸牌立即胡牌（自动检测）
+- **抢杠胡**：抢他人加杠的牌胡牌（自动检测）
+- **和牌型判断**：
+  - 4 组面子（顺子/刻子）+ 1 对将
+  - 七对子（特殊牌型）
+
+**4. 番型系统**（`patterns.ts`）
+
+支持的番型：
+- **平胡**（1番）：基础胡牌
+- **自摸**（1番）：自己摸牌胡
+- **门清**（1番）：无副露
+- **对对胡**（2番）：全刻子
+- **全带幺**（2番）：每组都有幺九
+- **杠上开花**（2番）：杠后摸牌胡
+- **抢杠胡**（2番）：抢他人加杠
+- **海底捞月**（2番）：最后一张牌胡
+- **七对子**（4番）：7 对牌
+- **清一色**（6番）：单一花色
+
+**5. 计分系统**（`patterns.ts`）
+
+基于番数计算得分：
+- 1-2 番：500-1000 分
+- 3-4 番：1500-2000 分
+- 6-8 番：3000-4000 分
+- 11+ 番：6000-8000 分
+
+**6. 游戏结束判定**
+- 所有玩家胡牌
+- 牌墙为空（流局）
+
+### 模块化设计
+
+```bash
+src/core/rules/packs/chengdu/
+├── index.ts           # 主规则包实现
+├── patterns.ts        # 番型判断与计分系统
+├── utils.ts           # 工具函数（牌操作、状态判断）
+└── rule.config.ts     # 配置文件
+```
+
+**设计原则**：
+- **抽象隔离**：番型判断、工具函数独立模块
+- **类型安全**：完整的 TypeScript 类型定义
+- **可扩展性**：新增番型只需修改 `patterns.ts`
+- **可测试性**：纯函数设计，易于单元测试
+
+### 与 placeholder 的区别
+
+| 功能 | placeholder | chengdu |
+|------|-------------|---------|
+| 碰牌 | ❌ | ✅ |
+| 杠牌 | ❌ | ✅（明/暗/加） |
+| 胡牌 | ❌ | ✅（点炮/自摸） |
+| 番型判断 | ❌ | ✅（10+ 种） |
+| 计分系统 | ❌ | ✅ |
+| 多家胡牌 | ❌ | ✅ |
+
+### 使用示例
+
+```typescript
+import { chengduRulePack } from './core/rules/packs/chengdu';
+
+// 初始化游戏
+const state = chengduRulePack.buildInitialState();
+
+// 获取合法动作
+const actions = chengduRulePack.getLegalActions(state, 'P0');
+// 可能返回：[DRAW, DISCARD, PENG, GANG, HU, PASS]
+
+// 应用动作
+const nextState = chengduRulePack.applyAction(state, action);
+
+// 解析响应
+const result = chengduRulePack.resolveReactions(state, reactions);
+// 返回新状态和事件列表（包含番型、得分信息）
+```
+
+### 扩展新规则包的建议
+
+基于 chengdu 的模块化设计，新增规则包时：
+
+1. **继承基础功能**：`...placeholderRulePack` 或 `...chengduRulePack`
+2. **独立模块**：将番型、计分等逻辑放在独立文件
+3. **类型扩展**：在 `Action`/`GameEvent` 中添加新字段
+4. **工具复用**：共享 `utils.ts` 中的通用函数
+5. **测试覆盖**：为新功能编写单元测试
   - `resolveReactions` 负责优先级裁决与状态更新
 
 ## 新增 RulePack 示例

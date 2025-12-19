@@ -1,7 +1,7 @@
 import type { Tile } from './tile';
 import type { PlayerId } from './types';
 
-export type Phase = 'INIT' | 'PLAYING' | 'END';
+export type Phase = 'INIT' | 'PLAYING' | 'END' | string; // 允许规则包自定义阶段
 
 export type MeldType = 'PENG' | 'GANG';
 
