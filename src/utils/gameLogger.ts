@@ -15,6 +15,12 @@ interface GameLogEntry {
   actor: PlayerId;
   action: Action;
   handSizes: Record<PlayerId, number>;
+  actorHand?: string[];
+  actorMelds?: Array<{ type: string; tile: string; from: PlayerId }>;
+  actorDiscards?: string[];
+  lastDiscard?: { tile: string; from: PlayerId } | null;
+  dingQueSelection?: Partial<Record<PlayerId, 'W' | 'B' | 'T' | undefined>>;
+  legalActionTypes?: string[];
   timestamp: number;
 }
 
@@ -43,6 +49,20 @@ class GameLogger {
     // 始终记录动作到内部日志
     // 控制台输出可以通过浏览器控制台过滤
 
+    const actorHand = state.hands[actor].map((t) => this.formatTile(t));
+    const actorMelds = state.melds[actor].map((m) => ({
+      type: m.type,
+      tile: this.formatTile(m.tile),
+      from: m.from,
+    }));
+    const actorDiscards = state.discards[actor].map((t) => this.formatTile(t));
+
+    const dingQueSelection = (state as any).dingQueSelection as
+      | Partial<Record<PlayerId, 'W' | 'B' | 'T' | undefined>>
+      | undefined;
+
+    const legalActionTypes = (globalThis as any).__lastLegalActions?.[actor] as string[] | undefined;
+
     const entry: GameLogEntry = {
       turn: state.turn,
       phase: state.phase,
@@ -54,6 +74,14 @@ class GameLogger {
         P2: state.hands.P2.length,
         P3: state.hands.P3.length,
       },
+      actorHand,
+      actorMelds,
+      actorDiscards,
+      lastDiscard: state.lastDiscard
+        ? { tile: this.formatTile(state.lastDiscard.tile), from: state.lastDiscard.from }
+        : null,
+      dingQueSelection,
+      legalActionTypes,
       timestamp: Date.now() - this.gameStartTime,
     };
 

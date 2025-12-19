@@ -64,6 +64,20 @@ export class GameOrchestrator {
   private running = false;
   private state: GameState | null = null;
 
+  private setLastLegalActions(playerId: PlayerId, legal: Action[]): void {
+    const g = globalThis as any;
+    if (!g.__lastLegalActions) g.__lastLegalActions = {};
+    g.__lastLegalActions[playerId] = legal.map((a: Action) => {
+      if (a.type === 'DISCARD' && 'tile' in a) return `DISCARD:${tileToString(a.tile)}`;
+      if (a.type === 'PENG' && 'tile' in a) return `PENG:${tileToString(a.tile)}`;
+      if (a.type === 'GANG' && 'tile' in a) return `GANG:${tileToString(a.tile)}`;
+      if (a.type === 'HU' && 'tile' in a && a.tile) return `HU:${tileToString(a.tile)}`;
+      if (a.type === 'DING_QUE' && 'suit' in a) return `DING_QUE:${a.suit}`;
+      if (a.type === 'EXCHANGE_SELECT' && 'tiles' in a) return `EXCHANGE_SELECT:${a.tiles.map(tileToString).join(',')}`;
+      return a.type;
+    });
+  }
+
   constructor(
     rulePack: RulePack = placeholderRulePack,
     agents?: Record<PlayerId, PlayerAgent>,
@@ -258,6 +272,7 @@ export class GameOrchestrator {
 
       const actor = this.rulePack.getCurrentActor(state);
       let legal = this.rulePack.getLegalActions(state, actor);
+      this.setLastLegalActions(actor, legal);
       const actionable = legal.filter((a) => a.type !== 'PASS');
 
       if (
@@ -270,6 +285,7 @@ export class GameOrchestrator {
         const recoveryAction = this.buildRecoveryAction(state, actor);
         if (recoveryAction) {
           legal = [recoveryAction];
+          this.setLastLegalActions(actor, legal);
           console.warn('[DeadlockGuard] Recovery action selected:', recoveryAction.type);
         } else {
           console.error('[DeadlockGuard] Unable to recover from PASS-only state. Stopping game.');
@@ -292,6 +308,17 @@ export class GameOrchestrator {
         action = legal[0];
       } else {
         action = await this.decideAction(actor, state, legal);
+      }
+
+      if (!state.lastDiscard && actor === state.currentPlayer && action.type === 'PASS') {
+        console.warn('[DeadlockGuard] Active player attempted PASS during own turn. Forcing recovery action.');
+        const recoveryAction = this.buildRecoveryAction(state, actor);
+        if (!recoveryAction) {
+          this.stop();
+          alert('Game entered invalid PASS state. Game stopped. Please check console for details.');
+          throw new Error(`Active player ${actor} produced PASS action during own turn with no recovery available.`);
+        }
+        action = recoveryAction;
       }
 
       // 记录动作
@@ -414,9 +441,14 @@ export class GameOrchestrator {
       .filter((pid) => !state.declaredHu[pid])
       .map(async (pid) => {
         const legal = this.rulePack.getLegalActions(state, pid);
+        this.setLastLegalActions(pid, legal);
         if (legal.length === 0) return null;
-        if (legal.length === 1 && legal[0].type === 'PASS') return null;
+        if (legal.length === 1 && legal[0].type === 'PASS') {
+          gameLogger.logAction(state, pid, legal[0]);
+          return null;
+        }
         const action = await this.decideAction(pid, state, legal);
+        gameLogger.logAction(state, pid, action);
         if (action.type === 'PASS') return null;
         return { playerId: pid, action };
       });
