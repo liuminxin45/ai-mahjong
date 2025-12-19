@@ -257,7 +257,28 @@ export class GameOrchestrator {
       }
 
       const actor = this.rulePack.getCurrentActor(state);
-      const legal = this.rulePack.getLegalActions(state, actor);
+      let legal = this.rulePack.getLegalActions(state, actor);
+      const actionable = legal.filter((a) => a.type !== 'PASS');
+
+      if (
+        !state.lastDiscard &&
+        actor === state.currentPlayer &&
+        !state.declaredHu[actor] &&
+        actionable.length === 0
+      ) {
+        console.warn('[DeadlockGuard] Detected PASS-only options for active player. Attempting recovery...');
+        const recoveryAction = this.buildRecoveryAction(state, actor);
+        if (recoveryAction) {
+          legal = [recoveryAction];
+          console.warn('[DeadlockGuard] Recovery action selected:', recoveryAction.type);
+        } else {
+          console.error('[DeadlockGuard] Unable to recover from PASS-only state. Stopping game.');
+          this.stop();
+          alert('Game entered invalid PASS-only state. Game stopped. Please check console for details.');
+          throw new Error(`PASS-only state for ${actor} with no recovery action`);
+        }
+      }
+
       if (legal.length === 0) {
         this.stop();
         break;
@@ -402,6 +423,39 @@ export class GameOrchestrator {
 
     const decided = (await Promise.all(tasks)).filter(Boolean) as Array<{ playerId: PlayerId; action: Action }>;
     return this.rulePack.resolveReactions(state, decided);
+  }
+
+  private buildRecoveryAction(state: GameState, actor: PlayerId): Action | null {
+    const hand = state.hands[actor];
+    const meldCount = state.melds[actor].length;
+    const base = 13 - meldCount * 3;
+
+    if (hand.length === base) {
+      if (state.wall.length === 0) {
+        console.error('[DeadlockGuard] Wall empty during DRAW recovery');
+        return null;
+      }
+      return { type: 'DRAW' };
+    }
+
+    if (hand.length === base + 1) {
+      let candidates = [...hand];
+      if (this.discardValidator) {
+        const legalTiles = this.discardValidator.getLegalDiscards(state, actor);
+        if (legalTiles.length > 0) {
+          candidates = legalTiles;
+        }
+      }
+      const tile = candidates[0];
+      if (!tile) {
+        console.error('[DeadlockGuard] No tiles available to discard during recovery');
+        return null;
+      }
+      return { type: 'DISCARD', tile };
+    }
+
+    console.error('[DeadlockGuard] Unexpected hand size during recovery:', hand.length, 'base:', base);
+    return null;
   }
 
   private pickAlgoAction(state: GameState, playerId: PlayerId, legal: Action[], d: Difficulty, ctx?: AgentDecisionContext): Action {
