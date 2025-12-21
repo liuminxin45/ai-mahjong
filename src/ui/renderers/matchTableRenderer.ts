@@ -5,12 +5,17 @@ import { renderGameLogPanel } from '../components/GameLogPanel';
 import { renderDiscardGrid } from '../components/DiscardGrid';
 import { renderTile } from '../components/tileView';
 import { renderAIParamsPanel } from '../components/AIParamsPanel';
+import { renderChatAssistantButton } from '../components/LLMChatAssistant';
+import { initLLMConfig } from '../components/LLMSettingsPanel';
 import type { Action } from '../../core/model/action';
 import type { Tile } from '../../core/model/tile';
 import type { PlayerId } from '../../core/model/types';
 import type { Meld } from '../../core/model/state';
 import { sortTiles } from '../../core/rules/packs/chengdu/sort';
 import { languageStore } from '../../store/languageStore';
+
+// 初始化LLM配置
+initLLMConfig();
 
 export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   const s = ctx.gameStore.state;
@@ -345,6 +350,17 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   const aiParamsPanel = renderAIParamsPanel();
   aiParamsPanel.id = 'ai-params-panel';
   root.appendChild(aiParamsPanel);
+  
+  // 添加 LLM 聊天助手按钮（仅在真人模式下显示）
+  if (!ctx.settingsStore.p0IsAI) {
+    const existingChatBtn = document.getElementById('llm-chat-btn');
+    if (existingChatBtn) {
+      existingChatBtn.remove();
+    }
+    const chatBtn = renderChatAssistantButton(s);
+    chatBtn.id = 'llm-chat-btn';
+    root.appendChild(chatBtn);
+  }
 }
 function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   root.innerHTML = '';
