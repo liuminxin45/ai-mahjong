@@ -3,7 +3,7 @@ import type { GameEvent } from '../../../model/event';
 import type { GameState, Meld } from '../../../model/state';
 import type { Tile } from '../../../model/tile';
 import { nextPlayerId, type PlayerId } from '../../../model/types';
-import type { RulePack } from '../../RulePack';
+import type { RulePack, RoundResult } from '../../RulePack';
 import type { DiscardValidator } from '../../validation/types';
 import { placeholderRulePack } from '../placeholder';
 import { ruleConfig } from './rule.config';
@@ -13,16 +13,149 @@ import { selectExchangeTiles, selectDingQueSuit } from './aiStrategy';
 import { sortTiles } from './sort';
 import { settingsStore } from '../../../../store/settingsStore';
 import { createChengduValidator } from './validator';
-import {
-  tileEq,
-  removeNTiles,
-  removeTile,
-  countTile,
-  canUpgradeToGang,
-  isWallEmpty,
-  isLastTileInWall,
-  getAllActivePlayers,
-} from './utils';
+import { tileEq, removeNTiles, removeTile, countTile, canUpgradeToGang, isLastTileInWall } from './utils';
+
+const PLAYERS: PlayerId[] = ['P0', 'P1', 'P2', 'P3'];
+
+type DealInStat = { count: number; stageB: number; stageC: number };
+type DealInStats = Record<PlayerId, DealInStat>;
+
+function createZeroScores(): Record<PlayerId, number> {
+  return { P0: 0, P1: 0, P2: 0, P3: 0 };
+}
+
+function inheritChengduState(prev: ChengduState, next: GameState): ChengduState {
+  const nextChengdu = next as ChengduState;
+  const merged: ChengduState = {
+    ...nextChengdu,
+    roundScores: nextChengdu.roundScores ?? prev.roundScores,
+    dealInStats: nextChengdu.dealInStats ?? prev.dealInStats,
+    exchangeSelections: nextChengdu.exchangeSelections ?? prev.exchangeSelections,
+    exchangeConfirmed: nextChengdu.exchangeConfirmed ?? prev.exchangeConfirmed,
+    dingQueSelection: nextChengdu.dingQueSelection ?? prev.dingQueSelection,
+    lastGangPlayer: nextChengdu.lastGangPlayer ?? prev.lastGangPlayer,
+    isAfterGang: nextChengdu.isAfterGang ?? prev.isAfterGang,
+    lastAddedGangTile: nextChengdu.lastAddedGangTile ?? prev.lastAddedGangTile,
+    pendingEvents: nextChengdu.pendingEvents ?? prev.pendingEvents,
+    lastPengTile: nextChengdu.lastPengTile ?? prev.lastPengTile,
+  };
+
+  if (next.phase !== 'END') {
+    merged.phase = next.phase;
+  } else {
+    merged.phase = prev.phase;
+  }
+
+  return merged;
+}
+
+function createDealInStats(): DealInStats {
+  return {
+    P0: { count: 0, stageB: 0, stageC: 0 },
+    P1: { count: 0, stageB: 0, stageC: 0 },
+    P2: { count: 0, stageB: 0, stageC: 0 },
+    P3: { count: 0, stageB: 0, stageC: 0 },
+  };
+}
+
+function cloneScores(scores: Record<PlayerId, number>): Record<PlayerId, number> {
+  return {
+    P0: scores.P0,
+    P1: scores.P1,
+    P2: scores.P2,
+    P3: scores.P3,
+  };
+}
+
+function cloneDealIns(dealIns: DealInStats): DealInStats {
+  return {
+    P0: { ...dealIns.P0 },
+    P1: { ...dealIns.P1 },
+    P2: { ...dealIns.P2 },
+    P3: { ...dealIns.P3 },
+  };
+}
+
+function ensureRoundTracking(state: ChengduState): void {
+  if (!state.roundScores) {
+    state.roundScores = createZeroScores();
+  }
+  if (!state.dealInStats) {
+    state.dealInStats = createDealInStats();
+  }
+}
+
+function addScore(state: ChengduState, playerId: PlayerId, delta: number): void {
+  ensureRoundTracking(state);
+  state.roundScores![playerId] += delta;
+}
+
+function recordDealIn(state: ChengduState, playerId: PlayerId, stage: 'A' | 'B' | 'C'): void {
+  ensureRoundTracking(state);
+  const stats = state.dealInStats![playerId];
+  stats.count += 1;
+  if (stage === 'B') stats.stageB += 1;
+  if (stage === 'C') stats.stageC += 1;
+}
+
+function getDealInStage(state: GameState, playerId: PlayerId): 'A' | 'B' | 'C' {
+  if (state.declaredHu[playerId]) return 'C';
+  const hasOtherWinners = PLAYERS.some((pid) => pid !== playerId && state.declaredHu[pid]);
+  return hasOtherWinners ? 'B' : 'A';
+}
+
+function applyRonOutcome(
+  state: ChengduState,
+  winner: PlayerId,
+  from: PlayerId,
+  score: number,
+  snapshot: GameState,
+): void {
+  if (score <= 0) return;
+  addScore(state, winner, score);
+  addScore(state, from, -score);
+  recordDealIn(state, from, getDealInStage(snapshot, from));
+}
+
+function applySelfDrawOutcome(state: ChengduState, winner: PlayerId, score: number): void {
+  if (score <= 0) return;
+  ensureRoundTracking(state);
+  addScore(state, winner, score);
+  const losers = PLAYERS.filter((pid) => pid !== winner && !state.declaredHu[pid]);
+  if (losers.length === 0) return;
+  let remaining = score;
+  const base = Math.floor(score / losers.length);
+  for (let i = 0; i < losers.length; i++) {
+    let loss = base;
+    if (i === losers.length - 1) {
+      loss = remaining;
+    } else {
+      remaining -= base;
+    }
+    addScore(state, losers[i], -loss);
+  }
+}
+
+function evaluateSelfDrawScore(state: GameState, playerId: PlayerId, isGangShangKaiHua: boolean): number {
+  const hand = state.hands[playerId];
+  if (!hand || hand.length === 0) return 0;
+  const winTile = hand[hand.length - 1];
+  const patterns = findWinPatterns(hand);
+  const validPattern = patterns && patterns.find((p) => p && p.isValid);
+  if (!validPattern) return 0;
+  const gangCount = state.melds[playerId].filter((m) => m.type === 'GANG').length;
+  const yakuList = detectYaku(
+    validPattern,
+    hand,
+    winTile,
+    true,
+    state.melds[playerId].length,
+    isGangShangKaiHua,
+    false,
+    isLastTileInWall(state),
+  );
+  return calculateScore(yakuList, gangCount);
+}
 
 type ChengduState = GameState & {
   lastGangPlayer?: PlayerId;
@@ -30,6 +163,8 @@ type ChengduState = GameState & {
   lastAddedGangTile?: { tile: Tile; from: PlayerId };
   pendingEvents?: GameEvent[];
   lastPengTile?: Tile;
+  roundScores?: Record<PlayerId, number>;
+  dealInStats?: DealInStats;
   // 换三张相关状态
   exchangeSelections?: Record<PlayerId, Tile[]>;
   exchangeConfirmed?: Record<PlayerId, boolean>;
@@ -155,6 +290,9 @@ export const chengduRulePack: RulePack = {
       exchangeSelections: { P0: [], P1: [], P2: [], P3: [] },
       exchangeConfirmed: { P0: false, P1: false, P2: false, P3: false },
       dingQueSelection: { P0: undefined, P1: undefined, P2: undefined, P3: undefined },
+      // 初始化计分和放炮统计，确保训练时能正确提取
+      roundScores: createZeroScores(),
+      dealInStats: createDealInStats(),
     } as ChengduState;
   },
 
@@ -575,7 +713,8 @@ export const chengduRulePack: RulePack = {
         return state;
       }
 
-      const result = placeholderRulePack.applyAction(state, action);
+      const baseResult = placeholderRulePack.applyAction(state, action);
+      const result = inheritChengduState(chengduState, baseResult);
       return {
         ...result,
         isAfterGang: false,
@@ -587,20 +726,34 @@ export const chengduRulePack: RulePack = {
 
     // 自摸胡处理
     if (action.type === 'HU' && action.from === state.currentPlayer && !state.lastDiscard) {
-      const isGangShangKaiHua = chengduState.isAfterGang && chengduState.lastGangPlayer === action.from;
-      return {
+      const isGangShangKaiHua = !!(
+        chengduState.isAfterGang && chengduState.lastGangPlayer === action.from
+      );
+      const next: ChengduState = {
         ...state,
         declaredHu: { ...state.declaredHu, [action.from]: true },
         isAfterGang: false,
         meta: { isGangShangKaiHua },
+        phase: 'END',
+        lastDiscard: null,
+        currentPlayer: action.from,
       } as ChengduState;
+      const selfDrawScore = evaluateSelfDrawScore(next, action.from, isGangShangKaiHua);
+      if (selfDrawScore > 0) {
+        applySelfDrawOutcome(next, action.from, selfDrawScore);
+      }
+      return next;
     }
 
     if (!state.lastDiscard) {
-      return placeholderRulePack.applyAction(state, action);
+      const baseResult = placeholderRulePack.applyAction(state, action);
+      return inheritChengduState(chengduState, baseResult);
     }
 
-    if (action.type === 'PASS') return placeholderRulePack.applyAction(state, action);
+    if (action.type === 'PASS') {
+      const baseResult = placeholderRulePack.applyAction(state, action);
+      return inheritChengduState(chengduState, baseResult);
+    }
     if (action.type === 'PENG' || action.type === 'GANG' || action.type === 'HU') return state;
     return state;
   },
@@ -617,10 +770,9 @@ export const chengduRulePack: RulePack = {
 
     // 处理抢杠胡
     if (chengduState.lastAddedGangTile) {
-      const qiangGangHu = reactions.filter(r => 
-        r.action.type === 'HU' && 
-        r.action.tile && 
-        tileEq(r.action.tile, chengduState.lastAddedGangTile!.tile)
+      const gangTile = chengduState.lastAddedGangTile;
+      const qiangGangHu = reactions.filter(
+        (r) => r.action.type === 'HU' && r.action.tile && tileEq(r.action.tile, gangTile.tile),
       );
 
       if (qiangGangHu.length > 0) {
@@ -630,71 +782,72 @@ export const chengduRulePack: RulePack = {
         const baseTs = now();
 
         for (const r of qiangGangHu) {
+          const snapshot = { ...state };
           declaredHu[r.playerId] = true;
-          const hand = state.hands[r.playerId].concat([chengduState.lastAddedGangTile.tile]);
+          const hand = state.hands[r.playerId].concat([gangTile.tile]);
           const patterns = findWinPatterns(hand);
-          const validPattern = patterns && patterns.find(p => p && p.isValid);
+          const validPattern = patterns && patterns.find((p) => p && p.isValid);
 
           if (validPattern) {
+            const gangCount = state.melds[r.playerId].filter((m) => m.type === 'GANG').length;
             const yakuList = detectYaku(
               validPattern,
               hand,
-              chengduState.lastAddedGangTile.tile,
+              gangTile.tile,
               false,
               state.melds[r.playerId].length,
               false,
               true,
-              isLastTileInWall(state)
+              isLastTileInWall(state),
             );
-            const score = calculateScore(yakuList);
+            const score = calculateScore(yakuList, gangCount);
+            applyRonOutcome(chengduState, r.playerId, gangTile.from, score, snapshot);
 
             events.push({
               type: 'HU',
               playerId: r.playerId,
-              tile: chengduState.lastAddedGangTile.tile,
-              from: chengduState.lastAddedGangTile.from,
+              tile: gangTile.tile,
+              from: gangTile.from,
               turn: baseTurn,
               ts: baseTs,
               meta: { yakuList, score, isQiangGang: true },
             });
+          } else {
+            events.push({
+              type: 'HU',
+              playerId: r.playerId,
+              tile: gangTile.tile,
+              from: gangTile.from,
+              turn: baseTurn,
+              ts: baseTs,
+            });
           }
         }
 
-        const activePlayers = getAllActivePlayers({ ...state, declaredHu });
-        if (activePlayers.length === 0 || isWallEmpty(state)) {
-          const next: GameState = {
-            ...state,
-            declaredHu,
-            lastAddedGangTile: undefined,
-            phase: 'END',
-          } as ChengduState;
-          events.push({ type: 'END', turn: baseTurn, ts: baseTs, reason: 'QIANG_GANG_HU' });
-          return { state: next, events };
-        }
-
-        const nextP = nextActivePlayer({ ...state, declaredHu }, chengduState.lastAddedGangTile.from);
+        const nextP = nextActivePlayer({ ...state, declaredHu }, gangTile.from);
         const next: GameState = {
           ...state,
           declaredHu,
           lastAddedGangTile: undefined,
+          lastDiscard: null,
           currentPlayer: nextP,
+          phase: 'END',
         } as ChengduState;
 
         events.push({ type: 'TURN', playerId: nextP, turn: next.turn, ts: baseTs });
         return { state: next, events };
       }
 
-      // 没有抢杠胡，继续补牌
+      // 没有抢杠胡，杠牌玩家补牌
       if (state.wall.length > 0) {
         const drawnTile = state.wall[0];
         const newWall = state.wall.slice(1);
-        const gangPlayer = chengduState.lastAddedGangTile.from;
-        const newHand = [...state.hands[gangPlayer], drawnTile];
+        const gangPlayer = gangTile.from;
 
         const next: GameState = {
           ...state,
           wall: newWall,
-          hands: { ...state.hands, [gangPlayer]: newHand },
+          hands: { ...state.hands, [gangPlayer]: state.hands[gangPlayer].concat([drawnTile]) },
           lastAddedGangTile: undefined,
           lastGangPlayer: gangPlayer,
           isAfterGang: true,
@@ -702,6 +855,8 @@ export const chengduRulePack: RulePack = {
 
         return { state: next, events: [] };
       }
+
+      return { state, events: [] };
     }
 
     if (!state.lastDiscard) return { state, events: [] };
@@ -722,14 +877,16 @@ export const chengduRulePack: RulePack = {
     if (hu.length > 0) {
       const declaredHu = { ...state.declaredHu };
       const events: GameEvent[] = [];
-      
+
       for (const r of hu) {
+        const snapshot = { ...state };
         declaredHu[r.playerId] = true;
         const hand = state.hands[r.playerId].concat([discard.tile]);
         const patterns = findWinPatterns(hand);
-        const validPattern = patterns && patterns.find(p => p && p.isValid);
-        
+        const validPattern = patterns && patterns.find((p) => p && p.isValid);
+
         if (validPattern) {
+          const gangCount = state.melds[r.playerId].filter((m) => m.type === 'GANG').length;
           const yakuList = detectYaku(
             validPattern,
             hand,
@@ -738,10 +895,11 @@ export const chengduRulePack: RulePack = {
             state.melds[r.playerId].length,
             false,
             false,
-            isLastTileInWall(state)
+            isLastTileInWall(state),
           );
-          const score = calculateScore(yakuList);
-          
+          const score = calculateScore(yakuList, gangCount);
+          applyRonOutcome(chengduState, r.playerId, discard.from, score, snapshot);
+
           events.push({
             type: 'HU',
             playerId: r.playerId,
@@ -752,7 +910,14 @@ export const chengduRulePack: RulePack = {
             meta: { yakuList, score },
           });
         } else {
-          events.push({ type: 'HU', playerId: r.playerId, tile: discard.tile, from: discard.from, turn: baseTurn, ts: baseTs });
+          events.push({
+            type: 'HU',
+            playerId: r.playerId,
+            tile: discard.tile,
+            from: discard.from,
+            turn: baseTurn,
+            ts: baseTs,
+          });
         }
       }
 
@@ -762,9 +927,12 @@ export const chengduRulePack: RulePack = {
         declaredHu,
         lastDiscard: null,
         currentPlayer: nextP,
+        phase: 'END',
       };
 
-      events.push({ type: 'TURN', playerId: nextP, turn: next.turn, ts: baseTs });
+      if (next.phase !== 'END') {
+        events.push({ type: 'TURN', playerId: nextP, turn: next.turn, ts: baseTs });
+      }
       return { state: next, events };
     }
 
@@ -781,7 +949,6 @@ export const chengduRulePack: RulePack = {
         return { state: next, events: [{ type: 'TURN', playerId: nextP, turn: next.turn, ts: baseTs }] };
       }
 
-      // 状态一致性检查
       if (state.wall.length === 0) {
         console.warn('Cannot draw tile for MING gang: wall is empty');
         const nextP = nextActivePlayer({ ...state }, discard.from);
@@ -855,19 +1022,18 @@ export const chengduRulePack: RulePack = {
   },
 
   isRoundEnd(state: GameState): boolean {
-    return state.wall.length === 0 || state.phase === 'END';
+    if (state.wall.length === 0 || state.phase === 'END') {
+      return true;
+    }
+    return Object.values(state.declaredHu).some(Boolean);
   },
 
-  settleRound(state: GameState): { winners: PlayerId[]; scores: Record<PlayerId, number> } {
-    const winners: PlayerId[] = [];
-    const scores: Record<PlayerId, number> = { P0: 0, P1: 0, P2: 0, P3: 0 };
-    
-    for (const pid of ['P0', 'P1', 'P2', 'P3'] as PlayerId[]) {
-      if (state.declaredHu[pid]) {
-        winners.push(pid);
-      }
-    }
-    
-    return { winners, scores };
+  settleRound(state: GameState): RoundResult {
+    const chengduState = state as ChengduState;
+    ensureRoundTracking(chengduState);
+    return {
+      scores: cloneScores(chengduState.roundScores!),
+      dealIns: cloneDealIns(chengduState.dealInStats!),
+    };
   },
 };

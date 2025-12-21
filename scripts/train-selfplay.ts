@@ -13,9 +13,9 @@ import type { TrainingConfig } from '../src/training/autoRun';
 import { loadParams, saveParams } from '../src/training/paramPersistence';
 
 // 解析命令行参数
-function parseArgs(): Partial<TrainingConfig> {
+function parseArgs(): Partial<TrainingConfig> & { seed?: number } {
   const args = process.argv.slice(2);
-  const config: Partial<TrainingConfig> = {};
+  const config: Partial<TrainingConfig> & { seed?: number } = {};
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -23,6 +23,7 @@ function parseArgs(): Partial<TrainingConfig> {
 
     switch (arg) {
       case '--games':
+      case '--totalGames':
         config.totalGames = parseInt(next, 10);
         i++;
         break;
@@ -35,11 +36,21 @@ function parseArgs(): Partial<TrainingConfig> {
         i++;
         break;
       case '--batch':
+      case '--batchSize':
         config.batchSize = parseInt(next, 10);
         i++;
         break;
+      case '--rule':
+      case '--ruleId':
+        config.ruleId = next as 'chengdu' | 'placeholder';
+        i++;
+        break;
+      case '--trainPlayer':
+        config.trainPlayerId = next as 'P0' | 'P1' | 'P2' | 'P3';
+        i++;
+        break;
       case '--seed':
-        // 种子将在 AutoTrainer 中使用
+        config.seed = parseInt(next, 10);
         i++;
         break;
       case '--verbose':
@@ -63,13 +74,15 @@ Usage:
   npm run train [options]
 
 Options:
-  --games <number>       Number of games to train (default: 100)
-  --blocking <boolean>   Use blocking mode for faster training (default: false)
-  --mode <string>        Training mode: 'baseline' or 'mirror' (default: baseline)
-  --batch <number>       Batch size for parameter updates (default: 1)
-  --seed <number>        Random seed for reproducibility
-  --verbose              Enable verbose logging
-  --help                 Show this help message
+  --games, --totalGames <number>   Number of games to train (default: 100)
+  --blocking <boolean>             Use blocking mode for faster training (default: false)
+  --mode <string>                  Training mode: 'baseline' or 'mirror' (default: baseline)
+  --batch, --batchSize <number>    Batch size for parameter updates (default: 10)
+  --rule, --ruleId <string>        Rule pack: 'chengdu' or 'placeholder' (default: chengdu)
+  --trainPlayer <P0|P1|P2|P3>      Player to train (default: P0)
+  --seed <number>                  Random seed for reproducibility
+  --verbose                        Enable verbose logging
+  --help                           Show this help message
 
 Examples:
   npm run train -- --games 1000 --blocking true
@@ -104,6 +117,9 @@ async function main(): Promise<void> {
   console.log(`  Mode: ${config.mode}`);
   console.log(`  Blocking: ${config.blocking}`);
   console.log(`  Batch Size: ${config.batchSize}`);
+  console.log(`  Rule: ${config.ruleId}`);
+  console.log(`  Train Player: ${config.trainPlayerId}`);
+  console.log(`  Seed: ${cliConfig.seed ?? 'auto'}`);
   console.log(`  Verbose: ${config.verbose}`);
   console.log('');
 
@@ -130,7 +146,8 @@ async function main(): Promise<void> {
       if (config.verbose) {
         console.log(JSON.stringify(log, null, 2));
       }
-    }
+    },
+    cliConfig.seed  // 传递 seed 参数
   );
 
   // 监听进度

@@ -5,15 +5,24 @@ export function renderDiscardGrid(discards: Tile[]): HTMLElement {
   const grid = document.createElement('div');
   grid.className = 'discard-grid';
   grid.style.display = 'grid';
-  grid.style.gridTemplateColumns = 'repeat(8, 20px)'; // 增加列数，缩小尺寸
-  grid.style.gap = '2px';
+
+  // 自适应列数：尽量维持 2~3 行，避免拥挤（中文模式牌面文字较宽）
+  const cols = Math.min(12, Math.max(6, Math.ceil(discards.length / 2)));
+  grid.style.gridTemplateColumns = `repeat(${cols}, 24px)`;
+  grid.style.gridAutoRows = '26px';
+  grid.style.gap = '3px';
   grid.style.marginTop = '4px';
+
+  // 当弃牌数量较多时进一步压缩尺寸
+  const compact = discards.length > cols * 2;
+  const size = compact ? 18 : 20;
+  const fontSize = compact ? '13px' : '14px';
 
   for (const tile of discards) {
     const tileEl = renderTile(tile);
-    tileEl.style.fontSize = '14px'; // 从 20px 减小到 14px
-    tileEl.style.width = '20px'; // 从 28px 减小到 20px
-    tileEl.style.height = '20px'; // 从 28px 减小到 20px
+    tileEl.style.fontSize = fontSize;
+    tileEl.style.width = `${size}px`;
+    tileEl.style.height = `${size}px`;
     tileEl.style.display = 'flex';
     tileEl.style.alignItems = 'center';
     tileEl.style.justifyContent = 'center';

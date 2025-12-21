@@ -12,6 +12,8 @@ export interface TrainingState {
   bestFitness: number;
   currentStep: number;
   rngSeed: number;
+  acceptCount: number;   // 累计接受次数
+  rejectCount: number;   // 累计拒绝次数
   lastResult: {
     fitness: number;
     accepted: boolean;
@@ -66,6 +68,8 @@ export function loadParams(): ParamsFile {
       bestFitness: -Infinity,
       currentStep: 0,
       rngSeed: Date.now(),
+      acceptCount: 0,
+      rejectCount: 0,
       lastResult: null,
     },
     updatedAt: new Date().toISOString(),

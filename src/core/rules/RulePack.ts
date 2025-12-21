@@ -5,6 +5,15 @@ import type { Tile } from '../model/tile';
 import type { PlayerId } from '../model/types';
 import type { DiscardValidator } from './validation/types';
 
+export interface RoundResult {
+  scores: Record<PlayerId, number>;
+  dealIns: Record<PlayerId, {
+    count: number;
+    stageB: number;
+    stageC: number;
+  }>;
+}
+
 export interface RulePack {
   id: string;
   version: string;
@@ -33,5 +42,5 @@ export interface RulePack {
   ): { state: GameState; events: GameEvent[] };
 
   isRoundEnd(state: GameState): boolean;
-  settleRound(state: GameState): unknown;
+  settleRound(state: GameState): RoundResult;
 }

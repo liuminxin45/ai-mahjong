@@ -309,7 +309,15 @@ export class GameOrchestrator {
       }
 
       let action: Action;
-      if (legal.length === 1 && legal[0].type === 'DRAW') {
+
+      // P0 人类模式：除非只能摸牌，否则始终等待用户输入，避免自动出牌
+      if (actor === 'P0' && !this.ss.p0IsAI) {
+        if (legal.length === 1 && legal[0].type === 'DRAW') {
+          action = legal[0];
+        } else {
+          action = await this.decideAction(actor, state, legal);
+        }
+      } else if (legal.length === 1 && legal[0].type === 'DRAW') {
         action = legal[0];
       } else if (legal.length === 1) {
         // 如果只有一个合法动作，直接使用它（例如 AI 在换三张阶段自动选择）
@@ -485,12 +493,33 @@ export class GameOrchestrator {
 
     if (hand.length === base + 1) {
       let candidates = [...hand];
+      
+      // If we just ponged a tile, remove it from discard candidates
+      const lastMeld = state.melds[actor]?.[state.melds[actor].length - 1];
+      if (lastMeld?.type === 'PENG') {
+        candidates = candidates.filter(tile => 
+          !(tile.suit === lastMeld.tile.suit && tile.rank === lastMeld.tile.rank)
+        );
+      }
+      
       if (this.discardValidator) {
         const legalTiles = this.discardValidator.getLegalDiscards(state, actor);
         if (legalTiles.length > 0) {
-          candidates = legalTiles;
+          // Filter out the ponged tile from legal tiles as well
+          if (lastMeld?.type === 'PENG') {
+            candidates = legalTiles.filter(tile => 
+              !(tile.suit === lastMeld.tile.suit && tile.rank === lastMeld.tile.rank)
+            );
+            // If we filtered out all legal tiles, fall back to the original legal tiles
+            if (candidates.length === 0) {
+              candidates = legalTiles;
+            }
+          } else {
+            candidates = legalTiles;
+          }
         }
       }
+      
       const tile = candidates[0];
       if (!tile) {
         console.error('[DeadlockGuard] No tiles available to discard during recovery');

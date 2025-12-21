@@ -39,16 +39,20 @@ export interface FitnessWeights {
   stageCDealInPenalty: number; // Stage C 放炮额外惩罚
   avgEVWeight: number; // 平均 EV 权重
   speedBonus: number; // 速度奖励（早胡）
+  lossPenalty: number; // 输局固定惩罚
+  drawPenalty: number; // 流局轻微惩罚
 }
 
 export const DEFAULT_FITNESS_WEIGHTS: FitnessWeights = {
   netGain: 1.0,
   firstHuBonus: 500,
-  dealInPenalty: -1000,
-  stageBDealInPenalty: -500,
-  stageCDealInPenalty: -1000,
+  dealInPenalty: -1500,
+  stageBDealInPenalty: -1000,
+  stageCDealInPenalty: -2000,
   avgEVWeight: 0.1,
   speedBonus: 0.5,
+  lossPenalty: -2000,
+  drawPenalty: -300,
 };
 
 /**
@@ -62,12 +66,19 @@ export function calculateFitness(
   
   // 1. 净收益
   fitness += metrics.finalScore * weights.netGain;
-  
+
   // 2. 首胡奖励
   if (metrics.isFirstHu) {
     fitness += weights.firstHuBonus;
   }
-  
+
+  // 2.5 固定输/流局惩罚，放大对失败的敏感度
+  if (metrics.result === 'LOSE') {
+    fitness += weights.lossPenalty;
+  } else if (metrics.result === 'DRAW') {
+    fitness += weights.drawPenalty;
+  }
+
   // 3. 放炮惩罚
   fitness += metrics.dealInCount * weights.dealInPenalty;
   fitness += metrics.stageBDealIn * weights.stageBDealInPenalty;
@@ -94,34 +105,37 @@ export function extractMetrics(
   aiDecisionLog: any[] = []
 ): GameMetrics {
   const didWin = state.declaredHu[playerId];
-  
-  // 计算首胡
   const huPlayers = (['P0', 'P1', 'P2', 'P3'] as PlayerId[]).filter(
     pid => state.declaredHu[pid]
   );
   const isFirstHu = didWin && huPlayers.length === 1;
-  
-  // 计算净收益（简化版，实际应从计分系统获取）
-  let finalScore = 0;
-  if (didWin) {
-    finalScore = 1000; // 基础胜利分
-    if (isFirstHu) finalScore += 500; // 首胡额外奖励
-  } else {
-    // 输了也要给分数，否则 fitness 都是 0
-    // 根据是否有其他人胡来判断
-    const otherWinners = huPlayers.filter(pid => pid !== playerId);
-    if (otherWinners.length > 0) {
-      finalScore = -500; // 别人胡了，我输了
+
+  // 真实计分：优先使用规则包写入的 roundScores
+  const scores = (state as GameState & {
+    roundScores?: Record<PlayerId, number>;
+  }).roundScores;
+  let finalScore: number | undefined = scores?.[playerId];
+
+  if (typeof finalScore !== 'number') {
+    // 兜底：保持原有的简化逻辑，避免其他规则包报错
+    if (didWin) {
+      finalScore = 1000;
+      if (isFirstHu) finalScore += 500;
     } else {
-      finalScore = 100; // 流局，小分
+      const otherWinners = huPlayers.filter(pid => pid !== playerId);
+      finalScore = otherWinners.length > 0 ? -500 : 100;
     }
   }
-  
-  // 计算放炮次数（需要从游戏日志中统计，这里简化）
-  const dealInCount = 0; // TODO: 从日志统计
-  const stageBDealIn = 0;
-  const stageCDealIn = 0;
-  
+
+  // 放炮统计：读取规则包写入的 dealInStats
+  const dealIns = (state as GameState & {
+    dealInStats?: Record<PlayerId, { count: number; stageB: number; stageC: number }>;
+  }).dealInStats;
+  const dealInStat = dealIns?.[playerId];
+  const dealInCount = dealInStat?.count ?? 0;
+  const stageBDealIn = dealInStat?.stageB ?? 0;
+  const stageCDealIn = dealInStat?.stageC ?? 0;
+
   // 计算平均 EV
   let avgEV = 0;
   if (aiDecisionLog.length > 0) {
@@ -130,14 +144,18 @@ export function extractMetrics(
     }, 0);
     avgEV = totalEV / aiDecisionLog.length;
   }
-  
-  // 最终向听数
+
   const hand = state.hands[playerId];
-  const xiangting = didWin ? -1 : hand.length; // 简化
-  
+  const xiangting = didWin ? -1 : hand.length; // TODO: 替换为真实向听数
+  const result: GameMetrics['result'] = didWin
+    ? 'WIN'
+    : huPlayers.length === 0
+      ? 'DRAW'
+      : 'LOSE';
+
   return {
     playerId,
-    result: didWin ? 'WIN' : 'LOSE',
+    result,
     finalScore,
     didWin,
     isFirstHu,

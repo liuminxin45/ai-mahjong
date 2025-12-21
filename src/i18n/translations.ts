@@ -85,6 +85,16 @@ export interface Translations {
     exchangeSelect: string;
     exchangeConfirm: string;
     dingQue: string;
+    exchangeTitle: string;
+    exchangeInstruction: string;
+    exchangeSelected: (count: number) => string;
+    exchangeWaiting: string;
+    dingTitle: string;
+    dingInstruction: string;
+    dingSelected: (suitName: string) => string;
+    dingHandTitle: string;
+    dingSuitCount: (wan: number, tiao: number, bing: number) => string;
+    dingSuitOption: (name: string, count: number) => string;
     
     // 花色
     wan: string;
@@ -209,6 +219,16 @@ export const translations: Record<Language, Translations> = {
       exchangeSelect: '选择换牌',
       exchangeConfirm: '确认换牌',
       dingQue: '定缺',
+      exchangeTitle: '换三张',
+      exchangeInstruction: '选择同一花色的三张牌进行顺时针交换',
+      exchangeSelected: (count: number) => `已选择：${count}/3`,
+      exchangeWaiting: '已提交，等待其他玩家...',
+      dingTitle: '选择缺门',
+      dingInstruction: '请指定本局不要胡的花色（成都规则）',
+      dingSelected: (suitName: string) => `已选择缺门：${suitName}，等待其他玩家...`,
+      dingHandTitle: '当前手牌：',
+      dingSuitCount: (wan: number, tiao: number, bing: number) => `万：${wan} | 条：${tiao} | 筒：${bing}`,
+      dingSuitOption: (name: string, count: number) => `${name}（${count}）`,
       
       wan: '万',
       tiao: '条',
@@ -333,6 +353,16 @@ export const translations: Record<Language, Translations> = {
       exchangeSelect: 'Select Tiles',
       exchangeConfirm: 'Confirm Exchange',
       dingQue: 'Choose Missing',
+      exchangeTitle: 'Exchange 3 Tiles',
+      exchangeInstruction: 'Select 3 tiles of the same suit to exchange (clockwise)',
+      exchangeSelected: (count: number) => `Selected: ${count}/3`,
+      exchangeWaiting: 'Selection submitted. Waiting for other players...',
+      dingTitle: 'Choose Missing Suit',
+      dingInstruction: 'Select which suit you will not use to win (Chengdu rules)',
+      dingSelected: (suitName: string) => `Selected missing suit: ${suitName}. Waiting for other players...`,
+      dingHandTitle: 'Your Current Hand:',
+      dingSuitCount: (wan: number, tiao: number, bing: number) => `Wan: ${wan} | Bamboo: ${tiao} | Dot: ${bing}`,
+      dingSuitOption: (name: string, count: number) => `${name} (${count})`,
       
       wan: 'Wan',
       tiao: 'Tiao',

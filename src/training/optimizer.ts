@@ -6,7 +6,7 @@
 import type { AIParams } from '../agents/algo/aiParams';
 import { DEFAULT_PARAMS, PARAM_BOUNDS } from '../agents/algo/aiParams';
 import type { GameMetrics } from './metrics';
-import { calculateFitness } from './metrics';
+import { calculateFitness, calculateAverageFitness } from './metrics';
 
 export interface OptimizerState {
   currentParams: AIParams;
@@ -28,10 +28,10 @@ export interface MutationConfig {
 }
 
 export const DEFAULT_MUTATION_CONFIG: MutationConfig = {
-  mutationRate: 0.5, // 50% 参数变异 (从30%增加)
-  mutationScale: 0.3, // 30% 范围内变异 (从10%大幅增加)
-  minMutations: 2, // 最少变异参数数量 (从1增加)
-  maxMutations: 8, // 最多变异参数数量 (从5增加)
+  mutationRate: 0.35,
+  mutationScale: 0.15,
+  minMutations: 2,
+  maxMutations: 6,
 };
 
 /**
@@ -76,24 +76,23 @@ export function mutateParams(
   const shuffled = [...keys].sort(() => rng.next() - 0.5);
   const selectedKeys = shuffled.slice(0, numMutations);
   
+  // 对选中的每个参数进行变异（移除了双重概率检查）
   for (const key of selectedKeys) {
-    if (rng.next() < config.mutationRate) {
-      const bounds = PARAM_BOUNDS[key];
-      const range = bounds.max - bounds.min;
-      const delta = rng.nextFloat(-range * config.mutationScale, range * config.mutationScale);
-      
-      let newValue = params[key] + delta;
-      
-      // 确保在 bounds 内
-      newValue = Math.max(bounds.min, Math.min(bounds.max, newValue));
-      
-      // 对于整数参数，四舍五入
-      if (key.includes('Stage') && key.includes('N')) {
-        newValue = Math.round(newValue);
-      }
-      
-      mutated[key] = newValue;
+    const bounds = PARAM_BOUNDS[key];
+    const range = bounds.max - bounds.min;
+    const delta = rng.nextFloat(-range * config.mutationScale, range * config.mutationScale);
+    
+    let newValue = params[key] + delta;
+    
+    // 确保在 bounds 内
+    newValue = Math.max(bounds.min, Math.min(bounds.max, newValue));
+    
+    // 对于整数参数，四舍五入
+    if (key.includes('Stage') && key.includes('N')) {
+      newValue = Math.round(newValue);
     }
+    
+    mutated[key] = newValue;
   }
   
   return mutated;
@@ -174,13 +173,17 @@ export class OnlineOptimizer {
   /**
    * 更新优化器状态（每局结束后调用）
    */
-  update(metrics: GameMetrics, candidateParams: AIParams): {
+  update(metrics: GameMetrics | GameMetrics[], candidateParams: AIParams): {
     accepted: boolean;
     reason: string;
     fitness: number;
     delta: number;
   } {
-    const candidateFitness = calculateFitness(metrics);
+    const metricsArray = Array.isArray(metrics) ? metrics : [metrics];
+    const candidateFitness =
+      metricsArray.length === 1
+        ? calculateFitness(metricsArray[0])
+        : calculateAverageFitness(metricsArray);
     const delta = candidateFitness - this.state.currentFitness;
     
     let accepted = false;
@@ -222,9 +225,10 @@ export class OnlineOptimizer {
       this.state.rejectCount++;
     }
     
-    // 更新步数和温度
+    // 更新步数和温度（使用更缓慢的衰减策略）
     this.state.step++;
-    this.state.temperature = Math.max(0.1, 1.0 / Math.log(this.state.step + 2));
+    // 使用 sqrt 衰减，比 log 更缓慢，给更多探索机会
+    this.state.temperature = Math.max(0.1, 1.0 / Math.sqrt(this.state.step + 1));
     
     return {
       accepted,

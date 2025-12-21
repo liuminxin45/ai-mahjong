@@ -10,6 +10,10 @@ import { setAIParams } from '../agents/algo/aiParams';
 import { loadParams, saveParams } from './paramPersistence';
 import { OnlineOptimizer, getParamDiff } from './optimizer';
 import { extractMetrics } from './metrics';
+import type { AIParams } from '../agents/algo/aiParams';
+import type { GameMetrics } from './metrics';
+import type { GameState } from '../core/model/state';
+import type { PlayerId } from '../core/model/types';
 
 export interface TrainingConfig {
   totalGames: number;
@@ -25,11 +29,13 @@ export const DEFAULT_TRAINING_CONFIG: TrainingConfig = {
   totalGames: 100,
   blocking: false,
   mode: 'baseline',
-  batchSize: 1,
+  batchSize: 10,
   ruleId: 'chengdu',
   trainPlayerId: 'P0',
   verbose: false,
 };
+
+const TRAINING_PLAYERS: PlayerId[] = ['P0', 'P1', 'P2', 'P3'];
 
 export interface TrainingProgress {
   currentGame: number;
@@ -55,11 +61,15 @@ export class AutoTrainer {
   private isRunning: boolean = false;
   private shouldStop: boolean = false;
   private gameCounter: number = 0; // 添加游戏计数器
+  private pendingBatchMetrics: GameMetrics[] = [];
+  private currentCandidateParams: AIParams | null = null;
+  private currentParamDiff: Array<{ key: string; from: number; to: number; delta: number }> = [];
 
   constructor(
     orchestrator: GameOrchestrator,
     config: TrainingConfig = DEFAULT_TRAINING_CONFIG,
-    logger: TrainingLogger = console.log
+    logger: TrainingLogger = console.log,
+    seed?: number  // 可选的随机种子
   ) {
     this.orchestrator = orchestrator;
     this.config = { ...DEFAULT_TRAINING_CONFIG, ...config };
@@ -67,9 +77,10 @@ export class AutoTrainer {
     
     // 加载或初始化优化器
     const paramsFile = loadParams();
+    const effectiveSeed = seed ?? paramsFile.trainingState.rngSeed;
     this.optimizer = new OnlineOptimizer(
       paramsFile.params,
-      paramsFile.trainingState.rngSeed
+      effectiveSeed
     );
     
     // 恢复训练状态
@@ -80,10 +91,10 @@ export class AutoTrainer {
         currentFitness: paramsFile.trainingState.bestFitness,
         bestFitness: paramsFile.trainingState.bestFitness,
         step: paramsFile.trainingState.currentStep,
-        temperature: 1.0 / Math.log(paramsFile.trainingState.currentStep + 2),
-        acceptCount: 0,
-        rejectCount: 0,
-        rngSeed: paramsFile.trainingState.rngSeed,
+        temperature: Math.max(0.1, 1.0 / Math.sqrt(paramsFile.trainingState.currentStep + 1)),
+        acceptCount: paramsFile.trainingState.acceptCount ?? 0,
+        rejectCount: paramsFile.trainingState.rejectCount ?? 0,
+        rngSeed: effectiveSeed,
       });
     }
     
@@ -165,6 +176,10 @@ export class AutoTrainer {
       this.progress.currentGame = i + 1;
       await this.runSingleGame();
     }
+
+    if (this.pendingBatchMetrics.length > 0) {
+      this.finishBatch();
+    }
   }
 
   /**
@@ -180,6 +195,10 @@ export class AutoTrainer {
       // 让出事件循环，避免 UI 卡死
       await new Promise(resolve => setTimeout(resolve, 0));
     }
+
+    if (this.pendingBatchMetrics.length > 0) {
+      this.finishBatch();
+    }
   }
 
   /**
@@ -189,17 +208,23 @@ export class AutoTrainer {
     // 增加游戏计数器
     this.gameCounter++;
     
-    // 1. 生成候选参数
-    const candidateParams = this.optimizer.generateCandidate();
-    const paramDiff = getParamDiff(this.optimizer.getState().currentParams, candidateParams);
-    
-    console.log(`[DEBUG] Game #${this.gameCounter} - Candidate params generated. Changes: ${paramDiff.length}`);
-    if (paramDiff.length > 0) {
-      console.log(`[DEBUG] First change: ${paramDiff[0].key} ${paramDiff[0].from} → ${paramDiff[0].to}`);
+    // 1. 生成候选参数（批次开始时）
+    if (!this.currentCandidateParams) {
+      const candidateParams = this.optimizer.generateCandidate();
+      this.currentCandidateParams = candidateParams;
+      this.currentParamDiff = getParamDiff(this.optimizer.getState().currentParams, candidateParams);
+      
+      console.log(`[DEBUG] Game #${this.gameCounter} - Candidate params generated. Changes: ${this.currentParamDiff.length}`);
+      if (this.currentParamDiff.length > 0) {
+        console.log(`[DEBUG] First change: ${this.currentParamDiff[0].key} ${this.currentParamDiff[0].from} → ${this.currentParamDiff[0].to}`);
+      }
     }
 
-    // 2. 设置参数
-    setAIParams(candidateParams);
+    // 2. 设置参数（批次内保持一致）
+    // TODO: baseline 模式应该让训练玩家用候选参数，对手用最佳参数
+    // 当前实现：所有玩家共享同一套参数（等效于 mirror 模式）
+    // 对于自我对弈训练，mirror 模式更能反映参数的整体质量
+    setAIParams(this.currentCandidateParams!);
 
     // 3. 运行游戏
     // 传递唯一的游戏种子
@@ -218,36 +243,20 @@ export class AutoTrainer {
 
     const metrics = extractMetrics(state, this.config.trainPlayerId);
     console.log(`[DEBUG] Game result: ${metrics.result}, score: ${metrics.finalScore}, isFirstHu: ${metrics.isFirstHu}`);
+    this.logRoundScores(state);
 
-    // 5. 更新优化器
-    const updateResult = this.optimizer.update(metrics, candidateParams);
-    console.log(`[DEBUG] Update result: fitness=${updateResult.fitness.toFixed(1)}, accepted=${updateResult.accepted}, reason=${updateResult.reason}`);
+    this.pendingBatchMetrics.push(metrics);
 
-    // 6. 保存参数
-    const paramsFile = loadParams();
-    paramsFile.params = this.optimizer.getState().currentParams;
-    paramsFile.trainingState = {
-      bestParams: this.optimizer.getState().bestParams,
-      bestFitness: this.optimizer.getState().bestFitness,
-      currentStep: this.optimizer.getState().step,
-      rngSeed: this.optimizer.getState().rngSeed,
-      lastResult: {
-        fitness: updateResult.fitness,
-        accepted: updateResult.accepted,
-        metrics,
-      },
-    };
-    saveParams(paramsFile);
-
-    // 7. 更新进度
-    const stats = this.optimizer.getStats();
-    this.progress.bestFitness = stats.bestFitness;
-    this.progress.currentFitness = stats.currentFitness;
-    this.progress.acceptRate = stats.acceptRate;
-    this.progress.step = stats.step;
-
-    // 8. 输出日志
-    this.logTrainingStep(metrics, updateResult, paramDiff, stats);
+    if (
+      this.config.batchSize <= 1 ||
+      this.pendingBatchMetrics.length >= this.config.batchSize
+    ) {
+      this.finishBatch();
+    } else {
+      console.log(
+        `[DEBUG] Batch progress ${this.pendingBatchMetrics.length}/${this.config.batchSize}`,
+      );
+    }
   }
 
   /**
@@ -319,6 +328,104 @@ export class AutoTrainer {
         `(Best: ${stats.bestFitness.toFixed(0)}) ` +
         `${metrics.result} ${metrics.isFirstHu ? '🏆' : ''}`
       );
+    }
+  }
+
+  private finishBatch(): void {
+    if (!this.currentCandidateParams || this.pendingBatchMetrics.length === 0) {
+      return;
+    }
+
+    const batchMetrics = [...this.pendingBatchMetrics];
+    this.pendingBatchMetrics = [];
+
+    const updatePayload =
+      batchMetrics.length === 1 ? batchMetrics[0] : batchMetrics;
+
+    const updateResult = this.optimizer.update(updatePayload, this.currentCandidateParams);
+    console.log(
+      `[DEBUG] Batch update result: fitness=${updateResult.fitness.toFixed(1)}, accepted=${updateResult.accepted}, reason=${updateResult.reason}`,
+    );
+
+    const summaryMetrics = this.buildBatchSummary(batchMetrics, updateResult.fitness);
+
+    const paramsFile = loadParams();
+    const optimizerState = this.optimizer.getState();
+    paramsFile.params = optimizerState.currentParams;
+    paramsFile.trainingState = {
+      bestParams: optimizerState.bestParams,
+      bestFitness: optimizerState.bestFitness,
+      currentStep: optimizerState.step,
+      rngSeed: optimizerState.rngSeed,
+      acceptCount: optimizerState.acceptCount,
+      rejectCount: optimizerState.rejectCount,
+      lastResult: {
+        fitness: updateResult.fitness,
+        accepted: updateResult.accepted,
+        metrics: summaryMetrics,
+      },
+    };
+    saveParams(paramsFile);
+
+    const stats = this.optimizer.getStats();
+    this.progress.bestFitness = stats.bestFitness;
+    this.progress.currentFitness = stats.currentFitness;
+    this.progress.acceptRate = stats.acceptRate;
+    this.progress.step = stats.step;
+
+    this.logTrainingStep(summaryMetrics, updateResult, this.currentParamDiff, stats);
+
+    this.currentCandidateParams = null;
+    this.currentParamDiff = [];
+  }
+
+  private buildBatchSummary(batchMetrics: GameMetrics[], fitness: number): any {
+    if (batchMetrics.length === 1) {
+      return { ...batchMetrics[0], fitness };
+    }
+
+    const size = batchMetrics.length;
+    const sum = (fn: (m: GameMetrics) => number) =>
+      batchMetrics.reduce((acc, m) => acc + fn(m), 0);
+    const winCount = batchMetrics.filter((m) => m.didWin).length;
+
+    return {
+      ...batchMetrics[batchMetrics.length - 1],
+      result: 'BATCH',
+      batchSize: size,
+      fitness,
+      winRate: winCount / size,
+      finalScore: sum((m) => m.finalScore) / size,
+      dealInCount: sum((m) => m.dealInCount) / size,
+      stageBDealIn: sum((m) => m.stageBDealIn) / size,
+      stageCDealIn: sum((m) => m.stageCDealIn) / size,
+      avgEV: sum((m) => m.avgEV) / size,
+      totalTurns: sum((m) => m.totalTurns) / size,
+    };
+  }
+
+  private logRoundScores(state: GameState): void {
+    const extended = state as GameState & {
+      roundScores?: Record<PlayerId, number>;
+      dealInStats?: Record<PlayerId, { count: number; stageB: number; stageC: number }>;
+    };
+
+    if (extended.roundScores) {
+      const parts = TRAINING_PLAYERS.map(
+        (pid) => `${pid}:${extended.roundScores?.[pid] ?? 0}`,
+      );
+      console.log(`[SCORES] ${parts.join(' | ')}`);
+    } else {
+      console.log('[SCORES] roundScores unavailable (rule pack may not report them).');
+    }
+
+    if (extended.dealInStats) {
+      const dealInParts = TRAINING_PLAYERS.map((pid) => {
+        const stat = extended.dealInStats?.[pid];
+        if (!stat) return `${pid}:0`;
+        return `${pid}:count=${stat.count},B=${stat.stageB},C=${stat.stageC}`;
+      });
+      console.log(`[DEALINS] ${dealInParts.join(' | ')}`);
     }
   }
 }

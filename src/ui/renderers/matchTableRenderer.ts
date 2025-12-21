@@ -4,9 +4,11 @@ import { renderPlayerPanel } from '../components/PlayerPanel';
 import { renderCenterStatus } from '../components/CenterStatus';
 import { renderGameLogPanel } from '../components/GameLogPanel';
 import { renderDiscardGrid } from '../components/DiscardGrid';
+import { renderTile } from '../components/tileView';
 import type { Action } from '../../core/model/action';
 import type { Tile } from '../../core/model/tile';
 import { sortTiles } from '../../core/rules/packs/chengdu/sort';
+import { languageStore } from '../../store/languageStore';
 
 export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   const s = ctx.gameStore.state;
@@ -228,20 +230,25 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
     reactionWrap.appendChild(btnRow);
   }
 
-  // 显示 P0 的弃牌
+  // 显示 P0 的弃牌（更紧凑的多行布局）
   if (s.discards.P0.length > 0) {
     const discardsSection = document.createElement('div');
     discardsSection.style.marginTop = '8px';
+    discardsSection.style.padding = '8px';
+    discardsSection.style.backgroundColor = '#f9fbff';
+    discardsSection.style.border = '1px solid #d9e6ff';
+    discardsSection.style.borderRadius = '4px';
     
     const discardsLabel = document.createElement('div');
     discardsLabel.style.fontSize = '12px';
     discardsLabel.style.fontWeight = '600';
-    discardsLabel.style.marginBottom = '4px';
-    discardsLabel.style.color = '#666';
+    discardsLabel.style.marginBottom = '6px';
+    discardsLabel.style.color = '#4a4a4a';
     discardsLabel.textContent = `Your Discards (${s.discards.P0.length}):`;
     
+    const discardsGrid = renderDiscardGrid(s.discards.P0);
     discardsSection.appendChild(discardsLabel);
-    discardsSection.appendChild(renderDiscardGrid(s.discards.P0));
+    discardsSection.appendChild(discardsGrid);
     
     bottomSection.appendChild(p0Title);
     bottomSection.appendChild(discardsSection);
@@ -286,9 +293,10 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
 
   root.appendChild(mainContainer);
 }
-
 function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   root.innerHTML = '';
+  const t = languageStore.t().game;
+  const renderTileFn = renderTile;
   
   const container = document.createElement('div');
   container.style.maxWidth = '800px';
@@ -299,12 +307,12 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   container.style.backgroundColor = '#f0f8ff';
   
   const title = document.createElement('h2');
-  title.textContent = 'Exchange 3 Tiles';
+  title.textContent = t.exchangeTitle;
   title.style.marginBottom = '20px';
   title.style.textAlign = 'center';
   
   const instruction = document.createElement('p');
-  instruction.textContent = 'Select 3 tiles of the same suit to exchange (clockwise)';
+  instruction.textContent = t.exchangeInstruction;
   instruction.style.marginBottom = '20px';
   instruction.style.textAlign = 'center';
   instruction.style.fontSize = '16px';
@@ -317,7 +325,7 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   const currentSelections = chengduState.exchangeSelections?.P0 || [];
   
   const confirmBtn = document.createElement('button');
-  confirmBtn.textContent = 'Confirm Exchange';
+  confirmBtn.textContent = t.exchangeConfirm;
   confirmBtn.style.padding = '12px 24px';
   confirmBtn.style.fontSize = '16px';
   confirmBtn.style.backgroundColor = '#4a90e2';
@@ -331,17 +339,17 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   const updateButtonState = () => {
     if (currentSelections.length === 3) {
       confirmBtn.disabled = true;
-      confirmBtn.textContent = 'Waiting for other players...';
+      confirmBtn.textContent = t.exchangeWaiting;
       confirmBtn.style.backgroundColor = '#ccc';
       confirmBtn.style.cursor = 'not-allowed';
     } else if (selectedIndices.size === 3) {
       confirmBtn.disabled = false;
-      confirmBtn.textContent = 'Confirm Exchange';
+      confirmBtn.textContent = t.exchangeConfirm;
       confirmBtn.style.backgroundColor = '#4a90e2';
       confirmBtn.style.cursor = 'pointer';
     } else {
       confirmBtn.disabled = true;
-      confirmBtn.textContent = 'Confirm Exchange';
+      confirmBtn.textContent = t.exchangeConfirm;
       confirmBtn.style.backgroundColor = '#ccc';
       confirmBtn.style.cursor = 'not-allowed';
     }
@@ -359,8 +367,8 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
     const sortedHand = sortTiles(state.hands.P0);
     
     sortedHand.forEach((tile, index) => {
-      const btn = document.createElement('button');
-      btn.textContent = `${tile.suit}${tile.rank}`;
+      const btn = renderTileFn(tile);
+      btn.style.minWidth = '48px';
       btn.style.padding = '12px 16px';
       btn.style.fontSize = '16px';
       btn.style.border = '2px solid #ccc';
@@ -395,7 +403,7 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
     const selectedInfo = document.createElement('div');
     selectedInfo.style.marginTop = '12px';
     selectedInfo.style.textAlign = 'center';
-    selectedInfo.textContent = `Selected: ${selectedIndices.size}/3`;
+    selectedInfo.textContent = t.exchangeSelected(selectedIndices.size);
     handWrap.appendChild(selectedInfo);
   };
   
@@ -616,6 +624,10 @@ function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
 
 function renderDingQuePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   root.innerHTML = '';
+  const t = languageStore.t().game;
+  const renderTileFn = renderTile;
+  const getSuitLabel = (suit: 'W' | 'B' | 'T') =>
+    suit === 'W' ? t.wan : suit === 'B' ? t.tiao : t.bing;
   
   const container = document.createElement('div');
   container.style.maxWidth = '900px';
@@ -626,12 +638,12 @@ function renderDingQuePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   container.style.backgroundColor = '#f0f8ff';
   
   const title = document.createElement('h2');
-  title.textContent = 'Choose Missing Suit';
+  title.textContent = t.dingTitle;
   title.style.marginBottom = '20px';
   title.style.textAlign = 'center';
   
   const instruction = document.createElement('p');
-  instruction.textContent = 'Select which suit you will not use to win (required for Chengdu rules)';
+  instruction.textContent = t.dingInstruction;
   instruction.style.marginBottom = '20px';
   instruction.style.textAlign = 'center';
   instruction.style.fontSize = '16px';
@@ -641,8 +653,8 @@ function renderDingQuePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   
   if (hasSelected) {
     const waiting = document.createElement('div');
-    const suitName = hasSelected === 'W' ? 'Wan' : hasSelected === 'B' ? 'Bamboo' : 'Dot';
-    waiting.textContent = `Selected missing suit: ${suitName}. Waiting for other players...`;
+    const suitName = getSuitLabel(hasSelected);
+    waiting.textContent = t.dingSelected(suitName);
     waiting.style.textAlign = 'center';
     waiting.style.fontSize = '18px';
     waiting.style.fontWeight = 'bold';
@@ -657,7 +669,7 @@ function renderDingQuePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   handSection.style.marginBottom = '30px';
   
   const handTitle = document.createElement('h3');
-  handTitle.textContent = 'Your Current Hand:';
+  handTitle.textContent = t.dingHandTitle;
   handTitle.style.marginBottom = '10px';
   handTitle.style.textAlign = 'center';
   
@@ -674,8 +686,7 @@ function renderDingQuePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   // 排序并显示手牌
   const sortedHand = sortTiles(state.hands.P0);
   for (const tile of sortedHand) {
-    const tileBtn = document.createElement('div');
-    tileBtn.textContent = `${tile.suit}${tile.rank}`;
+    const tileBtn = renderTileFn(tile);
     tileBtn.style.padding = '10px 14px';
     tileBtn.style.fontSize = '16px';
     tileBtn.style.border = '2px solid #ccc';
@@ -697,7 +708,7 @@ function renderDingQuePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   countInfo.style.textAlign = 'center';
   countInfo.style.fontSize = '14px';
   countInfo.style.color = '#666';
-  countInfo.textContent = `Wan: ${suitCounts.W} | Bamboo: ${suitCounts.B} | Dot: ${suitCounts.T}`;
+  countInfo.textContent = t.dingSuitCount(suitCounts.W, suitCounts.B, suitCounts.T);
   
   handSection.appendChild(handTitle);
   handSection.appendChild(handDisplay);
@@ -709,14 +720,14 @@ function renderDingQuePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   btnContainer.style.justifyContent = 'center';
   
   const suits = [
-    { suit: 'W' as const, name: 'Wan', count: suitCounts.W },
-    { suit: 'B' as const, name: 'Bamboo', count: suitCounts.B },
-    { suit: 'T' as const, name: 'Dot', count: suitCounts.T },
+    { suit: 'W' as const, name: getSuitLabel('W'), count: suitCounts.W },
+    { suit: 'B' as const, name: getSuitLabel('B'), count: suitCounts.B },
+    { suit: 'T' as const, name: getSuitLabel('T'), count: suitCounts.T },
   ];
   
   for (const { suit, name, count } of suits) {
     const btn = document.createElement('button');
-    btn.textContent = `${name} (${count})`;
+    btn.textContent = t.dingSuitOption(name, count);
     btn.style.padding = '20px 30px';
     btn.style.fontSize = '18px';
     btn.style.backgroundColor = '#4a90e2';
