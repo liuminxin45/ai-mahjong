@@ -142,7 +142,7 @@ export function renderLLMChatAssistant(
 
   panel.appendChild(messagesArea);
 
-  // 快捷问题
+  // 快捷问题（根据游戏阶段显示不同问题）
   const quickQuestions = document.createElement('div');
   quickQuestions.style.cssText = `
     padding: 8px 16px;
@@ -153,12 +153,32 @@ export function renderLLMChatAssistant(
     overflow-x: auto;
   `;
 
-  const questions = [
-    '什么是向听？',
-    '何时该碰牌？',
-    '如何防守？',
-    '分析当前局面',
-  ];
+  // 根据游戏阶段选择不同的快捷问题
+  const phase = gameState?.phase;
+  let questions: string[];
+  
+  if (phase === 'EXCHANGE') {
+    questions = [
+      '换三张应该换哪3张？',
+      '分析我的手牌',
+      '换牌后如何定缺？',
+      '追清一色值得吗？',
+    ];
+  } else if (phase === 'DING_QUE') {
+    questions = [
+      '应该定哪一门？',
+      '分析三种花色',
+      '定缺后怎么打？',
+      '能追清一色吗？',
+    ];
+  } else {
+    questions = [
+      '什么是向听？',
+      '何时该碰牌？',
+      '如何防守？',
+      '分析当前局面',
+    ];
+  }
 
   for (const q of questions) {
     const btn = document.createElement('button');
@@ -260,6 +280,37 @@ export function renderLLMChatAssistant(
 }
 
 /**
+ * 简单的Markdown解析器
+ */
+function parseMarkdown(text: string): string {
+  let html = text
+    // 转义HTML特殊字符
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    // 粗体 **text** 或 __text__
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    // 斜体 *text* 或 _text_
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/_([^_]+)_/g, '<em>$1</em>')
+    // 行内代码 `code`
+    .replace(/`([^`]+)`/g, '<code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;font-family:monospace;">$1</code>')
+    // 链接 [text](url)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#1976d2;">$1</a>')
+    // 换行
+    .replace(/\n/g, '<br>');
+  
+  // 处理无序列表
+  html = html.replace(/(?:^|<br>)[-•]\s+(.+?)(?=<br>|$)/g, '<li style="margin-left:20px;">$1</li>');
+  
+  // 处理有序列表
+  html = html.replace(/(?:^|<br>)(\d+)\.\s+(.+?)(?=<br>|$)/g, '<li style="margin-left:20px;">$2</li>');
+  
+  return html;
+}
+
+/**
  * 渲染单条消息
  */
 function renderMessage(msg: QAMessage): HTMLElement {
@@ -280,11 +331,16 @@ function renderMessage(msg: QAMessage): HTMLElement {
     background: ${isUser ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' : 'white'};
     color: ${isUser ? 'white' : '#333'};
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.6;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    white-space: pre-wrap;
   `;
-  bubble.textContent = msg.content;
+  
+  // 用户消息直接显示，助手消息解析Markdown
+  if (isUser) {
+    bubble.textContent = msg.content;
+  } else {
+    bubble.innerHTML = parseMarkdown(msg.content);
+  }
 
   container.appendChild(bubble);
   return container;

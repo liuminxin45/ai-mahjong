@@ -7,7 +7,8 @@ export class HumanAgent implements PlayerAgent {
   private pending: { resolve: (a: Action | null) => void; legal: Action[] } | null = null;
 
   async decide(_state: GameState, _playerId: PlayerId, legal: Action[], _ctx?: AgentDecisionContext): Promise<Action> {
-    const res = await this.awaitAction(legal, 30_000);
+    // 不设置超时限制，玩家可以无限时间思考
+    const res = await this.awaitAction(legal, Infinity);
     return res ?? legal[0];
   }
 

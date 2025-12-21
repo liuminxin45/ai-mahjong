@@ -3,6 +3,9 @@ import { renderDebugMode } from '../renderers/matchDebugRenderer';
 import { renderTableMode } from '../renderers/matchTableRenderer';
 import { languageStore } from '../../store/languageStore';
 import { renderAIParamsButton } from '../components/AIParamsPanel';
+import { renderProfileButton } from '../components/UserProfilePanel';
+import { renderHistoryButton } from '../components/GameHistoryPanel';
+import { renderLLMSettingsButton } from '../components/LLMSettingsPanel';
 
 export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   root.innerHTML = '';
@@ -55,10 +58,23 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   // AI参数按钮
   const aiParamsBtn = renderAIParamsButton();
   
+  // LLM功能按钮组（仅在真人模式下显示）
+  const llmBtnGroup = document.createElement('div');
+  llmBtnGroup.style.display = 'flex';
+  llmBtnGroup.style.gap = '6px';
+  llmBtnGroup.style.marginLeft = '8px';
+  
+  if (!ctx.settingsStore.p0IsAI) {
+    llmBtnGroup.appendChild(renderProfileButton());
+    llmBtnGroup.appendChild(renderHistoryButton());
+    llmBtnGroup.appendChild(renderLLMSettingsButton());
+  }
+  
   controls.appendChild(back);
   controls.appendChild(exportBtn);
   controls.appendChild(stopBtn);
   controls.appendChild(aiParamsBtn);
+  controls.appendChild(llmBtnGroup);
   controls.appendChild(switchBtn);
 
   header.appendChild(title);

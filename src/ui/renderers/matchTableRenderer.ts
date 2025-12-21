@@ -512,6 +512,17 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   container.appendChild(handWrap);
   container.appendChild(confirmBtn);
   root.appendChild(container);
+  
+  // 添加 LLM 聊天助手按钮（换三张阶段）
+  if (!ctx.settingsStore.p0IsAI) {
+    const existingChatBtn = document.getElementById('llm-chat-btn');
+    if (existingChatBtn) {
+      existingChatBtn.remove();
+    }
+    const chatBtn = renderChatAssistantButton(state);
+    chatBtn.id = 'llm-chat-btn';
+    root.appendChild(chatBtn);
+  }
 }
 
 function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
@@ -955,6 +966,17 @@ function renderDingQuePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   container.appendChild(handSection);
   container.appendChild(btnContainer);
   root.appendChild(container);
+  
+  // 添加 LLM 聊天助手按钮（定缺阶段）
+  if (!ctx.settingsStore.p0IsAI) {
+    const existingChatBtn = document.getElementById('llm-chat-btn');
+    if (existingChatBtn) {
+      existingChatBtn.remove();
+    }
+    const chatBtn = renderChatAssistantButton(state);
+    chatBtn.id = 'llm-chat-btn';
+    root.appendChild(chatBtn);
+  }
 }
 
 // 辅助函数：渲染简化的玩家信息面板（不含弃牌）

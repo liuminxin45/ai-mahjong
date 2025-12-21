@@ -102,6 +102,52 @@ export class LLMService {
   }
   
   /**
+   * 获取换三张建议
+   */
+  async getExchangeAdvice(
+    hand: Array<{ suit: string; rank: number }>,
+    level: GuidanceLevel = 'learning'
+  ): Promise<{
+    recommendedTiles: string[];
+    selectedSuit: string;
+    reasoning: string;
+    afterExchangePlan: string;
+  }> {
+    const prompt = PromptBuilder.buildExchangePrompt(hand as any, level);
+    const response = await this.query(prompt, { useCache: false });
+    return this.parseJSON(response, {
+      recommendedTiles: [],
+      selectedSuit: '条',
+      reasoning: '选择张数最少的花色',
+      afterExchangePlan: '换牌后根据手牌情况定缺',
+    });
+  }
+  
+  /**
+   * 获取定缺建议
+   */
+  async getDingQueAdvice(
+    hand: Array<{ suit: string; rank: number }>,
+    level: GuidanceLevel = 'learning'
+  ): Promise<{
+    recommendedSuit: string;
+    confidence: number;
+    reasoning: string;
+    suitRanking: Array<{ suit: string; difficulty: string; reason: string }>;
+    playPlan: string;
+  }> {
+    const prompt = PromptBuilder.buildDingQuePrompt(hand as any, level);
+    const response = await this.query(prompt, { useCache: false });
+    return this.parseJSON(response, {
+      recommendedSuit: '条',
+      confidence: 0.7,
+      reasoning: '选择张数最少、最容易打完的花色',
+      suitRanking: [],
+      playPlan: '优先打掉定缺花色的牌',
+    });
+  }
+  
+  /**
    * 生成对局复盘
    */
   async generateReview(

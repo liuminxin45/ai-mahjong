@@ -8,6 +8,7 @@ import type { PlayerId } from '../core/model/types';
 import type { Action } from '../core/model/action';
 import type { Tile } from '../core/model/tile';
 import type { GuidanceLevel, CommentaryStyle } from './types';
+import { getRuleSummary, getPhaseRules } from './RuleContext';
 
 /**
  * 格式化手牌为字符串
@@ -72,12 +73,29 @@ export class PromptBuilder {
       advanced: '请给出专业级的深度分析，包括概率计算和高级策略。',
     };
 
-    return `你是一位经验丰富的麻将教练，正在指导一位${level === 'beginner' ? '初学者' : level === 'learning' ? '学习中的' : level === 'practicing' ? '练习中的' : '高级'}玩家。
+    // 获取已胡玩家信息
+    const huPlayers = Object.entries(state.declaredHu)
+      .filter(([_, hu]) => hu)
+      .map(([pid]) => pid);
+    const huInfo = huPlayers.length > 0 ? `已胡玩家: ${huPlayers.join(', ')}` : '暂无人胡牌';
+
+    // 获取各玩家定缺信息
+    const dingQueInfo = (state as any).dingQueSelection;
+    const opponentDingQue = dingQueInfo ? 
+      `P1缺${dingQueInfo.P1 || '?'}, P2缺${dingQueInfo.P2 || '?'}, P3缺${dingQueInfo.P3 || '?'}` : '';
+
+    return `你是一位精通成都麻将（血战到底）的专业教练，正在指导一位${level === 'beginner' ? '初学者' : level === 'learning' ? '学习中的' : level === 'practicing' ? '练习中的' : '高级'}玩家。
+
+${getRuleSummary()}
+
+${getPhaseRules(state.phase)}
 
 【当前局面】
+- 阶段: ${state.phase}
 - 轮次: ${state.turn}/68
 - 剩余牌数: ${state.wall.length}
 - 当前玩家: ${state.currentPlayer}
+- ${huInfo}
 
 【你的手牌】
 ${formatHand(hand)}
@@ -88,12 +106,14 @@ ${formatMelds(melds)}
 【你的弃牌】
 ${formatDiscards(discards)}
 
-${dingQue ? `【定缺】: ${dingQue === 'W' ? '万' : dingQue === 'B' ? '条' : '筒'}` : ''}
+${dingQue ? `【你的定缺】: ${dingQue === 'W' ? '万' : dingQue === 'B' ? '条' : '筒'} (必须先打完此花色才能胡牌)` : '【定缺】: 尚未定缺'}
+${dingQue && hand.filter(t => t.suit === dingQue).length > 0 ? `⚠️ 你还有${hand.filter(t => t.suit === dingQue).length}张缺门牌未打完！` : ''}
 
 【对手情况】
-- P1: 手牌${state.hands.P1.length}张, 副露${formatMelds(state.melds.P1)}, 弃牌${formatDiscards(state.discards.P1)}
-- P2: 手牌${state.hands.P2.length}张, 副露${formatMelds(state.melds.P2)}, 弃牌${formatDiscards(state.discards.P2)}
-- P3: 手牌${state.hands.P3.length}张, 副露${formatMelds(state.melds.P3)}, 弃牌${formatDiscards(state.discards.P3)}
+- P1: 手牌${state.hands.P1.length}张, 副露${formatMelds(state.melds.P1)}, 弃牌${formatDiscards(state.discards.P1)}${state.declaredHu.P1 ? ' ✅已胡' : ''}
+- P2: 手牌${state.hands.P2.length}张, 副露${formatMelds(state.melds.P2)}, 弃牌${formatDiscards(state.discards.P2)}${state.declaredHu.P2 ? ' ✅已胡' : ''}
+- P3: 手牌${state.hands.P3.length}张, 副露${formatMelds(state.melds.P3)}, 弃牌${formatDiscards(state.discards.P3)}${state.declaredHu.P3 ? ' ✅已胡' : ''}
+${opponentDingQue ? `【对手定缺】: ${opponentDingQue}` : ''}
 
 【可选动作】
 ${legalActions.map(a => {
@@ -107,11 +127,16 @@ ${legalActions.map(a => {
 【任务】
 ${levelInstructions[level]}
 
+**重要提醒**:
+1. 如果还有定缺花色的牌，必须优先打掉
+2. 血战到底规则下，有人胡了要更小心点炮
+3. 考虑番型：自摸+1番，门清+1番，对对胡2番，清一色3番
+
 请分析当前局面，以JSON格式返回：
 {
   "recommendedAction": "打X万/条/筒 或 PASS/PENG/GANG/HU",
   "confidence": 0.0-1.0,
-  "reasoning": "推理过程",
+  "reasoning": "推理过程（包括对规则的考虑）",
   "alternatives": [{"action": "...", "pros": [...], "cons": [...]}],
   "riskAssessment": {
     "dealInRisk": "low/medium/high",
@@ -119,6 +144,220 @@ ${levelInstructions[level]}
     "safeDiscards": ["X万", "X条"]
   },
   "strategicHints": ["提示1", "提示2"]
+}`;
+  }
+
+  /**
+   * 构建换三张阶段的指导提示词
+   */
+  static buildExchangePrompt(
+    hand: Tile[],
+    level: GuidanceLevel = 'learning'
+  ): string {
+    // 按花色分组统计
+    const suitGroups: Record<string, { tiles: Tile[]; analysis: string[] }> = {
+      W: { tiles: [], analysis: [] },
+      B: { tiles: [], analysis: [] },
+      T: { tiles: [], analysis: [] },
+    };
+    
+    for (const tile of hand) {
+      suitGroups[tile.suit].tiles.push(tile);
+    }
+
+    // 分析每个花色
+    for (const [suit, group] of Object.entries(suitGroups)) {
+      const tiles = group.tiles;
+      const suitName = suit === 'W' ? '万' : suit === 'B' ? '条' : '筒';
+      group.analysis.push(`${suitName}: ${tiles.length}张`);
+      
+      // 统计对子、刻子
+      const rankCounts: Record<number, number> = {};
+      for (const t of tiles) {
+        rankCounts[t.rank] = (rankCounts[t.rank] || 0) + 1;
+      }
+      
+      const pairs = Object.entries(rankCounts).filter(([_, c]) => c === 2);
+      const triplets = Object.entries(rankCounts).filter(([_, c]) => c >= 3);
+      
+      if (triplets.length > 0) {
+        group.analysis.push(`  刻子: ${triplets.map(([r]) => r + suitName).join(', ')}`);
+      }
+      if (pairs.length > 0) {
+        group.analysis.push(`  对子: ${pairs.map(([r]) => r + suitName).join(', ')}`);
+      }
+      
+      // 检查顺子和搭子
+      const ranks = Object.keys(rankCounts).map(Number).sort((a, b) => a - b);
+      const sequences: string[] = [];
+      for (let i = 0; i < ranks.length - 2; i++) {
+        if (ranks[i + 1] === ranks[i] + 1 && ranks[i + 2] === ranks[i] + 2) {
+          sequences.push(`${ranks[i]}${ranks[i+1]}${ranks[i+2]}${suitName}`);
+        }
+      }
+      if (sequences.length > 0) {
+        group.analysis.push(`  顺子: ${sequences.join(', ')}`);
+      }
+    }
+
+    const levelHints: Record<GuidanceLevel, string> = {
+      beginner: '请直接告诉我应该换出哪3张牌，用最简单的语言解释原因。',
+      learning: '请分析我的手牌，推荐换出哪3张牌，并解释为什么。',
+      practicing: '请给出分析思路，引导我自己判断应该换哪些牌。',
+      advanced: '请给出详细的牌型分析，包括各花色的发展潜力和换牌后的定缺考虑。',
+    };
+
+    return `你是一位精通成都麻将（血战到底）的专业教练，现在是**换三张阶段**。
+
+${getPhaseRules('EXCHANGE')}
+
+【我的手牌】
+${formatHand(hand)}
+
+【手牌分析】
+${Object.values(suitGroups).map(g => g.analysis.join('\n')).join('\n')}
+
+【花色统计】
+- 万: ${suitGroups.W.tiles.length}张
+- 条: ${suitGroups.B.tiles.length}张  
+- 筒: ${suitGroups.T.tiles.length}张
+
+【任务】
+${levelHints[level]}
+
+**注意**: 
+1. 必须选择**同一花色**的3张牌
+2. 换出的牌很可能成为定缺花色
+3. 保护好对子、刻子、顺子
+
+请以JSON格式返回：
+{
+  "recommendedTiles": ["X万/条/筒", "X万/条/筒", "X万/条/筒"],
+  "selectedSuit": "万/条/筒",
+  "reasoning": "选择这个花色的原因",
+  "tileAnalysis": {
+    "万": {"count": 数量, "value": "高/中/低", "reason": "原因"},
+    "条": {"count": 数量, "value": "高/中/低", "reason": "原因"},
+    "筒": {"count": 数量, "value": "高/中/低", "reason": "原因"}
+  },
+  "afterExchangePlan": "换牌后的定缺建议"
+}`;
+  }
+
+  /**
+   * 构建定缺阶段的指导提示词
+   */
+  static buildDingQuePrompt(
+    hand: Tile[],
+    level: GuidanceLevel = 'learning'
+  ): string {
+    // 按花色分组详细分析
+    const suitAnalysis: Record<string, {
+      count: number;
+      tiles: string;
+      pairs: number;
+      triplets: number;
+      sequences: number;
+      isolated: number;
+      edgeTiles: number;
+    }> = {};
+
+    for (const suit of ['W', 'B', 'T'] as const) {
+      const tiles = hand.filter(t => t.suit === suit);
+      const suitName = suit === 'W' ? '万' : suit === 'B' ? '条' : '筒';
+      
+      // 统计
+      const rankCounts: Record<number, number> = {};
+      for (const t of tiles) {
+        rankCounts[t.rank] = (rankCounts[t.rank] || 0) + 1;
+      }
+      
+      const ranks = Object.keys(rankCounts).map(Number).sort((a, b) => a - b);
+      
+      // 对子和刻子
+      let pairs = 0, triplets = 0;
+      for (const count of Object.values(rankCounts)) {
+        if (count >= 3) triplets++;
+        else if (count === 2) pairs++;
+      }
+      
+      // 顺子
+      let sequences = 0;
+      for (let i = 0; i < ranks.length - 2; i++) {
+        if (ranks[i + 1] === ranks[i] + 1 && ranks[i + 2] === ranks[i] + 2) {
+          sequences++;
+        }
+      }
+      
+      // 孤张和边张
+      let isolated = 0, edgeTiles = 0;
+      for (const [rankStr, count] of Object.entries(rankCounts)) {
+        const rank = Number(rankStr);
+        if (count === 1) {
+          const hasAdjacent = ranks.some(r => Math.abs(r - rank) === 1);
+          if (!hasAdjacent) isolated++;
+        }
+        if (rank === 1 || rank === 9) edgeTiles += count;
+      }
+      
+      suitAnalysis[suit] = {
+        count: tiles.length,
+        tiles: tiles.map(t => t.rank + suitName).join(' '),
+        pairs,
+        triplets,
+        sequences,
+        isolated,
+        edgeTiles,
+      };
+    }
+
+    const levelHints: Record<GuidanceLevel, string> = {
+      beginner: '请直接告诉我应该定哪一门，用最简单的话解释。',
+      learning: '请分析三个花色，推荐定哪一门，并说明原因。',
+      practicing: '请给出分析框架，引导我自己判断最佳定缺。',
+      advanced: '请详细分析各花色的打完难度、牌型发展潜力，给出最优定缺策略。',
+    };
+
+    return `你是一位精通成都麻将（血战到底）的专业教练，现在是**定缺阶段**。
+
+${getPhaseRules('DING_QUE')}
+
+【我的手牌】
+${formatHand(hand)}
+
+【各花色详细分析】
+**万 (${suitAnalysis.W.count}张)**: ${suitAnalysis.W.tiles || '无'}
+  - 刻子: ${suitAnalysis.W.triplets}个, 对子: ${suitAnalysis.W.pairs}个, 顺子: ${suitAnalysis.W.sequences}个
+  - 孤张: ${suitAnalysis.W.isolated}个, 边张(1/9): ${suitAnalysis.W.edgeTiles}张
+
+**条 (${suitAnalysis.B.count}张)**: ${suitAnalysis.B.tiles || '无'}
+  - 刻子: ${suitAnalysis.B.triplets}个, 对子: ${suitAnalysis.B.pairs}个, 顺子: ${suitAnalysis.B.sequences}个
+  - 孤张: ${suitAnalysis.B.isolated}个, 边张(1/9): ${suitAnalysis.B.edgeTiles}张
+
+**筒 (${suitAnalysis.T.count}张)**: ${suitAnalysis.T.tiles || '无'}
+  - 刻子: ${suitAnalysis.T.triplets}个, 对子: ${suitAnalysis.T.pairs}个, 顺子: ${suitAnalysis.T.sequences}个
+  - 孤张: ${suitAnalysis.T.isolated}个, 边张(1/9): ${suitAnalysis.T.edgeTiles}张
+
+【任务】
+${levelHints[level]}
+
+**关键考虑**:
+1. 定缺的花色必须**全部打完**才能胡牌
+2. 优先定：张数少、孤张多、没有刻子/顺子的花色
+3. 避免定：有刻子或顺子的花色（打完很难）
+
+请以JSON格式返回：
+{
+  "recommendedSuit": "万/条/筒",
+  "confidence": 0.0-1.0,
+  "reasoning": "选择这门的原因",
+  "suitRanking": [
+    {"suit": "X", "difficulty": "容易/中等/困难", "reason": "分析"},
+    {"suit": "X", "difficulty": "容易/中等/困难", "reason": "分析"},
+    {"suit": "X", "difficulty": "容易/中等/困难", "reason": "分析"}
+  ],
+  "warnings": ["需要注意的事项"],
+  "playPlan": "定缺后的出牌计划"
 }`;
   }
 
@@ -243,15 +482,65 @@ ${i + 1}. 第${d.turn}轮
     context?: { gameState?: GameState; history?: string[] }
   ): string {
     let contextInfo = '';
+    let phaseInfo = '';
     
     if (context?.gameState) {
       const state = context.gameState;
-      contextInfo = `
+      const phase = state.phase;
+      const chengduState = state as any;
+      
+      // 根据阶段提供不同的上下文
+      if (phase === 'EXCHANGE') {
+        phaseInfo = `
+【当前阶段: 换三张】
+${getPhaseRules('EXCHANGE')}
+`;
+        // 分析各花色
+        const hand = state.hands.P0;
+        const suitCounts = { W: 0, B: 0, T: 0 };
+        for (const t of hand) {
+          suitCounts[t.suit as 'W' | 'B' | 'T']++;
+        }
+        contextInfo = `
+【你的手牌】
+${formatHand(hand)}
+
+【花色统计】
+- 万: ${suitCounts.W}张
+- 条: ${suitCounts.B}张
+- 筒: ${suitCounts.T}张
+`;
+      } else if (phase === 'DING_QUE') {
+        phaseInfo = `
+【当前阶段: 定缺】
+${getPhaseRules('DING_QUE')}
+`;
+        const hand = state.hands.P0;
+        const suitCounts = { W: 0, B: 0, T: 0 };
+        for (const t of hand) {
+          suitCounts[t.suit as 'W' | 'B' | 'T']++;
+        }
+        contextInfo = `
+【你的手牌】
+${formatHand(hand)}
+
+【花色统计】
+- 万: ${suitCounts.W}张
+- 条: ${suitCounts.B}张
+- 筒: ${suitCounts.T}张
+`;
+      } else {
+        // 出牌阶段
+        const dingQue = chengduState.dingQueSelection?.P0;
+        contextInfo = `
 【当前对局状态】
+- 阶段: ${phase}
 - 轮次: ${state.turn}
 - 你的手牌: ${formatHand(state.hands.P0)}
 - 你的副露: ${formatMelds(state.melds.P0)}
+${dingQue ? `- 你的定缺: ${dingQue === 'W' ? '万' : dingQue === 'B' ? '条' : '筒'}` : ''}
 `;
+      }
     }
     
     if (context?.history && context.history.length > 0) {
@@ -261,17 +550,22 @@ ${context.history.slice(-6).join('\n')}
 `;
     }
 
-    return `你是一位友好的麻将助手，帮助玩家解答麻将相关问题。
+    return `你是一位精通成都麻将（血战到底）的专业助手，帮助玩家解答麻将相关问题。
+
+【游戏规则参考】
+${getRuleSummary()}
+${phaseInfo}
 ${contextInfo}
 【用户问题】
 ${question}
 
 【要求】
 1. 用通俗易懂的语言回答
-2. 如果是规则问题，给出准确的规则解释
-3. 如果是策略问题，结合当前局面给出建议
+2. 如果是规则问题，根据成都麻将（血战到底）规则准确解释
+3. 如果是策略问题，结合当前局面和阶段特点给出具体建议
 4. 可以使用示例来说明
 5. 回答要简洁但完整
+6. 注意区分不同麻将规则的差异（本游戏是成都血战到底）
 
 请直接用中文回答，不需要JSON格式。`;
   }

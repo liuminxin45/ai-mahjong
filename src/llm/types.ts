@@ -24,11 +24,11 @@ export interface LLMConfig {
 export const DEFAULT_LLM_CONFIG: LLMConfig = {
   provider: 'deepseek',
   apiKey: 'sk-24dbbd8a266a463a8706aae3f8f64372',
-  model: 'deepseek-chat',
+  model: 'deepseek-reasoner',
   baseUrl: 'https://api.deepseek.com/v1/chat/completions',
-  maxTokens: 2048,
+  maxTokens: 4096,
   temperature: 0.7,
-  timeout: 30000,
+  timeout: 60000, // 思考模型需要更长时间
   cacheEnabled: true,
   cacheTTL: 300000, // 5分钟
 };
