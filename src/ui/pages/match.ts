@@ -2,6 +2,7 @@ import type { UiCtx } from '../context';
 import { renderDebugMode } from '../renderers/matchDebugRenderer';
 import { renderTableMode } from '../renderers/matchTableRenderer';
 import { languageStore } from '../../store/languageStore';
+import { renderAIParamsButton } from '../components/AIParamsPanel';
 
 export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   root.innerHTML = '';
@@ -51,9 +52,13 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   switchBtn.style.borderRadius = '4px';
   switchBtn.style.cursor = 'pointer';
 
+  // AI参数按钮
+  const aiParamsBtn = renderAIParamsButton();
+  
   controls.appendChild(back);
   controls.appendChild(exportBtn);
   controls.appendChild(stopBtn);
+  controls.appendChild(aiParamsBtn);
   controls.appendChild(switchBtn);
 
   header.appendChild(title);

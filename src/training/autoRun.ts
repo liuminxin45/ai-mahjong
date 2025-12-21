@@ -96,6 +96,9 @@ export class AutoTrainer {
         rejectCount: paramsFile.trainingState.rejectCount ?? 0,
         rngSeed: effectiveSeed,
       });
+      console.log(`[Training] 📂 Resumed training from step ${paramsFile.trainingState.currentStep}, bestFitness=${paramsFile.trainingState.bestFitness.toFixed(0)}`);
+    } else {
+      console.log('[Training] 🆕 Starting fresh training');
     }
     
     this.progress = {
@@ -234,27 +237,41 @@ export class AutoTrainer {
     // 等待游戏结束（简化版，实际需要监听游戏状态）
     await this.waitForGameEnd();
 
-    // 4. 提取指标
+    // 4. 提取所有4个AI玩家的指标（集体观察）
     const state = this.orchestrator.getState();
     if (!state) {
       this.logger({ type: 'error', message: 'No game state available' });
       return;
     }
 
-    const metrics = extractMetrics(state, this.config.trainPlayerId);
-    console.log(`[DEBUG] Game result: ${metrics.result}, score: ${metrics.finalScore}, isFirstHu: ${metrics.isFirstHu}`);
+    // 提取所有玩家的指标，获得更稳定的训练信号
+    const allMetrics: GameMetrics[] = [];
+    for (const pid of TRAINING_PLAYERS) {
+      const metrics = extractMetrics(state, pid);
+      allMetrics.push(metrics);
+    }
+    
+    // 计算集体表现
+    const winCount = allMetrics.filter(m => m.didWin).length;
+    const avgScore = allMetrics.reduce((s, m) => s + m.finalScore, 0) / 4;
+    const firstHuPlayer = allMetrics.find(m => m.isFirstHu)?.playerId || 'none';
+    
+    console.log(`[Training] Game #${this.gameCounter}: ${winCount}/4 AI won, avgScore=${avgScore.toFixed(0)}, firstHu=${firstHuPlayer}`);
     this.logRoundScores(state);
 
-    this.pendingBatchMetrics.push(metrics);
+    // 将所有4个玩家的指标都加入批次
+    this.pendingBatchMetrics.push(...allMetrics);
 
+    // 每局产生4个样本，调整批次判断逻辑
+    const effectiveBatchSize = this.config.batchSize * 4; // 每局4个样本
     if (
       this.config.batchSize <= 1 ||
-      this.pendingBatchMetrics.length >= this.config.batchSize
+      this.pendingBatchMetrics.length >= effectiveBatchSize
     ) {
       this.finishBatch();
     } else {
       console.log(
-        `[DEBUG] Batch progress ${this.pendingBatchMetrics.length}/${this.config.batchSize}`,
+        `[Training] Batch progress: ${this.pendingBatchMetrics.length}/${effectiveBatchSize} samples`,
       );
     }
   }
@@ -339,13 +356,25 @@ export class AutoTrainer {
     const batchMetrics = [...this.pendingBatchMetrics];
     this.pendingBatchMetrics = [];
 
-    const updatePayload =
-      batchMetrics.length === 1 ? batchMetrics[0] : batchMetrics;
+    // 验证日志：检查批次数据
+    const winCount = batchMetrics.filter(m => m.didWin).length;
+    const totalScore = batchMetrics.reduce((s, m) => s + m.finalScore, 0);
+    console.log(`[Training] 📊 Batch summary: ${batchMetrics.length} samples, ${winCount} wins, totalScore=${totalScore}`);
 
-    const updateResult = this.optimizer.update(updatePayload, this.currentCandidateParams);
+    const updateResult = this.optimizer.update(batchMetrics, this.currentCandidateParams);
+    
+    // 验证日志：训练是否生效
+    const currentStats = this.optimizer.getStats();
     console.log(
-      `[DEBUG] Batch update result: fitness=${updateResult.fitness.toFixed(1)}, accepted=${updateResult.accepted}, reason=${updateResult.reason}`,
+      `[Training] ${updateResult.accepted ? '✅ ACCEPTED' : '❌ REJECTED'} ` +
+      `fitness=${updateResult.fitness.toFixed(0)} (delta=${updateResult.delta >= 0 ? '+' : ''}${updateResult.delta.toFixed(0)}) ` +
+      `best=${currentStats.bestFitness.toFixed(0)} step=${currentStats.step} temp=${currentStats.temperature.toFixed(3)}`
     );
+    
+    // 验证日志：参数是否变化
+    if (updateResult.accepted && this.currentParamDiff.length > 0) {
+      console.log(`[Training] 🔧 Params changed: ${this.currentParamDiff.slice(0, 3).map(d => `${d.key}: ${d.from.toFixed(2)}→${d.to.toFixed(2)}`).join(', ')}`);
+    }
 
     const summaryMetrics = this.buildBatchSummary(batchMetrics, updateResult.fitness);
 

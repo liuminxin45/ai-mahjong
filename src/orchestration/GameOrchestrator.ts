@@ -23,6 +23,9 @@ import { storage } from '../persistence/storage';
 import { finishMatchStat, recordDecisionStat, startMatchStat } from '../analysis/statistics';
 import { createOpponentModel } from '../agents/algo/opponentModel';
 import { gameLogger } from '../utils/gameLogger';
+import { setAIParams } from '../agents/algo/aiParams';
+import { loadParams } from '../training/paramPersistence';
+import { recordGameResult, loadOnlineLearnedParams, type GameResult } from '../training/onlineLearning';
 
 function now(): number {
   return Date.now();
@@ -112,6 +115,35 @@ export class GameOrchestrator {
 
     startMatchStat();
     this.opponentModel.init(['P0', 'P1', 'P2', 'P3']);
+
+    // 加载训练后的 AI 参数
+    try {
+      const paramsFile = loadParams();
+      
+      // 使用 bestParams 而不是 params（bestParams 是训练过程中找到的最佳参数）
+      const paramsToUse = paramsFile.trainingState.bestParams || paramsFile.params;
+      setAIParams(paramsToUse);
+      
+      console.log('[GameOrchestrator] ✅ Loaded trained AI parameters');
+      console.log('[GameOrchestrator] 📊 Best fitness:', paramsFile.trainingState.bestFitness);
+      console.log('[GameOrchestrator] 📊 Training steps:', paramsFile.trainingState.currentStep);
+      // 调试：对比 params 和 bestParams
+      console.log('[GameOrchestrator] 📋 Using bestParams:', {
+        baseWinValue: paramsToUse.baseWinValue,
+        baseLoss: paramsToUse.baseLoss,
+        speedBonusK: paramsToUse.speedBonusK,
+      });
+      if (paramsFile.params.baseWinValue !== paramsToUse.baseWinValue) {
+        console.log('[GameOrchestrator] ⚠️ params differs from bestParams!');
+      }
+    } catch (error) {
+      console.warn('[GameOrchestrator] ⚠️ Failed to load AI parameters, using defaults:', error);
+    }
+    
+    // 在线学习叠加：在训练参数基础上应用在线学习的调整
+    if (loadOnlineLearnedParams()) {
+      console.log('[GameOrchestrator] 🧠 Applied online-learned adjustments on top of base params');
+    }
 
     const selected = ruleId ?? this.ss.ruleId;
     this.rulePack = this.registry.get(selected);
@@ -274,6 +306,38 @@ export class GameOrchestrator {
         
         // 记录游戏结束
         gameLogger.endGame(ended, res);
+        
+        // 在线学习：记录游戏结果
+        if (!this.ss.p0IsAI) {
+          // 仅在人类对局时启用在线学习
+          const gameResults: GameResult[] = [];
+          const players: PlayerId[] = ['P0', 'P1', 'P2', 'P3'];
+          
+          // 计算排名
+          const rankings = players
+            .map(pid => ({
+              pid,
+              isWinner: ended.declaredHu[pid],
+              score: (ended as any).roundScores?.[pid] || 0,
+            }))
+            .sort((a, b) => {
+              if (a.isWinner && !b.isWinner) return -1;
+              if (!a.isWinner && b.isWinner) return 1;
+              return b.score - a.score;
+            });
+          
+          rankings.forEach((r, idx) => {
+            gameResults.push({
+              playerId: r.pid,
+              isWinner: r.isWinner,
+              rank: idx + 1,
+              scoreChange: r.score,
+              turn: ended.turn,
+            });
+          });
+          
+          recordGameResult(gameResults);
+        }
         
         break;
       }
@@ -567,7 +631,12 @@ export class GameOrchestrator {
       return this.pickAlgoAction(state, actor, legal, 'high', ctx);
     }
 
-    // 其他 AI 玩家
+    // 其他 AI 玩家 (P1-P3)
+    // 如果 P0 不是 AI（即人类玩家），添加 2 秒延迟让游戏更自然
+    if (!this.ss.p0IsAI && (actor === 'P1' || actor === 'P2' || actor === 'P3')) {
+      await timers.sleep(2000);
+    }
+    
     return await this.agents[actor].decide(state, actor, legal, ctx);
   }
 }

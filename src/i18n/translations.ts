@@ -134,6 +134,14 @@ export interface Translations {
     score: string;
     fan: string;
     finalScore: string;
+    
+    // 弃牌区
+    discards: string;
+    yourDiscards: string;
+    hand: string;
+    tiles: string;
+    melds: string;
+    yourMelds: string;
   };
   
   // 关于页面
@@ -263,6 +271,13 @@ export const translations: Record<Language, Translations> = {
       score: '得分',
       fan: '番',
       finalScore: '最终得分',
+      
+      discards: '弃牌',
+      yourDiscards: '你的弃牌',
+      hand: '剩余',
+      tiles: '张',
+      melds: '碰杠',
+      yourMelds: '你的碰杠',
     },
     
     about: {
@@ -397,6 +412,13 @@ export const translations: Record<Language, Translations> = {
       score: 'Score',
       fan: 'Fan',
       finalScore: 'Final Score',
+      
+      discards: 'Discards',
+      yourDiscards: 'Your Discards',
+      hand: 'Hand',
+      tiles: 'tiles',
+      melds: 'Melds',
+      yourMelds: 'Your Melds',
     },
     
     about: {

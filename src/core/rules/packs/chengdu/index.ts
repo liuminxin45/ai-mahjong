@@ -211,12 +211,26 @@ class SeededRandom {
   }
 }
 
+/**
+ * 使用 crypto API 生成高质量随机数
+ */
+function cryptoRandomInt(max: number): number {
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return array[0] % (max + 1);
+  }
+  // 降级到 Math.random
+  return Math.floor(Math.random() * (max + 1));
+}
+
 function shuffle<T>(arr: T[], seed?: number): T[] {
   const a = arr.slice();
   const rng = seed !== undefined ? new SeededRandom(seed) : null;
   
   for (let i = a.length - 1; i > 0; i--) {
-    const j = rng ? rng.nextInt(0, i) : Math.floor(Math.random() * (i + 1));
+    // 有种子时使用伪随机（训练可复现），否则使用 crypto 高质量随机
+    const j = rng ? rng.nextInt(0, i) : cryptoRandomInt(i);
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
@@ -729,14 +743,24 @@ export const chengduRulePack: RulePack = {
       const isGangShangKaiHua = !!(
         chengduState.isAfterGang && chengduState.lastGangPlayer === action.from
       );
+      const newDeclaredHu = { ...state.declaredHu, [action.from]: true };
+      
+      // 血战到底：计算已胡玩家数量
+      const huCount = Object.values(newDeclaredHu).filter(Boolean).length;
+      // 3人胡牌或牌墙空时结束
+      const shouldEnd = huCount >= 3 || state.wall.length === 0;
+      
+      // 找下一个未胡的玩家
+      const nextP = nextActivePlayer({ ...state, declaredHu: newDeclaredHu }, action.from);
+      
       const next: ChengduState = {
         ...state,
-        declaredHu: { ...state.declaredHu, [action.from]: true },
+        declaredHu: newDeclaredHu,
         isAfterGang: false,
         meta: { isGangShangKaiHua },
-        phase: 'END',
+        phase: shouldEnd ? 'END' : 'PLAYING',
         lastDiscard: null,
-        currentPlayer: action.from,
+        currentPlayer: shouldEnd ? action.from : nextP,
       } as ChengduState;
       const selfDrawScore = evaluateSelfDrawScore(next, action.from, isGangShangKaiHua);
       if (selfDrawScore > 0) {
@@ -824,17 +848,24 @@ export const chengduRulePack: RulePack = {
           }
         }
 
+        // 血战到底：计算已胡玩家数量
+        const huCount = Object.values(declaredHu).filter(Boolean).length;
+        // 3人胡牌或牌墙空时结束
+        const shouldEnd = huCount >= 3 || state.wall.length === 0;
+        
         const nextP = nextActivePlayer({ ...state, declaredHu }, gangTile.from);
         const next: GameState = {
           ...state,
           declaredHu,
           lastAddedGangTile: undefined,
           lastDiscard: null,
-          currentPlayer: nextP,
-          phase: 'END',
+          currentPlayer: shouldEnd ? gangTile.from : nextP,
+          phase: shouldEnd ? 'END' : 'PLAYING',
         } as ChengduState;
 
-        events.push({ type: 'TURN', playerId: nextP, turn: next.turn, ts: baseTs });
+        if (!shouldEnd) {
+          events.push({ type: 'TURN', playerId: nextP, turn: next.turn, ts: baseTs });
+        }
         return { state: next, events };
       }
 
@@ -921,16 +952,21 @@ export const chengduRulePack: RulePack = {
         }
       }
 
+      // 血战到底：计算已胡玩家数量
+      const huCount = Object.values(declaredHu).filter(Boolean).length;
+      // 3人胡牌或牌墙空时结束
+      const shouldEnd = huCount >= 3 || state.wall.length === 0;
+      
       const nextP = nextActivePlayer({ ...state, declaredHu }, discard.from);
       const next: GameState = {
         ...state,
         declaredHu,
         lastDiscard: null,
-        currentPlayer: nextP,
-        phase: 'END',
+        currentPlayer: shouldEnd ? discard.from : nextP,
+        phase: shouldEnd ? 'END' : 'PLAYING',
       };
 
-      if (next.phase !== 'END') {
+      if (!shouldEnd) {
         events.push({ type: 'TURN', playerId: nextP, turn: next.turn, ts: baseTs });
       }
       return { state: next, events };
@@ -1022,10 +1058,13 @@ export const chengduRulePack: RulePack = {
   },
 
   isRoundEnd(state: GameState): boolean {
+    // 血战到底：牌墙空或3人胡牌时结束
     if (state.wall.length === 0 || state.phase === 'END') {
       return true;
     }
-    return Object.values(state.declaredHu).some(Boolean);
+    // 计算已胡玩家数量，3人胡牌时结束
+    const huCount = Object.values(state.declaredHu).filter(Boolean).length;
+    return huCount >= 3;
   },
 
   settleRound(state: GameState): RoundResult {

@@ -45,3 +45,24 @@ export function getSortedHand(tiles: Tile[]): Tile[] {
   const grouped = groupAndSortTiles(tiles);
   return [...grouped.wan, ...grouped.tiao, ...grouped.tong];
 }
+
+/**
+ * 带定缺的手牌排序
+ * 定缺的花色牌放到最右边
+ */
+export function sortTilesWithMissingSuit(tiles: Tile[], missingSuit?: 'W' | 'B' | 'T'): Tile[] {
+  if (!missingSuit) {
+    return sortTiles(tiles);
+  }
+  
+  // 将牌分为非定缺牌和定缺牌
+  const nonMissing = tiles.filter(t => t.suit !== missingSuit);
+  const missing = tiles.filter(t => t.suit === missingSuit);
+  
+  // 分别排序
+  const sortedNonMissing = sortTiles(nonMissing);
+  const sortedMissing = sortTiles(missing);
+  
+  // 非定缺牌在左，定缺牌在右
+  return [...sortedNonMissing, ...sortedMissing];
+}

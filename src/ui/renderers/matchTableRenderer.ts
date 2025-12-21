@@ -1,12 +1,14 @@
 import type { UiCtx } from '../context';
 import { renderHand } from '../components/handView';
-import { renderPlayerPanel } from '../components/PlayerPanel';
 import { renderCenterStatus } from '../components/CenterStatus';
 import { renderGameLogPanel } from '../components/GameLogPanel';
 import { renderDiscardGrid } from '../components/DiscardGrid';
 import { renderTile } from '../components/tileView';
+import { renderAIParamsPanel } from '../components/AIParamsPanel';
 import type { Action } from '../../core/model/action';
 import type { Tile } from '../../core/model/tile';
+import type { PlayerId } from '../../core/model/types';
+import type { Meld } from '../../core/model/state';
 import { sortTiles } from '../../core/rules/packs/chengdu/sort';
 import { languageStore } from '../../store/languageStore';
 
@@ -52,17 +54,20 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   const gameArea = document.createElement('div');
   gameArea.style.flex = '1';
   gameArea.style.minWidth = '0'; // 允许缩小
-  gameArea.style.overflow = 'auto';
+  gameArea.style.overflow = 'hidden'; // 禁止滚动，强制一屏显示
+  gameArea.style.height = '100%';
 
   const tableContainer = document.createElement('div');
   tableContainer.className = 'table-container';
   tableContainer.style.display = 'grid';
-  tableContainer.style.gridTemplateColumns = window.innerWidth < 768 ? '60px 1fr 60px' : '150px 1fr 150px';
-  tableContainer.style.gridTemplateRows = 'auto auto auto';
-  tableContainer.style.gap = '6px';
-  tableContainer.style.maxWidth = '100%';
+  tableContainer.style.gridTemplateColumns = window.innerWidth < 768 ? '60px 1fr 60px' : '120px 1fr 120px';
+  // 使用固定比例：顶部10%，中间55%，底部35%（确保P0手牌可见）
+  tableContainer.style.gridTemplateRows = '10% 55% 35%';
+  tableContainer.style.gap = '4px';
+  tableContainer.style.maxWidth = '1200px';
   tableContainer.style.margin = '0 auto';
-  tableContainer.style.fontSize = window.innerWidth < 768 ? '12px' : '14px';
+  tableContainer.style.fontSize = window.innerWidth < 768 ? '11px' : '13px';
+  tableContainer.style.height = 'calc(100vh - 60px)';
 
   // 获取定缺信息
   const chengduState = s as any;
@@ -73,58 +78,121 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
     console.log('[UI] Ding que selections:', JSON.stringify(dingQueSelections));
   }
 
-  const topPanel = renderPlayerPanel('P2', s.hands.P2.length, s.discards.P2, s.melds.P2, s.currentPlayer === 'P2', dingQueSelections.P2);
-  topPanel.style.gridColumn = '2';
-  topPanel.style.gridRow = '1';
+  const t = languageStore.t().game;
 
-  const leftPanel = renderPlayerPanel('P3', s.hands.P3.length, s.discards.P3, s.melds.P3, s.currentPlayer === 'P3', dingQueSelections.P3);
+  // 创建简化的玩家信息面板（不含弃牌）
+  const topPanel = renderCompactPlayerInfo('P2', s.hands.P2.length, s.melds.P2, s.currentPlayer === 'P2', dingQueSelections.P2, t);
+  topPanel.style.gridColumn = '1 / 4';
+  topPanel.style.gridRow = '1';
+  topPanel.style.display = 'flex';
+  topPanel.style.alignItems = 'center';
+  topPanel.style.gap = '16px';
+
+  const leftPanel = renderCompactPlayerInfo('P3', s.hands.P3.length, s.melds.P3, s.currentPlayer === 'P3', dingQueSelections.P3, t);
   leftPanel.style.gridColumn = '1';
   leftPanel.style.gridRow = '2';
 
-  const rightPanel = renderPlayerPanel('P1', s.hands.P1.length, s.discards.P1, s.melds.P1, s.currentPlayer === 'P1', dingQueSelections.P1);
+  const rightPanel = renderCompactPlayerInfo('P1', s.hands.P1.length, s.melds.P1, s.currentPlayer === 'P1', dingQueSelections.P1, t);
   rightPanel.style.gridColumn = '3';
   rightPanel.style.gridRow = '2';
 
+  // 中央区域：包含状态信息和所有玩家的弃牌区
+  const centerArea = document.createElement('div');
+  centerArea.style.gridColumn = '2';
+  centerArea.style.gridRow = '2';
+  centerArea.style.display = 'flex';
+  centerArea.style.flexDirection = 'column';
+  centerArea.style.alignItems = 'center';
+  centerArea.style.justifyContent = 'flex-start';
+  centerArea.style.gap = '4px';
+  centerArea.style.padding = '4px';
+  centerArea.style.backgroundColor = '#e8f5e9';
+  centerArea.style.borderRadius = '4px';
+  centerArea.style.border = '1px solid #4caf50';
+  centerArea.style.overflow = 'auto';
+  centerArea.style.height = '100%';
+  centerArea.style.boxSizing = 'border-box';
+  
+  // 状态信息
   const lastEvent = evs.length > 0 ? evs[evs.length - 1] : null;
   const lastActionText = lastEvent
     ? `${lastEvent.type} by ${lastEvent.playerId || 'system'}`
     : '';
-
   const centerStatus = renderCenterStatus(s.turn, s.wall.length, lastActionText);
-  centerStatus.style.gridColumn = '2';
-  centerStatus.style.gridRow = '2';
+  centerArea.appendChild(centerStatus);
+  
+  // 弃牌区布局（围绕中心）
+  const discardsArea = document.createElement('div');
+  discardsArea.style.display = 'grid';
+  discardsArea.style.gridTemplateColumns = '1fr auto 1fr';
+  discardsArea.style.gridTemplateRows = 'auto auto auto';
+  discardsArea.style.gap = '4px';
+  discardsArea.style.width = '100%';
+  discardsArea.style.maxWidth = '500px';
+  
+  // P2 弃牌（上方）
+  const p2Discards = renderDiscardArea('P2', s.discards.P2);
+  p2Discards.style.gridColumn = '2';
+  p2Discards.style.gridRow = '1';
+  
+  // P3 弃牌（左侧）
+  const p3Discards = renderDiscardArea('P3', s.discards.P3);
+  p3Discards.style.gridColumn = '1';
+  p3Discards.style.gridRow = '2';
+  
+  // P1 弃牌（右侧）
+  const p1Discards = renderDiscardArea('P1', s.discards.P1);
+  p1Discards.style.gridColumn = '3';
+  p1Discards.style.gridRow = '2';
+  
+  // P0 弃牌（下方）
+  const p0Discards = renderDiscardArea('P0', s.discards.P0);
+  p0Discards.style.gridColumn = '2';
+  p0Discards.style.gridRow = '3';
+  
+  discardsArea.appendChild(p2Discards);
+  discardsArea.appendChild(p3Discards);
+  discardsArea.appendChild(p1Discards);
+  discardsArea.appendChild(p0Discards);
+  
+  centerArea.appendChild(discardsArea);
 
   const bottomSection = document.createElement('div');
   bottomSection.style.gridColumn = '1 / 4';
   bottomSection.style.gridRow = '3';
-  bottomSection.style.border = '1px solid #4a90e2';
-  bottomSection.style.padding = window.innerWidth < 768 ? '6px' : '8px';
+  // P0 轮次时高亮，否则白色背景（与其他玩家一致）
+  const isP0Turn = s.currentPlayer === 'P0';
+  bottomSection.style.border = isP0Turn ? '2px solid #4a90e2' : '1px solid #ccc';
+  bottomSection.style.padding = '6px';
   bottomSection.style.borderRadius = '4px';
-  bottomSection.style.backgroundColor = '#f0f8ff';
-
+  bottomSection.style.backgroundColor = isP0Turn ? '#f0f8ff' : '#fff';
+  bottomSection.style.height = '100%';
+  bottomSection.style.boxSizing = 'border-box';
+  bottomSection.style.overflow = 'auto';
+  
   const p0Title = document.createElement('div');
   p0Title.style.fontWeight = '600';
-  p0Title.style.marginBottom = '8px';
-  p0Title.textContent = 'P0 (You)';
+  p0Title.style.marginBottom = '4px';
+  p0Title.style.fontSize = '13px';
+  p0Title.textContent = `P0 (${t.you})`;
 
   // 显示 P0 的缺门信息
   if (dingQueSelections.P0) {
-    const p0MissingSuit = document.createElement('div');
-    p0MissingSuit.style.fontSize = '14px';
+    const p0MissingSuit = document.createElement('span');
+    p0MissingSuit.style.fontSize = '12px';
     p0MissingSuit.style.fontWeight = '600';
-    p0MissingSuit.style.marginBottom = '8px';
-    p0MissingSuit.style.padding = '6px 12px';
+    p0MissingSuit.style.marginLeft = '8px';
+    p0MissingSuit.style.padding = '2px 8px';
     p0MissingSuit.style.backgroundColor = '#fff3cd';
-    p0MissingSuit.style.border = '2px solid #ffc107';
-    p0MissingSuit.style.borderRadius = '4px';
+    p0MissingSuit.style.border = '1px solid #ffc107';
+    p0MissingSuit.style.borderRadius = '3px';
     p0MissingSuit.style.color = '#856404';
-    p0MissingSuit.style.display = 'inline-block';
     
-    const suitName = dingQueSelections.P0 === 'W' ? 'Wan' : dingQueSelections.P0 === 'B' ? 'Bamboo' : 'Dot';
+    const suitName = dingQueSelections.P0 === 'W' ? t.wan : dingQueSelections.P0 === 'B' ? t.tiao : t.bing;
     p0MissingSuit.textContent = suitName;
     
+    p0Title.appendChild(p0MissingSuit);
     bottomSection.appendChild(p0Title);
-    bottomSection.appendChild(p0MissingSuit);
   } else {
     bottomSection.appendChild(p0Title);
   }
@@ -142,7 +210,7 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
       }
     : undefined;
 
-  handWrap.appendChild(renderHand(s.hands.P0, onClick));
+  handWrap.appendChild(renderHand(s.hands.P0, onClick, dingQueSelections.P0));
 
   // 显示 P0 的碰杠信息
   if (s.melds.P0.length > 0) {
@@ -157,7 +225,7 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
     meldsLabel.style.fontWeight = '600';
     meldsLabel.style.marginBottom = '6px';
     meldsLabel.style.fontSize = '14px';
-    meldsLabel.textContent = 'Your Melds:';
+    meldsLabel.textContent = `${t.yourMelds}:`;
     meldsSection.appendChild(meldsLabel);
     
     const meldsDisplay = document.createElement('div');
@@ -166,33 +234,34 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
     meldsDisplay.style.flexWrap = 'wrap';
     
     for (const meld of s.melds.P0) {
-      const meldDiv = document.createElement('div');
-      meldDiv.style.padding = '6px 10px';
-      meldDiv.style.backgroundColor = '#e8f4f8';
-      meldDiv.style.borderRadius = '4px';
-      meldDiv.style.fontSize = '14px';
-      meldDiv.style.fontWeight = '600';
+      const meldGroup = document.createElement('div');
+      meldGroup.style.display = 'flex';
+      meldGroup.style.gap = '2px';
+      meldGroup.style.padding = '4px 6px';
+      meldGroup.style.backgroundColor = '#e8f4f8';
+      meldGroup.style.borderRadius = '4px';
       
-      let meldText = '';
-      const tileStr = `${meld.tile.suit}${meld.tile.rank}`;
-      
-      if (meld.type === 'PENG') {
-        meldText = `Pong ${tileStr}×3`;
-      } else if (meld.type === 'GANG') {
-        const gangMeld = meld as any;
-        if (gangMeld.gangType === 'AN') {
-          meldText = `Kong(Hidden) ${tileStr}×4`;
-        } else if (gangMeld.gangType === 'MING') {
-          meldText = `Kong(Open) ${tileStr}×4`;
-        } else if (gangMeld.gangType === 'JIA') {
-          meldText = `Kong(Add) ${tileStr}×4`;
-        } else {
-          meldText = `Kong ${tileStr}×4`;
+      // 使用麻将牌图像显示
+      const tileCount = meld.type === 'GANG' ? 4 : 3;
+      for (let i = 0; i < tileCount; i++) {
+        const tileEl = renderTile(meld.tile);
+        tileEl.style.width = '28px';
+        tileEl.style.height = '38px';
+        tileEl.style.padding = '1px';
+        tileEl.style.border = 'none';
+        tileEl.style.backgroundColor = 'transparent';
+        
+        const img = tileEl.querySelector('img');
+        if (img) {
+          img.style.width = '26px';
+          img.style.height = '36px';
+          img.style.objectFit = 'contain';
         }
+        
+        meldGroup.appendChild(tileEl);
       }
       
-      meldDiv.textContent = meldText;
-      meldsDisplay.appendChild(meldDiv);
+      meldsDisplay.appendChild(meldGroup);
     }
     
     meldsSection.appendChild(meldsDisplay);
@@ -230,39 +299,14 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
     reactionWrap.appendChild(btnRow);
   }
 
-  // 显示 P0 的弃牌（更紧凑的多行布局）
-  if (s.discards.P0.length > 0) {
-    const discardsSection = document.createElement('div');
-    discardsSection.style.marginTop = '8px';
-    discardsSection.style.padding = '8px';
-    discardsSection.style.backgroundColor = '#f9fbff';
-    discardsSection.style.border = '1px solid #d9e6ff';
-    discardsSection.style.borderRadius = '4px';
-    
-    const discardsLabel = document.createElement('div');
-    discardsLabel.style.fontSize = '12px';
-    discardsLabel.style.fontWeight = '600';
-    discardsLabel.style.marginBottom = '6px';
-    discardsLabel.style.color = '#4a4a4a';
-    discardsLabel.textContent = `Your Discards (${s.discards.P0.length}):`;
-    
-    const discardsGrid = renderDiscardGrid(s.discards.P0);
-    discardsSection.appendChild(discardsLabel);
-    discardsSection.appendChild(discardsGrid);
-    
-    bottomSection.appendChild(p0Title);
-    bottomSection.appendChild(discardsSection);
-    bottomSection.appendChild(handWrap);
-    bottomSection.appendChild(reactionWrap);
-  } else {
-    bottomSection.appendChild(p0Title);
-    bottomSection.appendChild(handWrap);
-    bottomSection.appendChild(reactionWrap);
-  }
+  // P0 的弃牌现在在中央区域，底部只显示手牌和操作
+  bottomSection.appendChild(p0Title);
+  bottomSection.appendChild(handWrap);
+  bottomSection.appendChild(reactionWrap);
 
   tableContainer.appendChild(topPanel);
   tableContainer.appendChild(leftPanel);
-  tableContainer.appendChild(centerStatus);
+  tableContainer.appendChild(centerArea);
   tableContainer.appendChild(rightPanel);
   tableContainer.appendChild(bottomSection);
 
@@ -292,6 +336,15 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   }
 
   root.appendChild(mainContainer);
+  
+  // 添加 AI 参数面板（右上角可折叠）
+  const existingPanel = document.getElementById('ai-params-panel');
+  if (existingPanel) {
+    existingPanel.remove();
+  }
+  const aiParamsPanel = renderAIParamsPanel();
+  aiParamsPanel.id = 'ai-params-panel';
+  root.appendChild(aiParamsPanel);
 }
 function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   root.innerHTML = '';
@@ -299,7 +352,7 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   const renderTileFn = renderTile;
   
   const container = document.createElement('div');
-  container.style.maxWidth = '800px';
+  container.style.maxWidth = '100%';
   container.style.margin = '40px auto';
   container.style.padding = '20px';
   container.style.border = '2px solid #4a90e2';
@@ -359,20 +412,33 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
     handWrap.innerHTML = '';
     const handDiv = document.createElement('div');
     handDiv.style.display = 'flex';
-    handDiv.style.flexWrap = 'wrap';
-    handDiv.style.gap = '6px';
+    handDiv.style.flexWrap = 'nowrap';
+    handDiv.style.gap = '4px';
     handDiv.style.justifyContent = 'center';
+    handDiv.style.overflowX = 'auto';
+    handDiv.style.padding = '8px 0';
     
     // Sort tiles before rendering
     const sortedHand = sortTiles(state.hands.P0);
     
     sortedHand.forEach((tile, index) => {
       const btn = renderTileFn(tile);
-      btn.style.minWidth = '48px';
-      btn.style.padding = '12px 16px';
-      btn.style.fontSize = '16px';
+      btn.style.minWidth = '40px';
+      btn.style.width = '40px';
+      btn.style.height = '54px';
+      btn.style.padding = '4px';
+      btn.style.fontSize = '14px';
       btn.style.border = '2px solid #ccc';
       btn.style.borderRadius = '4px';
+      btn.style.flexShrink = '0';
+      
+      // 调整内部图片尺寸
+      const img = btn.querySelector('img');
+      if (img) {
+        img.style.width = '32px';
+        img.style.height = '44px';
+        img.style.objectFit = 'contain';
+      }
       btn.style.cursor = 'pointer';
       btn.style.backgroundColor = '#fff';
       
@@ -543,28 +609,153 @@ function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
     container.appendChild(drawText);
   }
   
+  const t = languageStore.t().game;
+  
   // 显示最终手牌
   const finalHandsSection = document.createElement('div');
   finalHandsSection.style.marginTop = '30px';
   
+  // 获取胡牌信息（成都规则包特有）
+  const huResults = state.huResults || {};
+  const scoreChanges = state.scoreChanges || {};
+  
   for (const pid of ['P0', 'P1', 'P2', 'P3'] as const) {
     const playerDiv = document.createElement('div');
     playerDiv.style.marginBottom = '15px';
-    playerDiv.style.padding = '10px';
+    playerDiv.style.padding = '12px';
     playerDiv.style.backgroundColor = state.declaredHu[pid] ? '#d4edda' : '#fff';
     playerDiv.style.borderRadius = '8px';
+    playerDiv.style.border = '1px solid #ddd';
+    
+    // 玩家标签行
+    const headerRow = document.createElement('div');
+    headerRow.style.display = 'flex';
+    headerRow.style.justifyContent = 'space-between';
+    headerRow.style.alignItems = 'center';
+    headerRow.style.marginBottom = '8px';
     
     const playerLabel = document.createElement('div');
     playerLabel.style.fontWeight = 'bold';
-    playerLabel.style.marginBottom = '5px';
-    playerLabel.textContent = `${pid}${pid === 'P0' ? ' (You)' : ''}${state.declaredHu[pid] ? ' - Winner' : ''}:`;
+    playerLabel.style.fontSize = '16px';
+    const youLabel = pid === 'P0' ? ` (${t.you})` : '';
+    const winnerLabel = state.declaredHu[pid] ? ` 🏆 ${t.hu || 'Winner'}` : '';
+    playerLabel.textContent = `${pid}${youLabel}${winnerLabel}`;
+    playerLabel.style.color = state.declaredHu[pid] ? '#28a745' : '#333';
     
+    // 分数变化
+    const scoreDiv = document.createElement('div');
+    scoreDiv.style.fontWeight = '600';
+    const scoreChange = scoreChanges[pid] || 0;
+    if (scoreChange > 0) {
+      scoreDiv.textContent = `+${scoreChange} ${t.score || 'pts'}`;
+      scoreDiv.style.color = '#28a745';
+    } else if (scoreChange < 0) {
+      scoreDiv.textContent = `${scoreChange} ${t.score || 'pts'}`;
+      scoreDiv.style.color = '#dc3545';
+    } else {
+      scoreDiv.textContent = `±0 ${t.score || 'pts'}`;
+      scoreDiv.style.color = '#6c757d';
+    }
+    
+    headerRow.appendChild(playerLabel);
+    headerRow.appendChild(scoreDiv);
+    playerDiv.appendChild(headerRow);
+    
+    // 胡牌信息（番型）
+    if (state.declaredHu[pid] && huResults[pid]) {
+      const huInfo = huResults[pid];
+      const huInfoDiv = document.createElement('div');
+      huInfoDiv.style.marginBottom = '8px';
+      huInfoDiv.style.padding = '6px 10px';
+      huInfoDiv.style.backgroundColor = '#fff3cd';
+      huInfoDiv.style.borderRadius = '4px';
+      huInfoDiv.style.fontSize = '13px';
+      
+      const yakuList = huInfo.yaku || [];
+      const fanCount = huInfo.fan || 0;
+      const winningTile = huInfo.winningTile;
+      
+      let huText = '';
+      if (winningTile) {
+        huText += `${t.hu || 'Hu'}: ${winningTile.suit}${winningTile.rank} | `;
+      }
+      if (yakuList.length > 0) {
+        huText += yakuList.join(', ') + ' | ';
+      }
+      huText += `${fanCount} ${t.fan || 'Fan'}`;
+      
+      huInfoDiv.textContent = huText;
+      playerDiv.appendChild(huInfoDiv);
+    }
+    
+    // 手牌显示（排序后的麻将牌图像）
     const handDisplay = document.createElement('div');
-    handDisplay.style.fontSize = '14px';
-    handDisplay.textContent = state.hands[pid].map((t: Tile) => `${t.suit}${t.rank}`).join(' ');
+    handDisplay.style.display = 'flex';
+    handDisplay.style.flexWrap = 'wrap';
+    handDisplay.style.gap = '3px';
+    handDisplay.style.marginBottom = '8px';
     
-    playerDiv.appendChild(playerLabel);
+    // 排序手牌
+    const sortedHand = sortTiles(state.hands[pid]);
+    for (const tile of sortedHand) {
+      const tileEl = renderTile(tile);
+      tileEl.style.width = '28px';
+      tileEl.style.height = '38px';
+      tileEl.style.padding = '2px';
+      
+      const img = tileEl.querySelector('img');
+      if (img) {
+        img.style.width = '24px';
+        img.style.height = '34px';
+        img.style.objectFit = 'contain';
+      }
+      
+      handDisplay.appendChild(tileEl);
+    }
+    
     playerDiv.appendChild(handDisplay);
+    
+    // 碰杠显示
+    if (state.melds[pid] && state.melds[pid].length > 0) {
+      const meldsDisplay = document.createElement('div');
+      meldsDisplay.style.display = 'flex';
+      meldsDisplay.style.flexWrap = 'wrap';
+      meldsDisplay.style.gap = '8px';
+      meldsDisplay.style.marginTop = '6px';
+      meldsDisplay.style.paddingTop = '6px';
+      meldsDisplay.style.borderTop = '1px dashed #ccc';
+      
+      for (const meld of state.melds[pid]) {
+        const meldGroup = document.createElement('div');
+        meldGroup.style.display = 'flex';
+        meldGroup.style.gap = '1px';
+        meldGroup.style.padding = '2px 4px';
+        meldGroup.style.backgroundColor = '#f8f9fa';
+        meldGroup.style.borderRadius = '4px';
+        
+        const tileCount = meld.type === 'GANG' ? 4 : 3;
+        for (let i = 0; i < tileCount; i++) {
+          const tileEl = renderTile(meld.tile);
+          tileEl.style.width = '24px';
+          tileEl.style.height = '32px';
+          tileEl.style.padding = '1px';
+          
+          const img = tileEl.querySelector('img');
+          if (img) {
+            img.style.width = '20px';
+            img.style.height = '28px';
+            img.style.objectFit = 'contain';
+          }
+          
+          meldGroup.appendChild(tileEl);
+        }
+        
+        meldsDisplay.appendChild(meldGroup);
+      }
+      
+      playerDiv.appendChild(meldsDisplay);
+    }
+    
     finalHandsSection.appendChild(playerDiv);
   }
   
@@ -748,4 +939,113 @@ function renderDingQuePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   container.appendChild(handSection);
   container.appendChild(btnContainer);
   root.appendChild(container);
+}
+
+// 辅助函数：渲染简化的玩家信息面板（不含弃牌）
+function renderCompactPlayerInfo(
+  playerId: PlayerId,
+  handCount: number,
+  melds: Meld[],
+  isCurrent: boolean,
+  missingSuit?: 'W' | 'B' | 'T',
+  t?: any
+): HTMLElement {
+  const panel = document.createElement('div');
+  panel.style.border = isCurrent ? '2px solid #4a90e2' : '1px solid #ccc';
+  panel.style.padding = '4px 6px';
+  panel.style.borderRadius = '4px';
+  panel.style.backgroundColor = isCurrent ? '#f0f8ff' : '#fff';
+  panel.style.fontSize = '12px';
+  panel.style.height = '100%';
+  panel.style.boxSizing = 'border-box';
+  panel.style.overflow = 'hidden';
+
+  const header = document.createElement('div');
+  header.style.fontWeight = '600';
+  header.style.marginBottom = '4px';
+  header.textContent = `${playerId}${isCurrent ? ' ⬅' : ''}`;
+
+  const handInfo = document.createElement('div');
+  handInfo.style.fontSize = '12px';
+  handInfo.style.color = '#666';
+  handInfo.textContent = t ? `${t.hand}: ${handCount} ${t.tiles}` : `Hand: ${handCount} tiles`;
+
+  panel.appendChild(header);
+  panel.appendChild(handInfo);
+
+  // 显示缺门信息
+  if (missingSuit && t) {
+    const missingSuitInfo = document.createElement('div');
+    missingSuitInfo.style.fontSize = '11px';
+    missingSuitInfo.style.fontWeight = '600';
+    missingSuitInfo.style.marginTop = '4px';
+    missingSuitInfo.style.padding = '3px 6px';
+    missingSuitInfo.style.backgroundColor = '#fff3cd';
+    missingSuitInfo.style.border = '1px solid #ffc107';
+    missingSuitInfo.style.borderRadius = '3px';
+    missingSuitInfo.style.color = '#856404';
+    
+    const suitName = missingSuit === 'W' ? t.wan : missingSuit === 'B' ? t.tiao : t.bing;
+    missingSuitInfo.textContent = suitName;
+    panel.appendChild(missingSuitInfo);
+  }
+
+  // 显示碰杠信息（使用麻将牌图像）
+  if (melds.length > 0) {
+    const meldsContainer = document.createElement('div');
+    meldsContainer.style.marginTop = '2px';
+    meldsContainer.style.display = 'flex';
+    meldsContainer.style.flexDirection = 'column';
+    meldsContainer.style.gap = '2px';
+    
+    for (const meld of melds) {
+      const meldRow = document.createElement('div');
+      meldRow.style.display = 'flex';
+      meldRow.style.gap = '1px';
+      
+      // PENG = 3张, GANG = 4张
+      const tileCount = meld.type === 'GANG' ? 4 : 3;
+      for (let i = 0; i < tileCount; i++) {
+        const tileEl = renderTile(meld.tile);
+        tileEl.style.width = '20px';
+        tileEl.style.height = '28px';
+        tileEl.style.padding = '1px';
+        tileEl.style.display = 'flex';
+        tileEl.style.alignItems = 'center';
+        tileEl.style.justifyContent = 'center';
+        
+        // 调整内部图片尺寸
+        const img = tileEl.querySelector('img');
+        if (img) {
+          img.style.width = '16px';
+          img.style.height = '24px';
+          img.style.objectFit = 'contain';
+        }
+        
+        meldRow.appendChild(tileEl);
+      }
+      
+      meldsContainer.appendChild(meldRow);
+    }
+    
+    panel.appendChild(meldsContainer);
+  }
+
+  return panel;
+}
+
+// 辅助函数：渲染弃牌区域（无标签，无滚动条）
+function renderDiscardArea(
+  _playerId: PlayerId,
+  discards: Tile[]
+): HTMLElement {
+  const area = document.createElement('div');
+  area.style.padding = '2px';
+  area.style.backgroundColor = 'transparent';
+  area.style.overflow = 'hidden'; // 禁止滚动条
+
+  const grid = renderDiscardGrid(discards);
+  area.appendChild(grid);
+
+  return area;
 }

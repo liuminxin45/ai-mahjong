@@ -2,6 +2,8 @@ import type { PlayerId } from '../../core/model/types';
 import type { Tile } from '../../core/model/tile';
 import type { Meld } from '../../core/model/state';
 import { renderDiscardGrid } from './DiscardGrid';
+import { renderTile } from './tileView';
+import { languageStore } from '../../store/languageStore';
 
 export function renderPlayerPanel(
   playerId: PlayerId,
@@ -23,10 +25,12 @@ export function renderPlayerPanel(
   header.style.marginBottom = '4px';
   header.textContent = `${playerId}${isCurrent ? ' ⬅' : ''}`;
 
+  const t = languageStore.t().game;
+  
   const handInfo = document.createElement('div');
   handInfo.style.fontSize = '12px';
   handInfo.style.color = '#666';
-  handInfo.textContent = `Hand: ${handCount} tiles`;
+  handInfo.textContent = `${t.hand}: ${handCount} ${t.tiles}`;
   
   // 显示缺门信息
   if (missingSuit) {
@@ -40,7 +44,7 @@ export function renderPlayerPanel(
     missingSuitInfo.style.borderRadius = '3px';
     missingSuitInfo.style.color = '#856404';
     
-    const suitName = missingSuit === 'W' ? 'Wan' : missingSuit === 'B' ? 'Bamboo' : 'Dot';
+    const suitName = missingSuit === 'W' ? t.wan : missingSuit === 'B' ? t.tiao : t.bing;
     missingSuitInfo.textContent = suitName;
     
     panel.appendChild(header);
@@ -58,44 +62,65 @@ export function renderPlayerPanel(
     meldsSection.style.marginTop = '6px';
     meldsSection.style.color = '#333';
     
-    const meldsLabel = document.createElement('div');
-    meldsLabel.style.fontWeight = '600';
-    meldsLabel.style.marginBottom = '4px';
-    meldsLabel.textContent = 'Melds:';
-    
-    meldsSection.appendChild(meldsLabel);
+    const isZh = languageStore.getLanguage() === 'zh';
     
     for (const meld of melds) {
       const meldDiv = document.createElement('div');
-      meldDiv.style.marginBottom = '2px';
-      meldDiv.style.padding = '4px';
+      meldDiv.style.marginBottom = '4px';
+      meldDiv.style.padding = '2px 4px';
       meldDiv.style.backgroundColor = '#e8f4f8';
       meldDiv.style.borderRadius = '3px';
-      meldDiv.style.display = 'inline-block';
+      meldDiv.style.display = 'inline-flex';
+      meldDiv.style.alignItems = 'center';
+      meldDiv.style.gap = '1px';
       meldDiv.style.marginRight = '4px';
       
-      let meldText = '';
-      const tileStr = `${meld.tile.suit}${meld.tile.rank}`;
+      const tileCount = meld.type === 'GANG' ? 4 : 3;
       
-      if (meld.type === 'PENG') {
-        meldText = `Pong ${tileStr}×3`;
-      } else if (meld.type === 'GANG') {
-        // Chengdu 规则包扩展了 Meld 类型，包含 gangType
-        const gangMeld = meld as any;
-        if (gangMeld.gangType === 'AN') {
-          meldText = `Kong(Hidden) ${tileStr}×4`;
-        } else if (gangMeld.gangType === 'MING') {
-          meldText = `Kong(Open) ${tileStr}×4`;
-        } else if (gangMeld.gangType === 'JIA') {
-          meldText = `Kong(Add) ${tileStr}×4`;
-        } else {
-          meldText = `Kong ${tileStr}×4`;
+      if (isZh) {
+        // 中文模式：显示麻将牌图像
+        for (let i = 0; i < tileCount; i++) {
+          const tileEl = renderTile(meld.tile);
+          tileEl.style.width = '20px';
+          tileEl.style.height = '28px';
+          tileEl.style.padding = '1px';
+          tileEl.style.border = 'none';
+          tileEl.style.backgroundColor = 'transparent';
+          
+          const img = tileEl.querySelector('img');
+          if (img) {
+            img.style.width = '18px';
+            img.style.height = '26px';
+            img.style.objectFit = 'contain';
+          }
+          
+          meldDiv.appendChild(tileEl);
         }
-      } else if (meld.type === 'CHI') {
-        meldText = `Chow ${tileStr}`;
+      } else {
+        // 英文模式：显示文本
+        let meldText = '';
+        const tileStr = `${meld.tile.suit}${meld.tile.rank}`;
+        
+        if (meld.type === 'PENG') {
+          meldText = `Pong ${tileStr}×3`;
+        } else if (meld.type === 'GANG') {
+          const gangMeld = meld as any;
+          if (gangMeld.gangType === 'AN') {
+            meldText = `Kong(H) ${tileStr}×4`;
+          } else if (gangMeld.gangType === 'MING') {
+            meldText = `Kong(O) ${tileStr}×4`;
+          } else if (gangMeld.gangType === 'JIA') {
+            meldText = `Kong(+) ${tileStr}×4`;
+          } else {
+            meldText = `Kong ${tileStr}×4`;
+          }
+        } else if (meld.type === 'CHI') {
+          meldText = `Chow ${tileStr}`;
+        }
+        
+        meldDiv.textContent = meldText;
       }
       
-      meldDiv.textContent = meldText;
       meldsSection.appendChild(meldDiv);
     }
     
@@ -106,11 +131,11 @@ export function renderPlayerPanel(
   discardsLabel.style.fontSize = '12px';
   discardsLabel.style.marginTop = '6px';
   discardsLabel.style.color = '#666';
-  discardsLabel.textContent = `Discards (${discards.length}):`;
+  discardsLabel.textContent = `${t.discards} (${discards.length}):`;
 
   // 弃牌容器，添加滚动和最大高度限制
   const discardsContainer = document.createElement('div');
-  discardsContainer.style.maxHeight = '120px';
+  discardsContainer.style.maxHeight = '80px'; // 紧凑高度适应一屏
   discardsContainer.style.overflowY = 'auto';
   discardsContainer.style.overflowX = 'hidden';
   discardsContainer.appendChild(renderDiscardGrid(discards));
