@@ -14,6 +14,15 @@ import { sortTiles } from './sort';
 import { settingsStore } from '../../../../store/settingsStore';
 import { createChengduValidator } from './validator';
 import { tileEq, removeNTiles, removeTile, countTile, canUpgradeToGang, isLastTileInWall } from './utils';
+import { testConfig } from '../../../../config/testConfig';
+
+// 条件日志函数 - 训练模式下禁用
+const log = (...args: any[]) => {
+  if (!testConfig.trainingMode) console.log(...args);
+};
+const warn = (...args: any[]) => {
+  if (!testConfig.trainingMode) console.warn(...args);
+};
 
 const PLAYERS: PlayerId[] = ['P0', 'P1', 'P2', 'P3'];
 
@@ -175,7 +184,7 @@ type ChengduState = GameState & {
 function validateHandSize(hand: Tile[], meldCount: number, expectedExtra: number): boolean {
   const expectedSize = 13 - meldCount * 3 + expectedExtra;
   if (hand.length !== expectedSize) {
-    console.warn(`[Validation] Hand size mismatch: expected ${expectedSize}, got ${hand.length}`);
+    warn(`[Validation] Hand size mismatch: expected ${expectedSize}, got ${hand.length}`);
   }
   return true;
 }
@@ -252,7 +261,7 @@ export const chengduRulePack: RulePack = {
     // 使用训练器传递的种子或生成新种子
     const trainingSeed = (globalThis as any).__trainingGameSeed;
     const seed = trainingSeed !== undefined ? trainingSeed : Date.now() + Math.random() * 1000000;
-    console.log(`[GameInit] Game #${gameCounter}, seed: ${seed} (training: ${trainingSeed !== undefined})`);
+    log(`[GameInit] Game #${gameCounter}, seed: ${seed} (training: ${trainingSeed !== undefined})`);
     
     // 重新洗牌手牌
     const tiles = shuffle(this.getTileSet(), seed);
@@ -327,17 +336,17 @@ export const chengduRulePack: RulePack = {
       }
 
       // AI 玩家（包括 P0 AI 模式）智能选择换三张的牌
-      console.log(`[Exchange] ${player} checking AI mode: p0IsAI=${settingsStore.p0IsAI}, player=${player}`);
+      log(`[Exchange] ${player} checking AI mode: p0IsAI=${settingsStore.p0IsAI}, player=${player}`);
       
       if (player !== 'P0' || settingsStore.p0IsAI) {
         const hand = state.hands[player];
         const selectedTiles = selectExchangeTiles(hand);
         if (selectedTiles.length === 3) {
-          console.log(`[Exchange] ${player} AI selecting tiles:`, selectedTiles.map(t => `${t.suit}${t.rank}`).join(', '));
+          log(`[Exchange] ${player} AI selecting tiles:`, selectedTiles.map(t => `${t.suit}${t.rank}`).join(', '));
           return [{ type: 'EXCHANGE_SELECT', tiles: selectedTiles }];
         }
       } else {
-        console.log(`[Exchange] ${player} is human player, returning manual selection options`);
+        log(`[Exchange] ${player} is human player, returning manual selection options`);
         // 人类玩家：返回所有可能的3张同花色组合
         const hand = state.hands[player];
         const legalActions: Action[] = [];
@@ -370,7 +379,7 @@ export const chengduRulePack: RulePack = {
       if (player !== 'P0' || settingsStore.p0IsAI) {
         const hand = state.hands[player];
         const selectedSuit = selectDingQueSuit(hand);
-        console.log(`[DingQue] ${player} AI selecting missing suit: ${selectedSuit}`);
+        log(`[DingQue] ${player} AI selecting missing suit: ${selectedSuit}`);
         return [{ type: 'DING_QUE', suit: selectedSuit }];
       }
       
@@ -484,20 +493,20 @@ export const chengduRulePack: RulePack = {
       const player = state.currentPlayer;
       const tiles = action.tiles;
 
-      console.log(`[EXCHANGE_SELECT] ${player} selecting tiles:`, tiles.map(t => `${t.suit}${t.rank}`).join(', '));
-      console.log(`[EXCHANGE_SELECT] ${player} hand before:`, state.hands[player].map(t => `${t.suit}${t.rank}`).join(' '));
+      log(`[EXCHANGE_SELECT] ${player} selecting tiles:`, tiles.map(t => `${t.suit}${t.rank}`).join(', '));
+      log(`[EXCHANGE_SELECT] ${player} hand before:`, state.hands[player].map(t => `${t.suit}${t.rank}`).join(' '));
 
       if (tiles.length !== 3) {
-        console.warn('[EXCHANGE_SELECT] Failed: Must select exactly 3 tiles, got', tiles.length);
+        warn('[EXCHANGE_SELECT] Failed: Must select exactly 3 tiles, got', tiles.length);
         return state;
       }
 
       if (!validateExchangeTiles(tiles)) {
-        console.warn('[EXCHANGE_SELECT] Failed: Exchange tiles must be same suit', tiles);
+        warn('[EXCHANGE_SELECT] Failed: Exchange tiles must be same suit', tiles);
         return state;
       }
 
-      console.log(`[EXCHANGE_SELECT] ✅ ${player} tiles saved successfully`);
+      log(`[EXCHANGE_SELECT] ✅ ${player} tiles saved successfully`);
       
       // 保存选择后，不切换玩家，等待当前玩家确认
       return {
@@ -513,8 +522,8 @@ export const chengduRulePack: RulePack = {
     if (action.type === 'EXCHANGE_CONFIRM' && state.phase === 'EXCHANGE') {
       const player = state.currentPlayer;
       
-      console.log(`[EXCHANGE_CONFIRM] ${player} confirming exchange`);
-      console.log(`[EXCHANGE_CONFIRM] ${player} selected:`, chengduState.exchangeSelections?.[player]?.map(t => `${t.suit}${t.rank}`).join(', '));
+      log(`[EXCHANGE_CONFIRM] ${player} confirming exchange`);
+      log(`[EXCHANGE_CONFIRM] ${player} selected:`, chengduState.exchangeSelections?.[player]?.map(t => `${t.suit}${t.rank}`).join(', '));
       
       const newState = {
         ...state,
@@ -527,11 +536,11 @@ export const chengduRulePack: RulePack = {
       } as ChengduState;
 
       const allConfirmed = Object.values(newState.exchangeConfirmed!).every(c => c);
-      console.log(`[EXCHANGE_CONFIRM] Confirmed: P0=${newState.exchangeConfirmed!.P0}, P1=${newState.exchangeConfirmed!.P1}, P2=${newState.exchangeConfirmed!.P2}, P3=${newState.exchangeConfirmed!.P3}`);
-      console.log(`[EXCHANGE_CONFIRM] All confirmed? ${allConfirmed}`);
+      log(`[EXCHANGE_CONFIRM] Confirmed: P0=${newState.exchangeConfirmed!.P0}, P1=${newState.exchangeConfirmed!.P1}, P2=${newState.exchangeConfirmed!.P2}, P3=${newState.exchangeConfirmed!.P3}`);
+      log(`[EXCHANGE_CONFIRM] All confirmed? ${allConfirmed}`);
 
       if (allConfirmed) {
-        console.log('[EXCHANGE] 🔄 All players confirmed, performing exchange (CLOCKWISE)');
+        log('[EXCHANGE] 🔄 All players confirmed, performing exchange (CLOCKWISE)');
         
         const exchanged = performExchange(
           newState.exchangeSelections!,
@@ -541,8 +550,8 @@ export const chengduRulePack: RulePack = {
         const newHands = { ...newState.hands };
         for (const [pid, tiles] of Object.entries(exchanged)) {
           const playerId = pid as PlayerId;
-          console.log(`[EXCHANGE] ${playerId} sending:`, newState.exchangeSelections![playerId].map(t => `${t.suit}${t.rank}`).join(', '));
-          console.log(`[EXCHANGE] ${playerId} receiving:`, tiles.map(t => `${t.suit}${t.rank}`).join(', '));
+          log(`[EXCHANGE] ${playerId} sending:`, newState.exchangeSelections![playerId].map(t => `${t.suit}${t.rank}`).join(', '));
+          log(`[EXCHANGE] ${playerId} receiving:`, tiles.map(t => `${t.suit}${t.rank}`).join(', '));
           
           const remaining = removeTilesFromHand(
             newHands[playerId],
@@ -551,11 +560,11 @@ export const chengduRulePack: RulePack = {
           if (remaining) {
             // 换三张后自动排序手牌
             newHands[playerId] = sortTiles([...remaining, ...tiles]);
-            console.log(`[EXCHANGE] ${playerId} hand after:`, newHands[playerId].map(t => `${t.suit}${t.rank}`).join(' '));
+            log(`[EXCHANGE] ${playerId} hand after:`, newHands[playerId].map(t => `${t.suit}${t.rank}`).join(' '));
           }
         }
 
-        console.log('[EXCHANGE] ✅ Exchange complete, transitioning to DING_QUE phase');
+        log('[EXCHANGE] ✅ Exchange complete, transitioning to DING_QUE phase');
 
         return {
           ...newState,
@@ -574,8 +583,8 @@ export const chengduRulePack: RulePack = {
     if (action.type === 'DING_QUE' && state.phase === 'DING_QUE') {
       const player = state.currentPlayer;
       
-      console.log(`[DING_QUE] ${player} selecting missing suit: ${action.suit}`);
-      console.log(`[DING_QUE] ${player} hand:`, state.hands[player].map(t => `${t.suit}${t.rank}`).join(' '));
+      log(`[DING_QUE] ${player} selecting missing suit: ${action.suit}`);
+      log(`[DING_QUE] ${player} hand:`, state.hands[player].map(t => `${t.suit}${t.rank}`).join(' '));
       
       // 统计花色数量
       const suitCounts = { W: 0, B: 0, T: 0 };
@@ -584,7 +593,7 @@ export const chengduRulePack: RulePack = {
           suitCounts[tile.suit]++;
         }
       }
-      console.log(`[DING_QUE] ${player} suit counts: W=${suitCounts.W}, B=${suitCounts.B}, T=${suitCounts.T}`);
+      log(`[DING_QUE] ${player} suit counts: W=${suitCounts.W}, B=${suitCounts.B}, T=${suitCounts.T}`);
       
       const newState = {
         ...state,
@@ -597,12 +606,12 @@ export const chengduRulePack: RulePack = {
       } as ChengduState;
 
       const allSelected = Object.values(newState.dingQueSelection!).every(s => s !== undefined);
-      console.log(`[DING_QUE] Selected: P0=${newState.dingQueSelection!.P0 || 'pending'}, P1=${newState.dingQueSelection!.P1 || 'pending'}, P2=${newState.dingQueSelection!.P2 || 'pending'}, P3=${newState.dingQueSelection!.P3 || 'pending'}`);
-      console.log(`[DING_QUE] All selected? ${allSelected}`);
+      log(`[DING_QUE] Selected: P0=${newState.dingQueSelection!.P0 || 'pending'}, P1=${newState.dingQueSelection!.P1 || 'pending'}, P2=${newState.dingQueSelection!.P2 || 'pending'}, P3=${newState.dingQueSelection!.P3 || 'pending'}`);
+      log(`[DING_QUE] All selected? ${allSelected}`);
 
       if (allSelected) {
-        console.log('[DING_QUE] ✅ All players selected, transitioning to PLAYING phase');
-        console.log(`[DING_QUE] Final: P0 missing ${newState.dingQueSelection!.P0}, P1 missing ${newState.dingQueSelection!.P1}, P2 missing ${newState.dingQueSelection!.P2}, P3 missing ${newState.dingQueSelection!.P3}`);
+        log('[DING_QUE] ✅ All players selected, transitioning to PLAYING phase');
+        log(`[DING_QUE] Final: P0 missing ${newState.dingQueSelection!.P0}, P1 missing ${newState.dingQueSelection!.P1}, P2 missing ${newState.dingQueSelection!.P2}, P3 missing ${newState.dingQueSelection!.P3}`);
         return {
           ...newState,
           phase: 'PLAYING',
@@ -624,14 +633,14 @@ export const chengduRulePack: RulePack = {
       
       // 状态一致性：先检查牌墙
       if (state.wall.length === 0) {
-        console.warn('Cannot draw tile for AN gang: wall is empty');
+        warn('Cannot draw tile for AN gang: wall is empty');
         return state;
       }
 
       // 防御性检查：验证能否移除4张牌
       const nextHand = removeNTiles(hand, action.tile, 4);
       if (!nextHand) {
-        console.warn('Failed to remove 4 tiles for AN gang');
+        warn('Failed to remove 4 tiles for AN gang');
         return state;
       }
 
@@ -674,13 +683,13 @@ export const chengduRulePack: RulePack = {
       // 防御性检查：验证是否有对应的碰
       const hasPeng = state.melds[action.from].some(m => m.type === 'PENG' && tileEq(m.tile, action.tile));
       if (!hasPeng) {
-        console.warn('Cannot upgrade to gang: no matching PENG found');
+        warn('Cannot upgrade to gang: no matching PENG found');
         return state;
       }
 
       const nextHand = removeTile(hand, action.tile);
       if (!nextHand) {
-        console.warn('Failed to remove tile for JIA gang');
+        warn('Failed to remove tile for JIA gang');
         return state;
       }
 
@@ -718,12 +727,12 @@ export const chengduRulePack: RulePack = {
       
       // 手牌数量验证
       if (!validateHandSize(hand, meldCount, 1)) {
-        console.warn('Hand size validation failed for discard');
+        warn('Hand size validation failed for discard');
       }
 
       // 碰后出牌限制
       if (chengduState.lastPengTile && tileEq(action.tile, chengduState.lastPengTile)) {
-        console.warn('Cannot discard the tile just ponged');
+        warn('Cannot discard the tile just ponged');
         return state;
       }
 
@@ -986,7 +995,7 @@ export const chengduRulePack: RulePack = {
       }
 
       if (state.wall.length === 0) {
-        console.warn('Cannot draw tile for MING gang: wall is empty');
+        warn('Cannot draw tile for MING gang: wall is empty');
         const nextP = nextActivePlayer({ ...state }, discard.from);
         const next: GameState = { ...state, lastDiscard: null, currentPlayer: nextP };
         return { state: next, events: [{ type: 'TURN', playerId: nextP, turn: next.turn, ts: baseTs }] };

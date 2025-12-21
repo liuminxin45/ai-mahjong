@@ -28,10 +28,10 @@ export interface MutationConfig {
 }
 
 export const DEFAULT_MUTATION_CONFIG: MutationConfig = {
-  mutationRate: 0.35,
-  mutationScale: 0.15,
-  minMutations: 2,
-  maxMutations: 6,
+  mutationRate: 0.6,          // 提高突变频率，增加探索
+  mutationScale: 0.15,        // 降低突变幅度，更稳定的搜索
+  minMutations: 2,            // 每次至少变动2个参数
+  maxMutations: 5,            // 最多变动5个参数
 };
 
 /**
@@ -180,10 +180,9 @@ export class OnlineOptimizer {
     delta: number;
   } {
     const metricsArray = Array.isArray(metrics) ? metrics : [metrics];
-    const candidateFitness =
-      metricsArray.length === 1
-        ? calculateFitness(metricsArray[0])
-        : calculateAverageFitness(metricsArray);
+    const candidateFitness = metricsArray.length === 1
+      ? calculateFitness(metricsArray[0])
+      : calculateAverageFitness(metricsArray);
     const delta = candidateFitness - this.state.currentFitness;
     
     let accepted = false;
@@ -227,8 +226,9 @@ export class OnlineOptimizer {
     
     // 更新步数和温度（使用更缓慢的衰减策略）
     this.state.step++;
-    // 使用 sqrt 衰减，比 log 更缓慢，给更多探索机会
-    this.state.temperature = Math.max(0.1, 1.0 / Math.sqrt(this.state.step + 1));
+    // 使用线性衰减，保持较高的探索率
+    // 500步后温度降到0.1，始终保持一定的探索能力
+    this.state.temperature = Math.max(0.1, 1.0 - this.state.step * 0.0018);
     
     return {
       accepted,

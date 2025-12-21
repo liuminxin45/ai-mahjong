@@ -44,15 +44,15 @@ export interface FitnessWeights {
 }
 
 export const DEFAULT_FITNESS_WEIGHTS: FitnessWeights = {
-  netGain: 1.0,
-  firstHuBonus: 500,
-  dealInPenalty: -1500,
-  stageBDealInPenalty: -1000,
-  stageCDealInPenalty: -2000,
-  avgEVWeight: 0.1,
-  speedBonus: 0.5,
-  lossPenalty: -2000,
-  drawPenalty: -300,
+  netGain: 1.0,               // 净收益权重
+  firstHuBonus: 300,          // 降低首胡奖励，减少方差
+  dealInPenalty: -80,         // 放炮惩罚
+  stageBDealInPenalty: -40,   // B阶段放炮额外惩罚
+  stageCDealInPenalty: -100,  // C阶段放炮额外惩罚
+  avgEVWeight: 0.05,          // EV权重（训练模式不计算EV）
+  speedBonus: 2.0,            // 速度奖励（早胡）
+  lossPenalty: -150,          // 输局惩罚
+  drawPenalty: 0,             // 流局不惩罚！流局是中性结果
 };
 
 /**
@@ -89,8 +89,14 @@ export function calculateFitness(
   
   // 5. 速度奖励（越早胡越好）
   if (metrics.didWin && metrics.winTurn > 0) {
-    const speedScore = Math.max(0, 100 - metrics.winTurn) * weights.speedBonus;
+    const speedScore = Math.max(0, 80 - metrics.winTurn) * weights.speedBonus;
     fitness += speedScore;
+  }
+  
+  // 6. 基础分保底（确保流局不会太差）
+  // 流局时给予小额正分，鼓励防守成功
+  if (metrics.result === 'DRAW' && metrics.dealInCount === 0) {
+    fitness += 50; // 没有放炮的流局是好结果
   }
   
   return fitness;

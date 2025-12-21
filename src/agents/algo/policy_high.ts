@@ -10,6 +10,7 @@ import { findMostDangerousOpponent } from './opponentModel';
 import { calculateHuEV } from './expectedValue';
 import { calcDiscardEV, calcMeldEV, calcStage } from './bloodBattleEV';
 import type { EVDetails } from './bloodBattleEV';
+import { testConfig } from '../../config/testConfig';
 
 function removeOne(hand: GameState['hands'][PlayerId], idx: number): GameState['hands'][PlayerId] {
   return hand.slice(0, idx).concat(hand.slice(idx + 1));
@@ -35,12 +36,102 @@ function pairKinds(hand13: GameState['hands'][PlayerId]): number {
   return n;
 }
 
+/**
+ * 训练模式下的快速出牌决策
+ * 只基于向听数和有效牌数，跳过复杂的EV计算和危险度评估
+ */
+function fastDiscardDecision(
+  state: GameState,
+  playerId: PlayerId,
+  hand: Tile[],
+  meldCount: number,
+  _shantenBefore: number,
+  discards: Action[]
+): Action {
+  // 获取定缺花色
+  const dingQue = (state as any).dingQueSelection?.[playerId] as 'W' | 'B' | 'T' | undefined;
+  
+  type FastCand = {
+    tile: Tile;
+    sAfter: number;
+    ukeire: number;
+    isDingQue: boolean;
+  };
+  
+  const cands: FastCand[] = [];
+  
+  // 先尝试从合法出牌中找
+  for (const d of discards) {
+    if (d.type !== 'DISCARD') continue;
+    const idx = hand.findIndex(t => t.suit === d.tile.suit && t.rank === d.tile.rank);
+    if (idx < 0) continue;
+    
+    const hand13 = removeOne(hand, idx);
+    const sAfter = shantenWithMelds(hand13, meldCount);
+    const ukeire = ukeireTilesWithMelds(hand13, meldCount).total;
+    const isDingQue = dingQue ? d.tile.suit === dingQue : false;
+    
+    cands.push({ tile: d.tile, sAfter, ukeire, isDingQue });
+  }
+  
+  // 如果没有合法出牌，直接从手牌中选择一张
+  if (cands.length === 0 && hand.length > 0) {
+    // 优先打定缺牌
+    if (dingQue) {
+      const dingQueTile = hand.find(t => t.suit === dingQue);
+      if (dingQueTile) {
+        return { type: 'DISCARD', tile: dingQueTile };
+      }
+    }
+    // 否则打第一张
+    return { type: 'DISCARD', tile: hand[0] };
+  }
+  
+  if (cands.length === 0) {
+    // 实在没有牌可打，返回第一个合法动作
+    const anyDiscard = discards.find(d => d.type === 'DISCARD');
+    if (anyDiscard) return anyDiscard;
+    return { type: 'PASS' };
+  }
+  
+  // 排序规则：
+  // 1. 优先打定缺牌
+  // 2. 向听数不变或降低
+  // 3. 有效牌数多
+  cands.sort((a, b) => {
+    // 定缺牌优先
+    if (a.isDingQue && !b.isDingQue) return -1;
+    if (!a.isDingQue && b.isDingQue) return 1;
+    // 向听数低优先
+    if (a.sAfter !== b.sAfter) return a.sAfter - b.sAfter;
+    // 有效牌多优先
+    return b.ukeire - a.ukeire;
+  });
+  
+  return { type: 'DISCARD', tile: cands[0].tile };
+}
+
 export function decideHigh(
   state: GameState,
   playerId: PlayerId,
   legal: Action[],
   ctx?: AgentDecisionContext,
 ): Action {
+  // 全局兜底：确保永远不返回PASS当有其他合法动作时
+  const safeReturn = (action: Action): Action => {
+    if (action.type === 'PASS') {
+      // 检查是否有其他合法动作
+      const nonPass = legal.find(a => a.type !== 'PASS');
+      if (nonPass) {
+        // 优先返回出牌动作
+        const discard = legal.find(a => a.type === 'DISCARD');
+        if (discard) return discard;
+        return nonPass;
+      }
+    }
+    return action;
+  };
+  
   if (legal.length === 0) return { type: 'PASS' };
 
   const hu = legal.find((a) => a.type === 'HU');
@@ -90,6 +181,16 @@ export function decideHigh(
       const after = removeNTiles(hand, peng.tile, 2);
       if (after) {
         const s1 = shantenWithMelds(after, meldCount + 1);
+        
+        // 训练模式：简化决策，更积极地碰牌
+        if (testConfig.trainingMode) {
+          // 向听数降低或保持时都碰
+          if (s1 <= s0) {
+            return peng;
+          }
+          return safeReturn({ type: 'PASS' });
+        }
+        
         const pengEV = calcMeldEV(state, playerId, peng.tile, after, meldCount + 1, false);
         
         if (s1 < s0) {
@@ -146,7 +247,7 @@ export function decideHigh(
       }
     }
 
-    return { type: 'PASS' };
+    return safeReturn({ type: 'PASS' });
   }
   const discards = legal.filter((a) => a.type === 'DISCARD');
   if (discards.length === 0) return legal[0];
@@ -154,9 +255,23 @@ export function decideHigh(
   const hand = state.hands[playerId];
   const meldCount = state.melds[playerId].length;
   const base = 13 - meldCount * 3;
-  if (hand.length !== base + 1) return { type: 'PASS' };
+  
+  // 如果手牌数量不对，尝试返回任何有效的出牌动作
+  if (hand.length !== base + 1) {
+    // 优先返回合法出牌
+    if (discards.length > 0) {
+      return discards[0];
+    }
+    // 否则返回任何合法动作
+    return safeReturn(legal[0] || { type: 'PASS' });
+  }
 
   const shantenBefore = shantenWithMelds(hand, meldCount);
+
+  // 训练模式：简化出牌决策，只基于向听和有效牌，跳过复杂EV计算
+  if (testConfig.trainingMode) {
+    return fastDiscardDecision(state, playerId, hand, meldCount, shantenBefore, discards);
+  }
 
   const baseCounts = countTiles(hand);
 
@@ -224,7 +339,16 @@ export function decideHigh(
     });
   }
 
-  if (cands.length === 0) return { type: 'PASS' };
+  // 兜底：如果没有候选，直接返回第一个合法出牌
+  if (cands.length === 0) {
+    const fallbackDiscard = discards.find(d => d.type === 'DISCARD');
+    if (fallbackDiscard) {
+      console.warn('[AI] No candidates found, using fallback discard');
+      return fallbackDiscard;
+    }
+    // 实在没有出牌选项，返回任何合法动作
+    return safeReturn(legal[0] || { type: 'PASS' });
+  }
 
   cands.sort((a, b) => {
     if (a.totalScore !== b.totalScore) return b.totalScore - a.totalScore;

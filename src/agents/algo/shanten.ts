@@ -2,6 +2,29 @@ import type { Tile } from '../../core/model/tile';
 
 export type Suit = 'W' | 'B' | 'T';
 
+// 全局向听缓存 - 大幅提高训练速度
+const SHANTEN_CACHE = new Map<string, number>();
+const UKEIRE_CACHE = new Map<string, { total: number; tiles: Tile[] }>();
+const MAX_CACHE_SIZE = 100000;
+
+/**
+ * 清空向听缓存
+ */
+export function clearShantenCache(): void {
+  SHANTEN_CACHE.clear();
+  UKEIRE_CACHE.clear();
+}
+
+/**
+ * 获取缓存统计
+ */
+export function getShantenCacheStats(): { shantenSize: number; ukeireSize: number } {
+  return {
+    shantenSize: SHANTEN_CACHE.size,
+    ukeireSize: UKEIRE_CACHE.size,
+  };
+}
+
 function tileToIndex(tile: Tile): number {
   const suitOffset = tile.suit === 'W' ? 0 : tile.suit === 'B' ? 9 : 18;
   return suitOffset + (tile.rank - 1);
@@ -49,6 +72,11 @@ export function shantenWithMelds(hand: Tile[], meldCount: number): number {
     }
     return 0;
   }
+
+  // 全局缓存查找
+  const globalKey = `${counts.join(',')}|${mc}`;
+  const globalCached = SHANTEN_CACHE.get(globalKey);
+  if (globalCached !== undefined) return globalCached;
 
   const memo = new Map<string, number>();
 
@@ -130,7 +158,14 @@ export function shantenWithMelds(hand: Tile[], meldCount: number): number {
     return best;
   };
 
-  return dfs(counts, 0, 0, false);
+  const result = dfs(counts, 0, 0, false);
+  
+  // 保存到全局缓存（限制大小避免内存溢出）
+  if (SHANTEN_CACHE.size < MAX_CACHE_SIZE) {
+    SHANTEN_CACHE.set(globalKey, result);
+  }
+  
+  return result;
 }
 
 export function shantenNormal(hand: Tile[] | number[]): number {

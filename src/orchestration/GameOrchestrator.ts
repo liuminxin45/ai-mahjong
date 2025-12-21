@@ -24,6 +24,27 @@ import { finishMatchStat, recordDecisionStat, startMatchStat } from '../analysis
 import { createOpponentModel } from '../agents/algo/opponentModel';
 import { gameLogger } from '../utils/gameLogger';
 import { setAIParams } from '../agents/algo/aiParams';
+import { testConfig } from '../config/testConfig';
+
+// 条件日志函数 - 训练模式下禁用
+const log = (...args: any[]) => {
+  if (!testConfig.trainingMode) console.log(...args);
+};
+const warn = (...args: any[]) => {
+  if (!testConfig.trainingMode) console.warn(...args);
+};
+const error = (...args: any[]) => {
+  if (!testConfig.trainingMode) console.error(...args);
+};
+// 安全的alert函数 - 训练模式或Node.js环境下跳过
+const safeAlert = (msg: string) => {
+  if (testConfig.trainingMode) return;
+  if (typeof alert === 'function') {
+    alert(msg);
+  } else {
+    console.error('[Alert]', msg);
+  }
+};
 import { loadParams } from '../training/paramPersistence';
 import { recordGameResult, loadOnlineLearnedParams, type GameResult } from '../training/onlineLearning';
 
@@ -124,25 +145,25 @@ export class GameOrchestrator {
       const paramsToUse = paramsFile.trainingState.bestParams || paramsFile.params;
       setAIParams(paramsToUse);
       
-      console.log('[GameOrchestrator] ✅ Loaded trained AI parameters');
-      console.log('[GameOrchestrator] 📊 Best fitness:', paramsFile.trainingState.bestFitness);
-      console.log('[GameOrchestrator] 📊 Training steps:', paramsFile.trainingState.currentStep);
+      log('[GameOrchestrator] ✅ Loaded trained AI parameters');
+      log('[GameOrchestrator] 📊 Best fitness:', paramsFile.trainingState.bestFitness);
+      log('[GameOrchestrator] 📊 Training steps:', paramsFile.trainingState.currentStep);
       // 调试：对比 params 和 bestParams
-      console.log('[GameOrchestrator] 📋 Using bestParams:', {
+      log('[GameOrchestrator] 📋 Using bestParams:', {
         baseWinValue: paramsToUse.baseWinValue,
         baseLoss: paramsToUse.baseLoss,
         speedBonusK: paramsToUse.speedBonusK,
       });
       if (paramsFile.params.baseWinValue !== paramsToUse.baseWinValue) {
-        console.log('[GameOrchestrator] ⚠️ params differs from bestParams!');
+        log('[GameOrchestrator] ⚠️ params differs from bestParams!');
       }
-    } catch (error) {
-      console.warn('[GameOrchestrator] ⚠️ Failed to load AI parameters, using defaults:', error);
+    } catch (err) {
+      warn('[GameOrchestrator] ⚠️ Failed to load AI parameters, using defaults:', err);
     }
     
     // 在线学习叠加：在训练参数基础上应用在线学习的调整
     if (loadOnlineLearnedParams()) {
-      console.log('[GameOrchestrator] 🧠 Applied online-learned adjustments on top of base params');
+      log('[GameOrchestrator] 🧠 Applied online-learned adjustments on top of base params');
     }
 
     const selected = ruleId ?? this.ss.ruleId;
@@ -152,7 +173,7 @@ export class GameOrchestrator {
     if (this.rulePack.getDiscardValidator) {
       this.discardValidator = this.rulePack.getDiscardValidator();
       if (this.discardValidator) {
-        console.log('[GameOrchestrator] 📋 Discard validator loaded:', this.discardValidator.getDescription());
+        log('[GameOrchestrator] 📋 Discard validator loaded:', this.discardValidator.getDescription());
       }
     }
 
@@ -167,7 +188,7 @@ export class GameOrchestrator {
     const gameId = makeId();
     gameLogger.startGame(gameId);
     if (this.ss.p0IsAI) {
-      console.log('[GameOrchestrator] 🤖 P0 AI mode ENABLED - Full AI vs AI game');
+      log('[GameOrchestrator] 🤖 P0 AI mode ENABLED - Full AI vs AI game');
     }
 
     void this.loop();
@@ -191,20 +212,22 @@ export class GameOrchestrator {
       const validation = this.discardValidator.validateDiscard(this.state, 'P0', action.tile);
       
       if (!validation.valid) {
-        console.warn('[Validator] ❌ Invalid discard:', validation.reason);
+        warn('[Validator] ❌ Invalid discard:', validation.reason);
         
         // 在 UI 上显示错误提示
-        alert(`Cannot discard this tile!\n\n${validation.reason}`);
+        if (!testConfig.trainingMode) {
+          safeAlert(`Cannot discard this tile!\n\n${validation.reason}`);
+        }
         
         // 如果有建议的牌，显示给玩家
         if (validation.suggestedTiles && validation.suggestedTiles.length > 0) {
-          console.log('[Validator] 💡 Suggested tiles:', validation.suggestedTiles);
+          log('[Validator] 💡 Suggested tiles:', validation.suggestedTiles);
         }
         
         return; // 阻止非法出牌
       }
       
-      console.log('[Validator] ✅ Valid discard');
+      log('[Validator] ✅ Valid discard');
     }
     
     this.human.dispatch(action);
@@ -260,7 +283,7 @@ export class GameOrchestrator {
           
           // 强制清除 lastDiscard 并继续
           if (state.lastDiscard) {
-            console.warn('[LOOP FIX] Forcing lastDiscard clear and advancing game');
+            warn('[LOOP FIX] Forcing lastDiscard clear and advancing game');
             const nextP = nextPlayerId(state.lastDiscard.from);
             this.state = { ...state, lastDiscard: null, currentPlayer: nextP };
             this.gs.applyState(this.state);
@@ -270,10 +293,15 @@ export class GameOrchestrator {
             continue;
           }
           
-          // 如果还是卡住，停止游戏
-          this.stop();
-          alert('Game stuck in infinite loop. Game stopped. Check console for details.');
-          throw new Error('Infinite loop detected in game loop');
+          // 没有lastDiscard时，强制推进游戏到下一个玩家
+          warn('[LOOP FIX] No lastDiscard, forcing game to next player');
+          const nextP = nextPlayerId(state.currentPlayer);
+          this.state = { ...state, currentPlayer: nextP };
+          this.gs.applyState(this.state);
+          consecutivePassCount = 0;
+          lastStateHash = '';
+          await timers.yield();
+          continue;
         }
       } else {
         consecutivePassCount = 0;
@@ -353,16 +381,16 @@ export class GameOrchestrator {
         !state.declaredHu[actor] &&
         actionable.length === 0
       ) {
-        console.warn('[DeadlockGuard] Detected PASS-only options for active player. Attempting recovery...');
+        warn('[DeadlockGuard] Detected PASS-only options for active player. Attempting recovery...');
         const recoveryAction = this.buildRecoveryAction(state, actor);
         if (recoveryAction) {
           legal = [recoveryAction];
           this.setLastLegalActions(actor, legal);
-          console.warn('[DeadlockGuard] Recovery action selected:', recoveryAction.type);
+          warn('[DeadlockGuard] Recovery action selected:', recoveryAction.type);
         } else {
-          console.error('[DeadlockGuard] Unable to recover from PASS-only state. Stopping game.');
+          error('[DeadlockGuard] Unable to recover from PASS-only state. Stopping game.');
           this.stop();
-          alert('Game entered invalid PASS-only state. Game stopped. Please check console for details.');
+          safeAlert('Game entered invalid PASS-only state. Game stopped. Please check console for details.');
           throw new Error(`PASS-only state for ${actor} with no recovery action`);
         }
       }
@@ -395,7 +423,7 @@ export class GameOrchestrator {
         const recoveryAction = this.buildRecoveryAction(state, actor);
         if (!recoveryAction) {
           this.stop();
-          alert('Game entered invalid PASS state. Game stopped. Please check console for details.');
+          safeAlert('Game entered invalid PASS state. Game stopped. Please check console for details.');
           throw new Error(`Active player ${actor} produced PASS action during own turn with no recovery available.`);
         }
         action = recoveryAction;
@@ -424,18 +452,11 @@ export class GameOrchestrator {
             turn: state.turn,
           };
           
-          console.error('='.repeat(80));
-          console.error('[VALIDATION ERROR] Invalid discard detected!');
-          console.error('='.repeat(80));
-          console.error('Player:', errorDetails.player);
-          console.error('Attempted tile:', errorDetails.attemptedTile);
-          console.error('Reason:', errorDetails.reason);
-          console.error('Current hand:', errorDetails.hand);
-          console.error('Legal discards:', errorDetails.legalDiscards);
-          console.error('Phase:', errorDetails.phase);
-          console.error('Turn:', errorDetails.turn);
-          console.error('Timestamp:', errorDetails.timestamp);
-          console.error('='.repeat(80));
+          error('='.repeat(80));
+          error('[VALIDATION ERROR] Invalid discard detected!');
+          error('Player:', errorDetails.player);
+          error('Reason:', errorDetails.reason);
+          error('='.repeat(80));
           
           // 记录到游戏日志
           gameLogger.logStateChange(state, `VALIDATION ERROR: ${actor} attempted invalid discard ${errorDetails.attemptedTile} - ${validation.reason}`);
@@ -443,15 +464,17 @@ export class GameOrchestrator {
           // 停止游戏
           this.stop();
           
-          // 在 UI 上显示错误
-          const errorMessage = `❌ VALIDATION ERROR\n\nPlayer: ${actor}\nAttempted: ${errorDetails.attemptedTile}\n\nReason: ${validation.reason}\n\nLegal discards: ${errorDetails.legalDiscards}\n\nGame stopped. Check console for details.`;
-          alert(errorMessage);
+          // 在 UI 上显示错误（非训练模式）
+          if (!testConfig.trainingMode) {
+            const errorMessage = `❌ VALIDATION ERROR\n\nPlayer: ${actor}\nAttempted: ${errorDetails.attemptedTile}\n\nReason: ${validation.reason}\n\nLegal discards: ${errorDetails.legalDiscards}\n\nGame stopped. Check console for details.`;
+            safeAlert(errorMessage);
+          }
           
           // 抛出异常
           throw new Error(`Validation failed: ${actor} attempted to discard ${errorDetails.attemptedTile}. ${validation.reason}. Legal discards: ${errorDetails.legalDiscards}`);
         }
         
-        console.log(`[Validator] ✅ ${actor} discard validated`);
+        log(`[Validator] ✅ ${actor} discard validated`);
       }
 
       const ctx: AgentDecisionContext = { style: makeAgentStyleContext(state, actor) };

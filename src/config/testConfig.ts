@@ -9,6 +9,9 @@ export const testConfig = {
   
   // 详细日志记录
   enableDetailedLogging: true,
+  
+  // 训练模式 - 禁用所有不必要的日志输出以提高速度
+  trainingMode: false,
 };
 
 // 全局函数，方便在控制台修改

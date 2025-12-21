@@ -7,6 +7,7 @@ import type { GameOrchestrator } from '../orchestration/GameOrchestrator';
 import type { RuleId } from '../store/settingsStore';
 import { settingsStore } from '../store/settingsStore';
 import { setAIParams } from '../agents/algo/aiParams';
+import { testConfig } from '../config/testConfig';
 import { loadParams, saveParams } from './paramPersistence';
 import { OnlineOptimizer, getParamDiff } from './optimizer';
 import { extractMetrics } from './metrics';
@@ -127,8 +128,9 @@ export class AutoTrainer {
 
     // 自动开启 P0 AI 模式（训练需要 AI vs AI 环境）
     const wasP0AIEnabled = settingsStore.p0IsAI;
+    const wasTrainingMode = testConfig.trainingMode;
     settingsStore.setP0IsAI(true);
-    console.log('[Training] Auto-enabled P0 AI mode for training');
+    testConfig.trainingMode = true;  // 启用训练模式，禁用日志
 
     this.isRunning = true;
     this.shouldStop = false;
@@ -146,8 +148,9 @@ export class AutoTrainer {
         await this.runNonBlocking();
       }
     } finally {
-      // 恢复原始的 P0 AI 设置
+      // 恢复原始设置
       settingsStore.setP0IsAI(wasP0AIEnabled);
+      testConfig.trainingMode = wasTrainingMode;
       console.log('[Training] Restored P0 AI mode to:', wasP0AIEnabled);
     }
 
@@ -237,14 +240,14 @@ export class AutoTrainer {
     // 等待游戏结束（简化版，实际需要监听游戏状态）
     await this.waitForGameEnd();
 
-    // 4. 提取所有4个AI玩家的指标（集体观察）
+    // 4. 提取游戏结果
     const state = this.orchestrator.getState();
     if (!state) {
       this.logger({ type: 'error', message: 'No game state available' });
       return;
     }
 
-    // 提取所有玩家的指标，获得更稳定的训练信号
+    // 提取所有玩家的指标
     const allMetrics: GameMetrics[] = [];
     for (const pid of TRAINING_PLAYERS) {
       const metrics = extractMetrics(state, pid);
@@ -252,26 +255,40 @@ export class AutoTrainer {
     }
     
     // 计算集体表现
-    const winCount = allMetrics.filter(m => m.didWin).length;
+    const winners = allMetrics.filter(m => m.didWin);
+    const winCount = winners.length;
     const avgScore = allMetrics.reduce((s, m) => s + m.finalScore, 0) / 4;
     const firstHuPlayer = allMetrics.find(m => m.isFirstHu)?.playerId || 'none';
     
     console.log(`[Training] Game #${this.gameCounter}: ${winCount}/4 AI won, avgScore=${avgScore.toFixed(0)}, firstHu=${firstHuPlayer}`);
     this.logRoundScores(state);
 
-    // 将所有4个玩家的指标都加入批次
-    this.pendingBatchMetrics.push(...allMetrics);
+    // ⭐ 关键修复：在零和游戏中，只用赢家的指标来评估参数质量
+    // 如果无人胡牌（流局），用向听数最低的玩家
+    let metricsToUse: GameMetrics;
+    if (winners.length > 0) {
+      // 有赢家：优先用首胡玩家，否则用第一个赢家
+      const firstHu = winners.find(m => m.isFirstHu);
+      metricsToUse = firstHu || winners[0];
+    } else {
+      // 流局：用分数最高的玩家（表现最好）
+      metricsToUse = allMetrics.reduce((best, m) => 
+        m.finalScore > best.finalScore ? m : best
+      , allMetrics[0]);
+    }
+    
+    // 只收集代表性样本，而不是所有4个玩家
+    this.pendingBatchMetrics.push(metricsToUse);
 
-    // 每局产生4个样本，调整批次判断逻辑
-    const effectiveBatchSize = this.config.batchSize * 4; // 每局4个样本
+    // 每局产生1个样本
     if (
       this.config.batchSize <= 1 ||
-      this.pendingBatchMetrics.length >= effectiveBatchSize
+      this.pendingBatchMetrics.length >= this.config.batchSize
     ) {
       this.finishBatch();
     } else {
       console.log(
-        `[Training] Batch progress: ${this.pendingBatchMetrics.length}/${effectiveBatchSize} samples`,
+        `[Training] Batch progress: ${this.pendingBatchMetrics.length}/${this.config.batchSize} samples`,
       );
     }
   }

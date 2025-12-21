@@ -8,6 +8,7 @@ import type { GameState } from '../core/model/state';
 import type { PlayerId } from '../core/model/types';
 import type { Tile } from '../core/model/tile';
 import { gameLogStore } from '../store/gameLogStore';
+import { testConfig } from '../config/testConfig';
 
 interface GameLogEntry {
   turn: number;
@@ -54,6 +55,9 @@ class GameLogger {
     this.gameId = gameId;
     this.gameStartTime = Date.now();
     this.logs = [];
+    
+    // 训练模式下跳过日志输出
+    if (testConfig.trainingMode) return;
     
     const startMsg = `🎮 Game Started: ${gameId}`;
     console.log(`\n${'='.repeat(80)}`);
@@ -131,6 +135,9 @@ class GameLogger {
 
     this.logs.push(entry);
 
+    // 训练模式下跳过日志输出
+    if (testConfig.trainingMode) return;
+
     // 格式化输出
     const actionStr = this.formatAction(action);
     const timeStr = `[${(entry.timestamp / 1000).toFixed(1)}s]`;
@@ -164,10 +171,14 @@ class GameLogger {
   }
 
   logStateChange(_state: GameState, description: string) {
+    if (testConfig.trainingMode) return;
     console.log(`  ℹ️  ${description}`);
   }
 
   endGame(state: GameState, result: 'HU' | 'LOSE' | 'DRAW') {
+    // 训练模式下跳过日志输出
+    if (testConfig.trainingMode) return;
+    
     const duration = (Date.now() - this.gameStartTime) / 1000;
     
     console.log(`\n${'='.repeat(80)}`);
