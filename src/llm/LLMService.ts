@@ -311,8 +311,13 @@ export class LLMService {
     }
     
     try {
+      console.log('[LLM] Calling API:', { provider, model, url: url.substring(0, 50) + '...' });
+      
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      const timeoutId = setTimeout(() => {
+        console.log('[LLM] Request timeout after', timeout, 'ms');
+        controller.abort();
+      }, timeout);
       
       const response = await fetch(url, {
         method: 'POST',
@@ -325,10 +330,12 @@ export class LLMService {
       
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('[LLM] API error response:', response.status, errorText);
         throw new Error(`API error: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
+      console.log('[LLM] API response received successfully');
       
       // 解析不同提供商的响应格式
       if (provider === 'anthropic') {
@@ -336,14 +343,55 @@ export class LLMService {
       } else {
         return data.choices?.[0]?.message?.content || '';
       }
-    } catch (error) {
-      console.error('[LLM] API call failed:', error);
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.error('[LLM] Request aborted (timeout)');
+      } else {
+        console.error('[LLM] API call failed:', error.message || error);
+      }
       return this.getMockResponse(prompt);
     }
   }
   
   private getMockResponse(prompt: string): string {
     // 根据prompt类型返回模拟响应
+    console.log('[LLM] Using mock response for prompt type');
+    
+    // 换三张阶段
+    if (prompt.includes('换三张') || prompt.includes('EXCHANGE')) {
+      return `根据你的手牌分析：
+
+**建议换出的花色**: 选择张数最少或孤张最多的花色
+
+**换牌策略**:
+1. 优先换出孤张（没有相邻牌的单张）
+2. 避免拆掉对子、刻子或顺子
+3. 换出的花色很可能成为定缺花色
+
+**注意**: 如果某花色已有10张以上且牌型好，可考虑追清一色，换掉其他花色的牌。
+
+请根据你的具体手牌情况做出选择。`;
+    }
+    
+    // 定缺阶段
+    if (prompt.includes('定缺') || prompt.includes('DING_QUE') || prompt.includes('应该定哪')) {
+      return `**定缺建议**:
+
+选择原则（按优先级）:
+1. **张数最少**的花色 - 容易打完
+2. **孤张多**的花色 - 容易出手
+3. **没有刻子/顺子**的花色 - 不破坏牌型
+
+**避免定缺**:
+- 有刻子（3张相同）的花色
+- 有顺子的花色
+- 搭子多的花色
+
+**特殊情况**: 如果追求清一色，可以定掉其他花色，即使张数少。
+
+请查看你手牌中各花色的张数和牌型，选择最容易打完的那门。`;
+    }
+    
     if (prompt.includes('出牌建议') || prompt.includes('麻将教练')) {
       return JSON.stringify({
         recommendedAction: '打3万',
