@@ -60,32 +60,32 @@
       "informationPenaltyGangB": 201.00983796296293
     },
     "bestFitness": 536,
-    "currentStep": 6,
+    "currentStep": 7,
     "rngSeed": 1734800000000,
     "acceptCount": 3,
-    "rejectCount": 3,
+    "rejectCount": 4,
     "lastResult": {
-      "fitness": 179,
+      "fitness": 436.6,
       "accepted": false,
       "metrics": {
         "playerId": "P0",
         "result": "BATCH",
-        "finalScore": 100,
+        "finalScore": 300,
         "didWin": false,
         "isFirstHu": false,
-        "winTurn": 65,
+        "winTurn": 62,
         "dealInCount": 0,
         "stageBDealIn": 0,
         "stageCDealIn": 0,
         "avgEV": 0,
-        "totalTurns": 62.7,
-        "xiangting": 1,
-        "meldCount": 4,
+        "totalTurns": 62,
+        "xiangting": 7,
+        "meldCount": 2,
         "batchSize": 10,
-        "fitness": 179,
-        "winRate": 0.1
+        "fitness": 436.6,
+        "winRate": 0.3
       }
     }
   },
-  "updatedAt": "2025-12-21T16:41:31.839Z"
+  "updatedAt": "2025-12-21T16:43:19.384Z"
 }

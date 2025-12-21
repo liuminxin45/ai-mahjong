@@ -14,11 +14,14 @@ let isTyping = false;
 /**
  * 渲染问答助手面板
  */
+const CHAT_PANEL_ID_CONST = 'llm-chat-assistant-panel';
+
 export function renderLLMChatAssistant(
   gameState?: GameState,
   onClose?: () => void
 ): HTMLElement {
   const panel = document.createElement('div');
+  panel.id = CHAT_PANEL_ID_CONST;
   panel.className = 'llm-chat-assistant';
   panel.style.cssText = `
     position: fixed;
@@ -352,7 +355,7 @@ function renderMessage(msg: QAMessage): HTMLElement {
 async function sendMessage(
   content: string,
   gameState: GameState | undefined,
-  panel: HTMLElement
+  _panel: HTMLElement
 ): Promise<void> {
   // 添加用户消息
   const userMsg: QAMessage = {
@@ -363,9 +366,9 @@ async function sendMessage(
   };
   chatHistory.push(userMsg);
   
-  // 更新面板
+  // 更新面板显示"思考中"
   isTyping = true;
-  updateChatPanel(panel, gameState);
+  updateChatPanel(gameState);
   
   try {
     // 获取历史对话作为上下文
@@ -373,11 +376,15 @@ async function sendMessage(
       `${m.role === 'user' ? '用户' : '助手'}: ${m.content}`
     );
     
+    console.log('[LLM Chat] Sending question to LLM...');
+    
     // 调用LLM
     const response = await llmService.answerQuestion(content, {
       gameState,
       history: historyContext,
     });
+    
+    console.log('[LLM Chat] Got response:', response.substring(0, 100) + '...');
     
     // 添加助手消息
     const assistantMsg: QAMessage = {
@@ -395,18 +402,24 @@ async function sendMessage(
     });
   }
   
+  // 更新面板显示响应
   isTyping = false;
-  updateChatPanel(panel, gameState);
+  console.log('[LLM Chat] Updating panel with response...');
+  updateChatPanel(gameState);
 }
 
 /**
- * 更新聊天面板
+ * 更新聊天面板 - 通过ID查找面板
  */
-function updateChatPanel(panel: HTMLElement, gameState?: GameState): void {
-  const parent = panel.parentElement;
-  if (parent) {
+function updateChatPanel(gameState?: GameState): void {
+  const existingPanel = document.getElementById(CHAT_PANEL_ID_CONST);
+  if (existingPanel && existingPanel.parentElement) {
+    const parent = existingPanel.parentElement;
     const newPanel = renderLLMChatAssistant(gameState, () => {});
-    parent.replaceChild(newPanel, panel);
+    parent.replaceChild(newPanel, existingPanel);
+    console.log('[LLM Chat] Panel updated');
+  } else {
+    console.warn('[LLM Chat] Could not find panel to update');
   }
 }
 
