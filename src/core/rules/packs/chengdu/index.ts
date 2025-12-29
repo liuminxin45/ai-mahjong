@@ -53,11 +53,8 @@ function inheritChengduState(prev: ChengduState, next: GameState): ChengduState 
     lastPengTile: nextChengdu.lastPengTile ?? prev.lastPengTile,
   };
 
-  if (next.phase !== 'END') {
-    merged.phase = next.phase;
-  } else {
-    merged.phase = prev.phase;
-  }
+  // 保持phase不变，包括END阶段
+  merged.phase = next.phase;
 
   return merged;
 }
@@ -857,8 +854,10 @@ export const chengduRulePack: RulePack = {
         currentPlayer: shouldEnd ? action.from : nextP,
       } as ChengduState;
       const selfDrawScore = evaluateSelfDrawScore(next, action.from, isGangShangKaiHua);
+      console.log(`[Chengdu] ${action.from} 自摸胡牌, 计算得分: ${selfDrawScore}`);
       if (selfDrawScore > 0) {
         applySelfDrawOutcome(next, action.from, selfDrawScore);
+        console.log(`[Chengdu] 应用得分后 roundScores:`, next.roundScores);
       }
       return next;
     }

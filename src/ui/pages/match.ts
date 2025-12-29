@@ -2,7 +2,7 @@ import type { UiCtx } from '../context';
 import { renderDebugMode } from '../renderers/matchDebugRenderer';
 import { renderTableMode } from '../renderers/matchTableRenderer';
 import { languageStore } from '../../store/languageStore';
-import { renderAIParamsButton } from '../components/AIParamsPanel';
+import { renderAIParamsButton, renderAIParamsPanel } from '../components/AIParamsPanel';
 import { renderProfileButton } from '../components/UserProfilePanel';
 import { renderHistoryButton } from '../components/GameHistoryPanel';
 import { renderLLMSettingsButton } from '../components/LLMSettingsPanel';
@@ -85,6 +85,10 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
 
   const contentArea = document.createElement('div');
   root.appendChild(contentArea);
+  
+  // 添加AI参数面板到页面
+  const aiPanel = renderAIParamsPanel();
+  root.appendChild(aiPanel);
 
   const render = () => {
     const currentMode = ctx.settingsStore.uiMode;

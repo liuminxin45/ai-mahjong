@@ -47,6 +47,8 @@ const safeAlert = (msg: string) => {
 };
 import { loadParams } from '../training/paramPersistence';
 import { recordGameResult, loadOnlineLearnedParams, type GameResult } from '../training/onlineLearning';
+import { historyStorage } from '../llm';
+import type { GameRecord } from '../llm/types';
 
 function now(): number {
   return Date.now();
@@ -87,6 +89,8 @@ export class GameOrchestrator {
 
   private running = false;
   private state: GameState | null = null;
+  private gameStartTime: number = 0;
+  private currentGameId: string = '';
 
   private setLastLegalActions(playerId: PlayerId, legal: Action[]): void {
     const g = globalThis as any;
@@ -133,6 +137,9 @@ export class GameOrchestrator {
   startNewMatch(ruleId?: RuleId): void {
     this.stop();
     this.running = true;
+    
+    // 重置人类代理，避免"already waiting"错误
+    this.human.reset();
 
     startMatchStat();
     this.opponentModel.init(['P0', 'P1', 'P2', 'P3']);
@@ -185,8 +192,9 @@ export class GameOrchestrator {
     this.pushEventAndUpdateModel({ type: 'INIT', turn: init.turn, ts: now() });
 
     // 开始游戏日志记录
-    const gameId = makeId();
-    gameLogger.startGame(gameId);
+    this.currentGameId = makeId();
+    this.gameStartTime = Date.now();
+    gameLogger.startGame(this.currentGameId);
     if (this.ss.p0IsAI) {
       log('[GameOrchestrator] 🤖 P0 AI mode ENABLED - Full AI vs AI game');
     }
@@ -375,6 +383,11 @@ export class GameOrchestrator {
           });
           
           recordGameResult(gameResults);
+          
+          // 保存游戏记录到历史
+          this.saveGameToHistory(ended, res).catch(err => {
+            console.error('[GameOrchestrator] Failed to save game history:', err);
+          });
         }
         
         break;
@@ -666,11 +679,76 @@ export class GameOrchestrator {
 
     // 其他 AI 玩家 (P1-P3)
     // 如果 P0 不是 AI（即人类玩家），添加 2 秒延迟让游戏更自然
+    // 但如果P0已经胡牌，跳过延迟快速结束游戏
     if (!this.ss.p0IsAI && (actor === 'P1' || actor === 'P2' || actor === 'P3')) {
-      await timers.sleep(2000);
+      if (!state.declaredHu.P0) {
+        await timers.sleep(2000);
+      }
     }
     
     return await this.agents[actor].decide(state, actor, legal, ctx);
+  }
+
+  /**
+   * 保存游戏记录到历史存储
+   */
+  private async saveGameToHistory(finalState: GameState, result: 'HU' | 'LOSE' | 'DRAW'): Promise<void> {
+    try {
+      const chengduState = finalState as any;
+      const p0Score = chengduState.roundScores?.P0 || 0;
+      
+      // 计算游戏时长（秒）
+      const duration = Math.floor((Date.now() - this.gameStartTime) / 1000);
+      
+      // 从 gameStore 获取事件
+      const events = this.gs.events;
+      
+      // 计算统计数据
+      const dealInCount = events.filter(
+        (e: GameEvent) => e.type === 'HU' && (e as any).from === 'P0' && e.playerId !== 'P0'
+      ).length;
+      
+      const meldCount = finalState.melds.P0.length;
+      
+      // 计算最终向听数
+      const finalShanten = finalState.declaredHu.P0 
+        ? 0 
+        : shantenWithMelds(finalState.hands.P0, meldCount);
+      
+      // 找到胡牌回合（如果胡牌）
+      const winEvent = events.find((e: GameEvent) => e.type === 'HU' && e.playerId === 'P0');
+      const winTurn = winEvent?.turn || null;
+      
+      const gameRecord: GameRecord = {
+        gameId: this.currentGameId,
+        timestamp: new Date(this.gameStartTime),
+        duration,
+        result: result === 'HU' ? 'win' : result === 'LOSE' ? 'lose' : 'draw',
+        score: p0Score,
+        replay: {
+          initialState: this.state!,
+          events: events.map((ev: GameEvent) => ({
+            turn: ev.turn,
+            playerId: ev.playerId || 'P0',
+            action: { type: ev.type } as Action,
+            state: finalState,
+          })),
+          finalState,
+        },
+        stats: {
+          winTurn,
+          dealInCount,
+          meldCount,
+          finalShanten,
+        },
+      };
+      
+      await historyStorage.saveGame(gameRecord);
+      console.log('[GameOrchestrator] Game saved to history:', this.currentGameId);
+    } catch (error: any) {
+      console.error('[GameOrchestrator] Failed to save game:', error);
+      throw error;
+    }
   }
 }
 

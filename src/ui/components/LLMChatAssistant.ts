@@ -12,7 +12,7 @@ let chatHistory: QAMessage[] = [];
 let isTyping = false;
 
 /**
- * 渲染问答助手面板
+ * 渲染问答助手面板（左侧边栏）
  */
 const CHAT_PANEL_ID_CONST = 'llm-chat-assistant-panel';
 
@@ -25,18 +25,18 @@ export function renderLLMChatAssistant(
   panel.className = 'llm-chat-assistant';
   panel.style.cssText = `
     position: fixed;
-    bottom: 20px;
-    left: 20px;
+    top: 0;
+    left: 0;
     width: 380px;
-    height: 500px;
+    height: 100vh;
     background: white;
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    box-shadow: 2px 0 12px rgba(0,0,0,0.15);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     z-index: 1001;
     font-family: system-ui, -apple-system, sans-serif;
+    transition: transform 0.3s ease-in-out;
   `;
 
   // 头部
@@ -70,10 +70,13 @@ export function renderLLMChatAssistant(
     align-items: center;
     justify-content: center;
   `;
-  closeBtn.textContent = '✕';
+  closeBtn.textContent = '◀';
+  closeBtn.title = '收起侧边栏';
   closeBtn.onclick = () => {
-    panel.remove();
-    onClose?.();
+    panel.style.transform = 'translateX(-100%)';
+    setTimeout(() => {
+      onClose?.();
+    }, 300);
   };
 
   header.appendChild(titleArea);
@@ -452,7 +455,7 @@ export function renderChatAssistantButton(
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
     z-index: 1000;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s, left 0.3s ease-in-out;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -469,18 +472,72 @@ export function renderChatAssistantButton(
   };
   
   let chatPanel: HTMLElement | null = null;
+  let isOpen = false;
   
   btn.onclick = () => {
-    if (chatPanel && document.body.contains(chatPanel)) {
-      chatPanel.remove();
-      chatPanel = null;
-    } else {
+    if (!chatPanel || !document.body.contains(chatPanel)) {
+      // 创建侧边栏面板
       chatPanel = renderLLMChatAssistant(gameState, () => {
-        chatPanel = null;
+        // 关闭回调
+        isOpen = false;
+        btn.style.left = '20px';
+        // 移除body左边距
+        document.body.style.paddingLeft = '0';
+        document.body.style.transition = 'padding-left 0.3s ease-in-out';
+        if (chatPanel) {
+          chatPanel.remove();
+          chatPanel = null;
+        }
       });
+      // 初始隐藏在左侧
+      chatPanel.style.transform = 'translateX(-100%)';
       document.body.appendChild(chatPanel);
+      // 延迟显示以触发动画
+      setTimeout(() => {
+        if (chatPanel) {
+          chatPanel.style.transform = 'translateX(0)';
+          isOpen = true;
+          btn.style.left = '400px'; // 380px 侧边栏宽度 + 20px 间距
+          // 添加body左边距以避免内容被遮挡
+          document.body.style.paddingLeft = '380px';
+          document.body.style.transition = 'padding-left 0.3s ease-in-out';
+        }
+      }, 10);
+    } else {
+      // 切换显示/隐藏
+      if (isOpen) {
+        chatPanel.style.transform = 'translateX(-100%)';
+        isOpen = false;
+        btn.style.left = '20px';
+        // 移除body左边距
+        document.body.style.paddingLeft = '0';
+      } else {
+        chatPanel.style.transform = 'translateX(0)';
+        isOpen = true;
+        btn.style.left = '400px';
+        // 添加body左边距
+        document.body.style.paddingLeft = '380px';
+      }
     }
   };
   
   return btn;
+}
+
+/**
+ * 获取或创建侧边栏面板（用于持久化）
+ */
+export function ensureChatPanel(gameState?: GameState): void {
+  let existingPanel = document.getElementById(CHAT_PANEL_ID_CONST);
+  if (!existingPanel) {
+    const panel = renderLLMChatAssistant(gameState, () => {
+      // 面板被关闭时的回调
+      const btn = document.querySelector('.llm-chat-btn') as HTMLElement;
+      if (btn) {
+        btn.style.left = '20px';
+      }
+    });
+    panel.style.transform = 'translateX(-100%)'; // 初始隐藏
+    document.body.appendChild(panel);
+  }
 }

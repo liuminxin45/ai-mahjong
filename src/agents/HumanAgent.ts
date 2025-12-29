@@ -40,6 +40,13 @@ export class HumanAgent implements PlayerAgent {
     });
   }
 
+  reset(): void {
+    if (this.pending) {
+      console.warn('[HumanAgent.reset] Clearing pending action');
+      this.pending = null;
+    }
+  }
+
   dispatch(action: Action): void {
     const p = this.pending;
     console.log('[HumanAgent.dispatch] Called with action:', action);

@@ -6,6 +6,7 @@ import { renderDiscardGrid } from '../components/DiscardGrid';
 import { renderTile } from '../components/tileView';
 import { renderAIParamsPanel } from '../components/AIParamsPanel';
 import { renderChatAssistantButton } from '../components/LLMChatAssistant';
+import { applyChineseButtonStyle, isChineseMode, applyChinesePlayerAreaStyle, applyChineseTitleStyle } from '../styles/chineseGameStyle';
 import { initLLMConfig } from '../components/LLMSettingsPanel';
 import type { Action } from '../../core/model/action';
 import type { Tile } from '../../core/model/tile';
@@ -114,6 +115,14 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   centerArea.style.backgroundColor = '#e8f5e9';
   centerArea.style.borderRadius = '4px';
   centerArea.style.border = '1px solid #4caf50';
+  
+  // 中文模式下的中央区域样式
+  if (isChineseMode()) {
+    centerArea.style.background = 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)';
+    centerArea.style.borderRadius = '12px';
+    centerArea.style.border = '2px solid #66bb6a';
+    centerArea.style.boxShadow = 'inset 0 2px 8px rgba(0,0,0,0.05)';
+  }
   centerArea.style.overflow = 'auto';
   centerArea.style.height = '100%';
   centerArea.style.boxSizing = 'border-box';
@@ -129,7 +138,7 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   // 弃牌区布局（围绕中心）
   const discardsArea = document.createElement('div');
   discardsArea.style.display = 'grid';
-  discardsArea.style.gridTemplateColumns = '1fr auto 1fr';
+  discardsArea.style.gridTemplateColumns = '80px 1fr 80px';
   discardsArea.style.gridTemplateRows = 'auto auto auto';
   discardsArea.style.gap = '4px';
   discardsArea.style.width = '100%';
@@ -139,21 +148,27 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   const p2Discards = renderDiscardArea('P2', s.discards.P2);
   p2Discards.style.gridColumn = '2';
   p2Discards.style.gridRow = '1';
+  p2Discards.style.maxWidth = '300px';
+  p2Discards.style.margin = '0 auto';
   
   // P3 弃牌（左侧）
   const p3Discards = renderDiscardArea('P3', s.discards.P3);
   p3Discards.style.gridColumn = '1';
   p3Discards.style.gridRow = '2';
+  p3Discards.style.maxWidth = '80px';
   
   // P1 弃牌（右侧）
   const p1Discards = renderDiscardArea('P1', s.discards.P1);
   p1Discards.style.gridColumn = '3';
   p1Discards.style.gridRow = '2';
+  p1Discards.style.maxWidth = '80px';
   
   // P0 弃牌（下方）
   const p0Discards = renderDiscardArea('P0', s.discards.P0);
   p0Discards.style.gridColumn = '2';
   p0Discards.style.gridRow = '3';
+  p0Discards.style.maxWidth = '300px';
+  p0Discards.style.margin = '0 auto';
   
   discardsArea.appendChild(p2Discards);
   discardsArea.appendChild(p3Discards);
@@ -171,6 +186,18 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   bottomSection.style.padding = '6px';
   bottomSection.style.borderRadius = '4px';
   bottomSection.style.backgroundColor = isP0Turn ? '#f0f8ff' : '#fff';
+  
+  // 中文模式下的P0区域样式
+  if (isChineseMode()) {
+    bottomSection.style.background = isP0Turn
+      ? 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)'
+      : 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)';
+    bottomSection.style.border = isP0Turn ? '3px solid #4caf50' : '1px solid #e0e0e0';
+    bottomSection.style.borderRadius = '12px';
+    bottomSection.style.boxShadow = isP0Turn
+      ? '0 4px 12px rgba(76, 175, 80, 0.3)'
+      : '0 2px 6px rgba(0,0,0,0.1)';
+  }
   bottomSection.style.height = '100%';
   bottomSection.style.boxSizing = 'border-box';
   bottomSection.style.overflow = 'auto';
@@ -180,6 +207,14 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   p0Title.style.marginBottom = '4px';
   p0Title.style.fontSize = '13px';
   p0Title.textContent = `P0 (${t.you})`;
+  
+  // 中文模式下的标题样式
+  if (isChineseMode()) {
+    p0Title.style.fontSize = '16px';
+    p0Title.style.fontWeight = '700';
+    p0Title.style.color = '#2e7d32';
+    p0Title.style.textShadow = '0 1px 2px rgba(0,0,0,0.1)';
+  }
 
   // 显示 P0 的缺门信息
   if (dingQueSelections.P0) {
@@ -197,9 +232,6 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
     p0MissingSuit.textContent = suitName;
     
     p0Title.appendChild(p0MissingSuit);
-    bottomSection.appendChild(p0Title);
-  } else {
-    bottomSection.appendChild(p0Title);
   }
 
   const handWrap = document.createElement('div');
@@ -276,7 +308,9 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   const p0Legal = ctx.orchestrator.getLegalActions('P0');
   const p0Reactions = p0Legal.filter((a) => a.type === 'PASS' || a.type === 'PENG' || a.type === 'GANG' || a.type === 'HU');
 
-  if (s.lastDiscard && s.lastDiscard.from !== 'P0' && p0Reactions.length > 0) {
+  // 只有在有弃牌且P0可以反应时才显示按钮（排除P1-P3碰杠时的情况）
+  const hasRealReactions = p0Reactions.some(a => a.type !== 'PASS');
+  if (s.lastDiscard && s.lastDiscard.from !== 'P0' && hasRealReactions) {
     const title = document.createElement('div');
     title.textContent = `Response to ${s.lastDiscard.from} discard`;
     title.style.marginTop = '8px';
@@ -298,6 +332,18 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
       b.style.padding = '6px 12px';
       b.style.fontSize = '14px';
       b.onclick = () => ctx.orchestrator.dispatchHumanAction(act);
+      
+      // 应用中文游戏风格
+      if (act.type === 'HU') {
+        applyChineseButtonStyle(b, 'success');
+      } else if (act.type === 'GANG' || act.type === 'PENG') {
+        applyChineseButtonStyle(b, 'warning');
+      } else if (act.type === 'PASS') {
+        applyChineseButtonStyle(b, 'info');
+      } else {
+        applyChineseButtonStyle(b, 'primary');
+      }
+      
       btnRow.appendChild(b);
     }
 
@@ -322,16 +368,20 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
       btnRow.style.marginTop = '4px';
 
       const huBtn = document.createElement('button');
-      huBtn.textContent = '胡';
-      huBtn.style.padding = '8px 20px';
+      huBtn.textContent = selfDrawHu.type;
+      huBtn.style.padding = '8px 16px';
       huBtn.style.fontSize = '16px';
-      huBtn.style.fontWeight = 'bold';
+      huBtn.style.fontWeight = '600';
       huBtn.style.backgroundColor = '#28a745';
-      huBtn.style.color = '#fff';
+      huBtn.style.color = 'white';
       huBtn.style.border = 'none';
       huBtn.style.borderRadius = '4px';
       huBtn.style.cursor = 'pointer';
       huBtn.onclick = () => ctx.orchestrator.dispatchHumanAction(selfDrawHu);
+      
+      // 应用中文游戏风格
+      applyChineseButtonStyle(huBtn, 'success');
+      
       btnRow.appendChild(huBtn);
 
       reactionWrap.appendChild(btnRow);
@@ -676,9 +726,23 @@ function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   const finalHandsSection = document.createElement('div');
   finalHandsSection.style.marginTop = '30px';
   
-  // 获取胡牌信息（成都规则包特有）
-  const huResults = state.huResults || {};
-  const scoreChanges = state.scoreChanges || {};
+  // 获取分数信息（从 Chengdu 规则包的 roundScores）
+  const chengduState = state as any;
+  const scoreChanges = chengduState.roundScores || { P0: 0, P1: 0, P2: 0, P3: 0 };
+  
+  // 从游戏事件中提取胡牌信息
+  const huResults: Record<string, any> = {};
+  for (const event of ctx.gameStore.events) {
+    if (event.type === 'HU' && event.playerId && event.meta) {
+      const yakuList = (event.meta as any).yakuList || [];
+      huResults[event.playerId] = {
+        yaku: yakuList.map((y: any) => y.description),
+        fan: yakuList.reduce((sum: number, y: any) => sum + y.fan, 0),
+        winningTile: event.tile,
+        score: (event.meta as any).score || 0,
+      };
+    }
+  }
   
   for (const pid of ['P0', 'P1', 'P2', 'P3'] as const) {
     const playerDiv = document.createElement('div');
@@ -1031,11 +1095,30 @@ function renderCompactPlayerInfo(
   panel.style.height = '100%';
   panel.style.boxSizing = 'border-box';
   panel.style.overflow = 'hidden';
+  
+  // 应用中文游戏风格
+  if (isChineseMode()) {
+    panel.style.background = isCurrent 
+      ? 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)'
+      : 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)';
+    panel.style.border = isCurrent ? '2px solid #2196f3' : '1px solid #e0e0e0';
+    panel.style.borderRadius = '8px';
+    panel.style.boxShadow = isCurrent 
+      ? '0 2px 8px rgba(33, 150, 243, 0.3)'
+      : '0 1px 4px rgba(0,0,0,0.1)';
+  }
 
   const header = document.createElement('div');
   header.style.fontWeight = '600';
   header.style.marginBottom = '4px';
   header.textContent = `${playerId}${isCurrent ? ' ⬅' : ''}`;
+  
+  // 中文模式下的标题样式
+  if (isChineseMode()) {
+    header.style.fontSize = '14px';
+    header.style.color = isCurrent ? '#1976d2' : '#424242';
+    header.style.fontWeight = '700';
+  }
 
   const handInfo = document.createElement('div');
   handInfo.style.fontSize = '12px';

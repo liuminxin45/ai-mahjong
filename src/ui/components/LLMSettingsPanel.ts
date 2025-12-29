@@ -106,8 +106,9 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
   const content = document.createElement('div');
   content.style.cssText = `
     padding: 24px;
-    max-height: 60vh;
+    max-height: calc(80vh - 100px);
     overflow-y: auto;
+    overflow-x: hidden;
   `;
 
   const config = loadConfig();
