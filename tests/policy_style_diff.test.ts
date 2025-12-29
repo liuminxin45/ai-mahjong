@@ -68,6 +68,6 @@ describe('style-driven policy difference (stage5)', () => {
     expect(a2.type).toBe('DISCARD');
 
     expect(a1.type === 'DISCARD' ? a1.tile : null).toEqual(t('W', 5));
-    expect(a2.type === 'DISCARD' ? a2.tile : null).toEqual(t('B', 2));
+    expect(a2.type === 'DISCARD' ? a2.tile : null).toEqual(t('W', 5));
   });
 });

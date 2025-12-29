@@ -56,9 +56,9 @@ describe('stage3 (melds + response window)', () => {
       t('B', 1),
       t('B', 2),
       t('B', 3),
-      t('T', 1),
-      t('T', 2),
-      t('T', 3),
+      t('B', 4),
+      t('B', 5),
+      t('B', 6),
       t('W', 4),
       t('W', 5),
       t('W', 6),
@@ -70,7 +70,7 @@ describe('stage3 (melds + response window)', () => {
     const p2Hand13 = baseWin14.slice(0, 13);
 
     const s: GameState = {
-      wall: [],
+      wall: [t('W', 1)],
       hands: {
         P0: new Array(13).fill(t('W', 9)),
         P1: p1Hand13,
@@ -112,9 +112,9 @@ describe('stage3 (melds + response window)', () => {
       t('B', 1),
       t('B', 2),
       t('B', 3),
-      t('T', 1),
-      t('T', 2),
-      t('T', 3),
+      t('B', 4),
+      t('B', 5),
+      t('B', 6),
       t('W', 4),
       t('W', 5),
       t('W', 6),
@@ -123,7 +123,7 @@ describe('stage3 (melds + response window)', () => {
     ];
 
     const s: GameState = {
-      wall: [],
+      wall: [t('W', 1)],
       hands: {
         P0: new Array(13).fill(t('W', 9)),
         P1: baseWin14.slice(0, 13),

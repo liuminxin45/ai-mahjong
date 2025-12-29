@@ -64,6 +64,8 @@ export function estimateExpectedScore(
           false,
           false,
           false,
+          false,
+          false,
         );
         const score = calculateScore(yakuList, gangCount);
         possibleScores.push(score);
@@ -81,7 +83,7 @@ export function estimateExpectedScore(
   
   // 检查清一色可能性
   const suits = new Set(hand.map(t => t.suit));
-  if (suits.size === 1) estimatedFan += 6;
+  if (suits.size === 1) estimatedFan += 2;
   else if (suits.size === 2) estimatedFan += 1; // 可能混一色
   
   // 检查对对胡可能性
@@ -95,9 +97,6 @@ export function estimateExpectedScore(
   
   // 自摸加番
   if (isSelfDraw) estimatedFan += 1;
-  
-  // 门清加番
-  if (melds.length === 0) estimatedFan += 1;
   
   return calculateScore([{ type: 'PING_HU', fan: estimatedFan, description: '估算' }], gangCount);
 }

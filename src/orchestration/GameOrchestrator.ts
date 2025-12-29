@@ -320,13 +320,23 @@ export class GameOrchestrator {
       }
 
       if (this.rulePack.isRoundEnd(state)) {
+        // 结算分数 - 调用规则包的 settleRound 方法获取最终分数
+        const roundResult = this.rulePack.settleRound(state);
+        
         const res: 'HU' | 'LOSE' | 'DRAW' = state.declaredHu.P0
           ? 'HU'
           : (['P1', 'P2', 'P3'] as PlayerId[]).some((pid) => state.declaredHu[pid])
             ? 'LOSE'
             : 'DRAW';
         finishMatchStat(res);
-        const ended: GameState = { ...state, phase: 'END' };
+        
+        // 将最终分数应用到游戏状态中
+        const ended: GameState = { 
+          ...state, 
+          phase: 'END',
+          // 添加结算后的分数到状态中
+ ...(roundResult.scores && { roundScores: roundResult.scores })
+        };
         this.state = ended;
         this.gs.applyState(ended);
         this.pushEventAndUpdateModel({ type: 'END', turn: ended.turn, ts: now() });

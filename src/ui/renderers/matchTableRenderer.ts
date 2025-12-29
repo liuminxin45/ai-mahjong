@@ -304,6 +304,40 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
     reactionWrap.appendChild(btnRow);
   }
 
+  // 自摸胡：当轮到 P0 且没有 lastDiscard 时，检查是否有 HU 动作
+  if (s.currentPlayer === 'P0' && !s.lastDiscard) {
+    const selfDrawHu = p0Legal.find((a) => a.type === 'HU');
+    if (selfDrawHu) {
+      const title = document.createElement('div');
+      title.textContent = t.selfDrawWin;
+      title.style.marginTop = '8px';
+      title.style.fontWeight = '600';
+      title.style.color = '#28a745';
+      reactionWrap.appendChild(title);
+
+      const btnRow = document.createElement('div');
+      btnRow.style.display = 'flex';
+      btnRow.style.gap = '8px';
+      btnRow.style.flexWrap = 'wrap';
+      btnRow.style.marginTop = '4px';
+
+      const huBtn = document.createElement('button');
+      huBtn.textContent = '胡';
+      huBtn.style.padding = '8px 20px';
+      huBtn.style.fontSize = '16px';
+      huBtn.style.fontWeight = 'bold';
+      huBtn.style.backgroundColor = '#28a745';
+      huBtn.style.color = '#fff';
+      huBtn.style.border = 'none';
+      huBtn.style.borderRadius = '4px';
+      huBtn.style.cursor = 'pointer';
+      huBtn.onclick = () => ctx.orchestrator.dispatchHumanAction(selfDrawHu);
+      btnRow.appendChild(huBtn);
+
+      reactionWrap.appendChild(btnRow);
+    }
+  }
+
   // P0 的弃牌现在在中央区域，底部只显示手牌和操作
   bottomSection.appendChild(p0Title);
   bottomSection.appendChild(handWrap);

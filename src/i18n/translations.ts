@@ -122,12 +122,13 @@ export interface Translations {
     yakuDuiDuiHu: string;
     yakuQingYiSe: string;
     yakuQiDuiZi: string;
+    yakuLongQiDui: string;
     yakuGangShangKaiHua: string;
     yakuQiangGangHu: string;
     yakuHaiDiLaoYue: string;
     yakuTianHu: string;
+    yakuDiHu: string;
     yakuZiMo: string;
-    yakuMenQing: string;
     yakuJinGouDiao: string;
     
     // 其他
@@ -142,6 +143,7 @@ export interface Translations {
     tiles: string;
     melds: string;
     yourMelds: string;
+    selfDrawWin: string;
   };
   
   // 关于页面
@@ -260,12 +262,13 @@ export const translations: Record<Language, Translations> = {
       yakuDuiDuiHu: '对对胡',
       yakuQingYiSe: '清一色',
       yakuQiDuiZi: '七对子',
+      yakuLongQiDui: '龙七对',
       yakuGangShangKaiHua: '杠上开花',
       yakuQiangGangHu: '抢杠胡',
       yakuHaiDiLaoYue: '海底捞月',
       yakuTianHu: '天胡',
+      yakuDiHu: '地胡',
       yakuZiMo: '自摸',
-      yakuMenQing: '门清',
       yakuJinGouDiao: '金钩钓',
       
       score: '得分',
@@ -278,6 +281,7 @@ export const translations: Record<Language, Translations> = {
       tiles: '张',
       melds: '碰杠',
       yourMelds: '你的碰杠',
+      selfDrawWin: '自摸胡牌',
     },
     
     about: {
@@ -401,12 +405,13 @@ export const translations: Record<Language, Translations> = {
       yakuDuiDuiHu: 'All Triplets',
       yakuQingYiSe: 'Pure One Suit',
       yakuQiDuiZi: 'Seven Pairs',
+      yakuLongQiDui: 'Dragon Seven Pairs',
       yakuGangShangKaiHua: 'Kong Draw',
       yakuQiangGangHu: 'Robbing Kong',
       yakuHaiDiLaoYue: 'Last Tile',
       yakuTianHu: 'Heavenly Hand',
+      yakuDiHu: 'Earthly Hand',
       yakuZiMo: 'Self Draw',
-      yakuMenQing: 'Fully Concealed',
       yakuJinGouDiao: 'Single Wait',
       
       score: 'Score',
@@ -419,6 +424,7 @@ export const translations: Record<Language, Translations> = {
       tiles: 'tiles',
       melds: 'Melds',
       yourMelds: 'Your Melds',
+      selfDrawWin: 'Self-Draw Win',
     },
     
     about: {

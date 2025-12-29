@@ -1,12 +1,15 @@
 import type { RuleId, UiMode } from '../../store/settingsStore';
 import type { UiCtx } from '../context';
 import { languageStore } from '../../store/languageStore';
+import { createBrowserLLMAnalyzerFromStorage } from '../../analysis/LLMAnalyzer';
 
 export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   root.innerHTML = '';
   
   const t = languageStore.t().settings;
   const tCommon = languageStore.t().common;
+  const lang = languageStore.getLanguage();
+  const isZh = lang === 'zh';
 
   const title = document.createElement('h2');
   title.textContent = t.title;
@@ -190,6 +193,207 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   rowP0AI.style.borderRadius = '4px';
   rowP0AI.appendChild(p0AILabel);
   rowP0AI.appendChild(p0AI);
+
+  const llmCfgSection = document.createElement('div');
+  llmCfgSection.style.padding = '12px';
+  llmCfgSection.style.backgroundColor = '#f6f7f9';
+  llmCfgSection.style.border = '1px solid #e5e7eb';
+  llmCfgSection.style.borderRadius = '6px';
+  llmCfgSection.style.marginTop = '16px';
+
+  const llmCfgTitle = document.createElement('h3');
+  llmCfgTitle.textContent = isZh ? 'LLM / AI 配置' : 'LLM / AI Config';
+  llmCfgTitle.style.marginTop = '0';
+  llmCfgTitle.style.marginBottom = '10px';
+  llmCfgTitle.style.color = '#111827';
+
+  const llmCfgStatus = document.createElement('div');
+  llmCfgStatus.style.fontSize = '12px';
+  llmCfgStatus.style.color = '#6b7280';
+  llmCfgStatus.style.marginBottom = '10px';
+
+  const endpointLabel = document.createElement('label');
+  endpointLabel.textContent = 'Endpoint:';
+  const endpointInput = document.createElement('input');
+  endpointInput.type = 'text';
+  endpointInput.value = window.localStorage.getItem('LLM_ENDPOINT') ?? '';
+  endpointInput.style.width = '100%';
+  endpointInput.style.boxSizing = 'border-box';
+  endpointInput.style.padding = '8px 10px';
+  endpointInput.style.borderRadius = '6px';
+  endpointInput.style.border = '1px solid #d1d5db';
+  endpointInput.style.marginTop = '4px';
+
+  const apiKeyLabel = document.createElement('label');
+  apiKeyLabel.textContent = 'API Key:';
+  apiKeyLabel.style.marginTop = '10px';
+  const apiKeyRow = document.createElement('div');
+  apiKeyRow.style.display = 'flex';
+  apiKeyRow.style.gap = '8px';
+  apiKeyRow.style.alignItems = 'center';
+  apiKeyRow.style.marginTop = '4px';
+
+  const apiKeyInput = document.createElement('input');
+  apiKeyInput.type = 'password';
+  apiKeyInput.value = window.localStorage.getItem('LLM_API_KEY') ?? '';
+  apiKeyInput.style.flex = '1';
+  apiKeyInput.style.boxSizing = 'border-box';
+  apiKeyInput.style.padding = '8px 10px';
+  apiKeyInput.style.borderRadius = '6px';
+  apiKeyInput.style.border = '1px solid #d1d5db';
+
+  const apiKeyToggle = document.createElement('button');
+  apiKeyToggle.textContent = isZh ? '显示' : 'Show';
+  apiKeyToggle.style.padding = '8px 12px';
+  apiKeyToggle.style.borderRadius = '6px';
+  apiKeyToggle.style.border = '1px solid #d1d5db';
+  apiKeyToggle.style.backgroundColor = '#fff';
+  apiKeyToggle.style.cursor = 'pointer';
+  apiKeyToggle.onclick = () => {
+    const next = apiKeyInput.type === 'password' ? 'text' : 'password';
+    apiKeyInput.type = next;
+    apiKeyToggle.textContent = next === 'password' ? (isZh ? '显示' : 'Show') : (isZh ? '隐藏' : 'Hide');
+  };
+
+  apiKeyRow.appendChild(apiKeyInput);
+  apiKeyRow.appendChild(apiKeyToggle);
+
+  const modelLabel = document.createElement('label');
+  modelLabel.textContent = 'Model:';
+  modelLabel.style.marginTop = '10px';
+  const modelInput = document.createElement('input');
+  modelInput.type = 'text';
+  modelInput.value = window.localStorage.getItem('LLM_MODEL') ?? '';
+  modelInput.style.width = '100%';
+  modelInput.style.boxSizing = 'border-box';
+  modelInput.style.padding = '8px 10px';
+  modelInput.style.borderRadius = '6px';
+  modelInput.style.border = '1px solid #d1d5db';
+  modelInput.style.marginTop = '4px';
+
+  const llmCfgButtons = document.createElement('div');
+  llmCfgButtons.style.display = 'flex';
+  llmCfgButtons.style.gap = '8px';
+  llmCfgButtons.style.marginTop = '10px';
+  llmCfgButtons.style.flexWrap = 'wrap';
+
+  const testLlmBtn = document.createElement('button');
+  testLlmBtn.textContent = isZh ? '测试连通性' : 'Test Connectivity';
+  testLlmBtn.style.padding = '8px 12px';
+  testLlmBtn.style.borderRadius = '6px';
+  testLlmBtn.style.border = '1px solid #d1d5db';
+  testLlmBtn.style.backgroundColor = '#fff';
+  testLlmBtn.style.cursor = 'pointer';
+
+  const deepseekBtn = document.createElement('button');
+  deepseekBtn.textContent = isZh ? '一键 DeepSeek' : 'DeepSeek Preset';
+  deepseekBtn.style.padding = '8px 12px';
+  deepseekBtn.style.borderRadius = '6px';
+  deepseekBtn.style.border = '1px solid #d1d5db';
+  deepseekBtn.style.backgroundColor = '#fff';
+  deepseekBtn.style.cursor = 'pointer';
+  deepseekBtn.onclick = () => {
+    endpointInput.value = 'https://api.deepseek.com/chat/completions';
+    modelInput.value = 'deepseek-chat';
+  };
+
+  const saveLlmBtn = document.createElement('button');
+  saveLlmBtn.textContent = isZh ? '保存并启用' : 'Save & Enable';
+  saveLlmBtn.style.padding = '8px 12px';
+  saveLlmBtn.style.borderRadius = '6px';
+  saveLlmBtn.style.border = 'none';
+  saveLlmBtn.style.backgroundColor = '#10b981';
+  saveLlmBtn.style.color = '#fff';
+  saveLlmBtn.style.cursor = 'pointer';
+  saveLlmBtn.style.fontWeight = '600';
+
+  const updateLlmCfgStatus = (msg?: string) => {
+    const configured = !!ctx.llmAnalyzer;
+    const base = configured ? (isZh ? '状态：已启用' : 'Status: enabled') : (isZh ? '状态：未启用' : 'Status: disabled');
+    llmCfgStatus.textContent = msg ? `${base} | ${msg}` : base;
+  };
+
+  testLlmBtn.onclick = async () => {
+    const endpoint = endpointInput.value.trim();
+    const apiKey = apiKeyInput.value.trim();
+    const model = modelInput.value.trim();
+    if (!endpoint || !apiKey || !model) {
+      updateLlmCfgStatus(isZh ? '请先填写 endpoint/apiKey/model' : 'Please fill endpoint/apiKey/model first');
+      return;
+    }
+
+    testLlmBtn.disabled = true;
+    const old = testLlmBtn.textContent;
+    testLlmBtn.textContent = isZh ? '测试中…' : 'Testing…';
+    try {
+      const ctrl = new AbortController();
+      const timeoutMs = 8000;
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: 'You are a ping endpoint.' },
+              { role: 'user', content: 'ping' },
+            ],
+            temperature: 0,
+            stream: false,
+            max_tokens: 16,
+          }),
+          signal: ctrl.signal,
+        });
+
+        if (!res.ok) {
+          updateLlmCfgStatus(`${isZh ? '失败' : 'Failed'}: HTTP ${res.status}`);
+          return;
+        }
+
+        const data = (await res.json()) as any;
+        const text = data?.choices?.[0]?.message?.content;
+        if (typeof text === 'string') {
+          updateLlmCfgStatus(isZh ? '成功' : 'OK');
+        } else {
+          updateLlmCfgStatus(isZh ? '响应格式异常' : 'Unexpected response shape');
+        }
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch (e: any) {
+      updateLlmCfgStatus(`${isZh ? '失败' : 'Failed'}: ${e?.name || 'Error'}`);
+    } finally {
+      testLlmBtn.disabled = false;
+      testLlmBtn.textContent = old;
+    }
+  };
+
+  saveLlmBtn.onclick = () => {
+    window.localStorage.setItem('LLM_ENDPOINT', endpointInput.value.trim());
+    window.localStorage.setItem('LLM_API_KEY', apiKeyInput.value.trim());
+    window.localStorage.setItem('LLM_MODEL', modelInput.value.trim());
+    ctx.llmAnalyzer = createBrowserLLMAnalyzerFromStorage();
+    updateLlmCfgStatus(ctx.llmAnalyzer ? (isZh ? '已保存' : 'Saved') : (isZh ? '配置不完整' : 'Incomplete config'));
+  };
+
+  llmCfgButtons.appendChild(deepseekBtn);
+  llmCfgButtons.appendChild(testLlmBtn);
+  llmCfgButtons.appendChild(saveLlmBtn);
+
+  llmCfgSection.appendChild(llmCfgTitle);
+  llmCfgSection.appendChild(llmCfgStatus);
+  llmCfgSection.appendChild(endpointLabel);
+  llmCfgSection.appendChild(endpointInput);
+  llmCfgSection.appendChild(apiKeyLabel);
+  llmCfgSection.appendChild(apiKeyRow);
+  llmCfgSection.appendChild(modelLabel);
+  llmCfgSection.appendChild(modelInput);
+  llmCfgSection.appendChild(llmCfgButtons);
+  updateLlmCfgStatus();
 
   // ========== 训练控制区域 ==========
   const trainingSection = document.createElement('div');
@@ -446,6 +650,7 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   root.appendChild(rowTimeoutMs);
   rowP0AI.style.marginBottom = '16px';
   root.appendChild(rowP0AI);
+  root.appendChild(llmCfgSection);
   root.appendChild(trainingSection);
   trainingSection.style.marginBottom = '16px';
   root.appendChild(back);

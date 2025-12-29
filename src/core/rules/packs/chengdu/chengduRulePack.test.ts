@@ -11,10 +11,11 @@ describe('chengduRulePack', () => {
   describe('basic flow', () => {
     it('reuses placeholder behavior (init/draw/discard/rotate)', () => {
       const s0 = chengduRulePack.buildInitialState();
-      expect(s0.phase).toBe('PLAYING');
-      expect(s0.currentPlayer).toBe('P0');
+      const s0Playing = { ...s0, phase: 'PLAYING', currentPlayer: 'P0' } as any;
+      expect(s0Playing.phase).toBe('PLAYING');
+      expect(s0Playing.currentPlayer).toBe('P0');
 
-      const s1 = chengduRulePack.applyAction(s0, { type: 'DRAW' });
+      const s1 = chengduRulePack.applyAction(s0Playing, { type: 'DRAW' });
       expect(s1.hands.P0.length).toBe(14);
 
       const discard = chengduRulePack.getLegalActions(s1, 'P0').find((a) => a.type === 'DISCARD');
@@ -25,6 +26,40 @@ describe('chengduRulePack', () => {
       const resolved = chengduRulePack.resolveReactions(s2, []);
       expect(resolved.state.currentPlayer).toBe('P1');
     });
+
+  describe('tian hu / di hu', () => {
+    it('should include tian hu (4 fan) when flagged', () => {
+      const hand: Tile[] = [
+        { suit: 'W', rank: 1 }, { suit: 'W', rank: 2 }, { suit: 'W', rank: 3 },
+        { suit: 'W', rank: 4 }, { suit: 'W', rank: 5 }, { suit: 'W', rank: 6 },
+        { suit: 'B', rank: 2 }, { suit: 'B', rank: 3 }, { suit: 'B', rank: 4 },
+        { suit: 'T', rank: 5 }, { suit: 'T', rank: 6 }, { suit: 'T', rank: 7 },
+        { suit: 'W', rank: 9 }, { suit: 'W', rank: 9 },
+      ];
+      const patterns = findWinPatterns(hand);
+      const validPattern = patterns.find(p => p.isValid)!;
+      const yakuList = detectYaku(validPattern, hand, hand[0], true, 0, false, false, false, true, false);
+      const tianHu = yakuList.find(y => y.type === 'TIAN_HU');
+      expect(tianHu).toBeTruthy();
+      expect(tianHu?.fan).toBe(4);
+    });
+
+    it('should include di hu (4 fan) when flagged', () => {
+      const hand: Tile[] = [
+        { suit: 'W', rank: 1 }, { suit: 'W', rank: 2 }, { suit: 'W', rank: 3 },
+        { suit: 'W', rank: 4 }, { suit: 'W', rank: 5 }, { suit: 'W', rank: 6 },
+        { suit: 'B', rank: 2 }, { suit: 'B', rank: 3 }, { suit: 'B', rank: 4 },
+        { suit: 'T', rank: 5 }, { suit: 'T', rank: 6 }, { suit: 'T', rank: 7 },
+        { suit: 'W', rank: 9 }, { suit: 'W', rank: 9 },
+      ];
+      const patterns = findWinPatterns(hand);
+      const validPattern = patterns.find(p => p.isValid)!;
+      const yakuList = detectYaku(validPattern, hand, hand[0], false, 0, false, false, false, false, true);
+      const diHu = yakuList.find(y => y.type === 'DI_HU');
+      expect(diHu).toBeTruthy();
+      expect(diHu?.fan).toBe(4);
+    });
+  });
   });
 
   describe('gang mechanics', () => {
@@ -34,6 +69,7 @@ describe('chengduRulePack', () => {
       
       const s1: GameState = {
         ...s0,
+        phase: 'PLAYING',
         currentPlayer: 'P0',
         hands: {
           ...s0.hands,
@@ -49,6 +85,13 @@ describe('chengduRulePack', () => {
       expect(s2.hands.P0.length).toBe(2);
       expect(s2.melds.P0.length).toBe(1);
       expect(s2.melds.P0[0].type).toBe('GANG');
+
+      // 雨钱：暗杠收所有人 10 分
+      const cs2 = s2 as any;
+      expect(cs2.roundScores.P0).toBe(30);
+      expect(cs2.roundScores.P1).toBe(-10);
+      expect(cs2.roundScores.P2).toBe(-10);
+      expect(cs2.roundScores.P3).toBe(-10);
     });
 
     it('should draw a tile after jia gang (JIA)', () => {
@@ -57,6 +100,7 @@ describe('chengduRulePack', () => {
       
       const s1: GameState = {
         ...s0,
+        phase: 'PLAYING',
         currentPlayer: 'P0',
         hands: {
           ...s0.hands,
@@ -74,6 +118,11 @@ describe('chengduRulePack', () => {
       expect(s2.hands.P0.length).toBe(1);
       expect(s2.melds.P0.length).toBe(1);
       expect(s2.melds.P0[0].type).toBe('GANG');
+
+      // 雨钱：贴杠收最初提供碰的玩家 5 分
+      const cs2 = s2 as any;
+      expect(cs2.roundScores.P0).toBe(5);
+      expect(cs2.roundScores.P1).toBe(-5);
     });
 
     it('should draw a tile after ming gang (MING)', () => {
@@ -82,6 +131,7 @@ describe('chengduRulePack', () => {
       
       const s1: GameState = {
         ...s0,
+        phase: 'PLAYING',
         currentPlayer: 'P0',
         lastDiscard: { tile, from: 'P1' },
         hands: {
@@ -97,6 +147,35 @@ describe('chengduRulePack', () => {
       expect(result.state.hands.P0.length).toBe(2);
       expect(result.state.melds.P0.length).toBe(1);
       expect(result.state.currentPlayer).toBe('P0');
+
+      // 雨钱：明杠收点杠人 10 分
+      const cs = result.state as any;
+      expect(cs.roundScores.P0).toBe(10);
+      expect(cs.roundScores.P1).toBe(-10);
+    });
+
+    it('should not allow gang on missing suit tiles', () => {
+      const s0 = chengduRulePack.buildInitialState();
+      const tile: Tile = { suit: 'W', rank: 1 };
+
+      const s1: GameState = {
+        ...s0,
+        phase: 'PLAYING',
+        currentPlayer: 'P0',
+        dingQueSelection: { P0: 'W', P1: undefined, P2: undefined, P3: undefined },
+        hands: {
+          ...s0.hands,
+          P0: [tile, tile, tile, tile, { suit: 'B', rank: 2 }],
+        },
+      } as any;
+
+      const legal = chengduRulePack.getLegalActions(s1, 'P0');
+      const hasGang = legal.some(a => a.type === 'GANG');
+      expect(hasGang).toBe(false);
+
+      // 即使强行执行也应无效
+      const s2 = chengduRulePack.applyAction(s1, { type: 'GANG', tile, from: 'P0', gangType: 'AN' });
+      expect(s2).toBe(s1);
     });
   });
 
@@ -258,7 +337,7 @@ describe('chengduRulePack', () => {
 
       const patterns = findWinPatterns(hand);
       const validPattern = patterns.find(p => p.isValid)!;
-      const yakuList = detectYaku(validPattern, hand, hand[0], false, 0, false, false, false);
+      const yakuList = detectYaku(validPattern, hand, hand[0], false, 0, false, false, false, false, false);
       
       expect(yakuList.some(y => y.type === 'PING_HU')).toBe(true);
     });
@@ -274,7 +353,7 @@ describe('chengduRulePack', () => {
 
       const patterns = findWinPatterns(hand);
       const validPattern = patterns.find(p => p.isValid)!;
-      const yakuList = detectYaku(validPattern, hand, hand[0], false, 0, false, false, false);
+      const yakuList = detectYaku(validPattern, hand, hand[0], false, 0, false, false, false, false, false);
       
       expect(yakuList.some(y => y.type === 'DUI_DUI_HU')).toBe(true);
     });
@@ -290,7 +369,7 @@ describe('chengduRulePack', () => {
 
       const patterns = findWinPatterns(hand);
       const validPattern = patterns.find(p => p.isValid)!;
-      const yakuList = detectYaku(validPattern, hand, hand[0], false, 0, false, false, false);
+      const yakuList = detectYaku(validPattern, hand, hand[0], false, 0, false, false, false, false, false);
       
       expect(yakuList.some(y => y.type === 'QING_YI_SE')).toBe(true);
     });
@@ -306,7 +385,7 @@ describe('chengduRulePack', () => {
 
       const patterns = findWinPatterns(hand);
       const validPattern = patterns.find(p => p.isValid)!;
-      const yakuList = detectYaku(validPattern, hand, hand[0], true, 0, false, false, false);
+      const yakuList = detectYaku(validPattern, hand, hand[0], true, 0, false, false, false, false, false);
       
       expect(yakuList.some(y => y.type === 'ZI_MO')).toBe(true);
     });
@@ -322,7 +401,7 @@ describe('chengduRulePack', () => {
 
       const patterns = findWinPatterns(hand);
       const validPattern = patterns.find(p => p.isValid)!;
-      const yakuList = detectYaku(validPattern, hand, hand[0], true, 0, true, false, false);
+      const yakuList = detectYaku(validPattern, hand, hand[0], true, 0, true, false, false, false, false);
       
       expect(yakuList.some(y => y.type === 'GANG_SHANG_KAI_HUA')).toBe(true);
     });
@@ -338,9 +417,50 @@ describe('chengduRulePack', () => {
 
       const patterns = findWinPatterns(hand);
       const validPattern = patterns.find(p => p.isValid)!;
-      const yakuList = detectYaku(validPattern, hand, hand[0], false, 0, false, true, false);
+      const yakuList = detectYaku(validPattern, hand, hand[0], false, 0, false, true, false, false, false);
       
       expect(yakuList.some(y => y.type === 'QIANG_GANG_HU')).toBe(true);
+    });
+
+    it('should detect qi dui zi (7 pairs) with 2 fan', () => {
+      const hand: Tile[] = [
+        { suit: 'W', rank: 1 }, { suit: 'W', rank: 1 },
+        { suit: 'W', rank: 2 }, { suit: 'W', rank: 2 },
+        { suit: 'W', rank: 3 }, { suit: 'W', rank: 3 },
+        { suit: 'B', rank: 4 }, { suit: 'B', rank: 4 },
+        { suit: 'B', rank: 5 }, { suit: 'B', rank: 5 },
+        { suit: 'T', rank: 6 }, { suit: 'T', rank: 6 },
+        { suit: 'T', rank: 7 }, { suit: 'T', rank: 7 },
+      ];
+
+      const patterns = findWinPatterns(hand);
+      const validPattern = patterns.find(p => p.isValid)!;
+      const yakuList = detectYaku(validPattern, hand, hand[0], false, 0, false, false, false, false, false);
+
+      const qiDui = yakuList.find(y => y.type === 'QI_DUI_ZI');
+      expect(qiDui).toBeTruthy();
+      expect(qiDui?.fan).toBe(2);
+      expect(yakuList.some(y => y.type === 'LONG_QI_DUI')).toBe(false);
+    });
+
+    it('should detect long qi dui (dragon seven pairs) with 3 fan when a quad exists', () => {
+      const hand: Tile[] = [
+        { suit: 'W', rank: 1 }, { suit: 'W', rank: 1 }, { suit: 'W', rank: 1 }, { suit: 'W', rank: 1 },
+        { suit: 'W', rank: 2 }, { suit: 'W', rank: 2 },
+        { suit: 'W', rank: 3 }, { suit: 'W', rank: 3 },
+        { suit: 'B', rank: 4 }, { suit: 'B', rank: 4 },
+        { suit: 'B', rank: 5 }, { suit: 'B', rank: 5 },
+        { suit: 'T', rank: 6 }, { suit: 'T', rank: 6 },
+      ];
+
+      const patterns = findWinPatterns(hand);
+      const validPattern = patterns.find(p => p.isValid)!;
+      const yakuList = detectYaku(validPattern, hand, hand[0], false, 0, false, false, false, false, false);
+
+      const longQiDui = yakuList.find(y => y.type === 'LONG_QI_DUI');
+      expect(longQiDui).toBeTruthy();
+      expect(longQiDui?.fan).toBe(3);
+      expect(yakuList.some(y => y.type === 'QI_DUI_ZI')).toBe(false);
     });
   });
 
@@ -348,25 +468,24 @@ describe('chengduRulePack', () => {
     it('should calculate correct score for ping hu', () => {
       const yakuList = [{ type: 'PING_HU' as const, fan: 1, description: '平胡' }];
       const score = calculateScore(yakuList);
-      expect(score).toBeGreaterThanOrEqual(500);
-      expect(score).toBeLessThanOrEqual(1000);
+      expect(score).toBe(5);
     });
 
     it('should calculate correct score for qing yi se', () => {
       const yakuList = [{ type: 'QING_YI_SE' as const, fan: 6, description: '清一色' }];
       const score = calculateScore(yakuList);
-      expect(score).toBeGreaterThanOrEqual(3000);
-      expect(score).toBeLessThanOrEqual(4000);
+      // 6 番：5 * 2^(6-1) = 160
+      expect(score).toBe(160);
     });
 
     it('should accumulate multiple yaku', () => {
       const yakuList = [
         { type: 'ZI_MO' as const, fan: 1, description: '自摸' },
-        { type: 'MEN_QING' as const, fan: 1, description: '门清' },
         { type: 'DUI_DUI_HU' as const, fan: 2, description: '对对胡' },
       ];
       const score = calculateScore(yakuList);
-      expect(score).toBeGreaterThanOrEqual(1500);
+      // 1+2 = 3 番：5 * 2^(3-1) = 20
+      expect(score).toBe(20);
     });
   });
 
@@ -632,6 +751,7 @@ describe('chengduRulePack', () => {
         
         const s1: GameState = {
           ...s0,
+          phase: 'PLAYING',
           currentPlayer: 'P0',
           hands: { ...s0.hands, P0: hand.slice(0, 13) },
           lastDiscard: { tile: hand[13], from: 'P1' },
@@ -657,6 +777,7 @@ describe('chengduRulePack', () => {
         
         const s1: GameState = {
           ...s0,
+          phase: 'PLAYING',
           currentPlayer: 'P0',
           hands: { ...s0.hands, P0: hand.slice(0, 13) },
           lastDiscard: { tile: hand[13], from: 'P1' },
@@ -683,6 +804,7 @@ describe('chengduRulePack', () => {
         
         const s1: GameState = {
           ...s0,
+          phase: 'PLAYING',
           currentPlayer: 'P0',
           hands: { ...s0.hands, P0: hand.slice(0, 13) },
           lastDiscard: { tile: hand[13], from: 'P1' },
@@ -710,7 +832,7 @@ describe('chengduRulePack', () => {
         expect(validPattern).toBeTruthy();
 
         const winTile = { suit: 'W' as const, rank: 9 as const };
-        const yakuList = detectYaku(validPattern!, hand, winTile, false, 0, false, false, false);
+        const yakuList = detectYaku(validPattern!, hand, winTile, false, 0, false, false, false, false, false);
         
         const jinGouDiao = yakuList.find(y => y.type === 'JIN_GOU_DIAO');
         expect(jinGouDiao).toBeTruthy();
@@ -730,7 +852,7 @@ describe('chengduRulePack', () => {
         const validPattern = patterns.find(p => p.isValid);
 
         const winTile = { suit: 'W' as const, rank: 3 as const };
-        const yakuList = detectYaku(validPattern!, hand, winTile, false, 0, false, false, false);
+        const yakuList = detectYaku(validPattern!, hand, winTile, false, 0, false, false, false, false, false);
         
         const jinGouDiao = yakuList.find(y => y.type === 'JIN_GOU_DIAO');
         expect(jinGouDiao).toBeUndefined();
@@ -743,21 +865,21 @@ describe('chengduRulePack', () => {
           { type: 'PING_HU' as const, fan: 1, description: '平胡' },
         ];
         
-        // 无根
+        // 无杠
         const score0 = calculateScore(yakuList, 0);
-        expect(score0).toBe(500);
+        expect(score0).toBe(5);
         
-        // 1根（1个杠）
+        // 1 杠（+1 番）
         const score1 = calculateScore(yakuList, 1);
-        expect(score1).toBe(1000); // 500 * 2^1
+        expect(score1).toBe(10);
         
-        // 2根（2个杠）
+        // 2 杠（+2 番）
         const score2 = calculateScore(yakuList, 2);
-        expect(score2).toBe(2000); // 500 * 2^2
+        expect(score2).toBe(20);
         
-        // 3根（3个杠）
+        // 3 杠（+3 番）
         const score3 = calculateScore(yakuList, 3);
-        expect(score3).toBe(4000); // 500 * 2^3
+        expect(score3).toBe(40);
       });
 
       it('should calculate score with high fan and gen', () => {
@@ -766,13 +888,13 @@ describe('chengduRulePack', () => {
           { type: 'DUI_DUI_HU' as const, fan: 2, description: '对对胡' },
         ];
         
-        // 8番基础分3000
+        // 8 番：5 * 2^(8-1) = 640
         const score0 = calculateScore(yakuList, 0);
-        expect(score0).toBe(4000);
+        expect(score0).toBe(640);
         
-        // 1根
+        // 1 杠（+1 番）
         const score1 = calculateScore(yakuList, 1);
-        expect(score1).toBe(8000); // 4000 * 2^1
+        expect(score1).toBe(1280);
       });
     });
 

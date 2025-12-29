@@ -26,6 +26,10 @@ const warn = (...args: any[]) => {
 
 const PLAYERS: PlayerId[] = ['P0', 'P1', 'P2', 'P3'];
 
+function isTileInMissingSuit(tile: Tile, missingSuit: 'W' | 'B' | 'T' | undefined): boolean {
+  return !!missingSuit && tile.suit === missingSuit;
+}
+
 type DealInStat = { count: number; stageB: number; stageC: number };
 type DealInStats = Record<PlayerId, DealInStat>;
 
@@ -99,6 +103,40 @@ function addScore(state: ChengduState, playerId: PlayerId, delta: number): void 
   state.roundScores![playerId] += delta;
 }
 
+function applyGangRainMoney(
+  state: ChengduState,
+  gangPlayer: PlayerId,
+  gangType: 'AN' | 'MING' | 'JIA',
+  from?: PlayerId,
+): void {
+  ensureRoundTracking(state);
+
+  if (gangType === 'AN') {
+    // 暗杠：收所有人雨钱 10 分
+    for (const pid of PLAYERS) {
+      if (pid === gangPlayer) continue;
+      addScore(state, gangPlayer, 10);
+      addScore(state, pid, -10);
+    }
+    return;
+  }
+
+  if (!from) return;
+
+  if (gangType === 'MING') {
+    // 明杠：收点杠人雨钱 10 分
+    addScore(state, gangPlayer, 10);
+    addScore(state, from, -10);
+    return;
+  }
+
+  if (gangType === 'JIA') {
+    // 贴杠：收点杠人雨钱 5 分（点杠人指最初提供碰的玩家）
+    addScore(state, gangPlayer, 5);
+    addScore(state, from, -5);
+  }
+}
+
 function recordDealIn(state: ChengduState, playerId: PlayerId, stage: 'A' | 'B' | 'C'): void {
   ensureRoundTracking(state);
   const stats = state.dealInStats![playerId];
@@ -153,6 +191,7 @@ function evaluateSelfDrawScore(state: GameState, playerId: PlayerId, isGangShang
   const validPattern = patterns && patterns.find((p) => p && p.isValid);
   if (!validPattern) return 0;
   const gangCount = state.melds[playerId].filter((m) => m.type === 'GANG').length;
+  const isTianHu = playerId === 'P0' && state.turn === 0;
   const yakuList = detectYaku(
     validPattern,
     hand,
@@ -162,6 +201,8 @@ function evaluateSelfDrawScore(state: GameState, playerId: PlayerId, isGangShang
     isGangShangKaiHua,
     false,
     isLastTileInWall(state),
+    isTianHu,
+    false,
   );
   return calculateScore(yakuList, gangCount);
 }
@@ -427,7 +468,10 @@ export const chengduRulePack: RulePack = {
 
       const inHand = countTile(state.hands[player], tile);
       if (inHand >= 3) {
-        legal.push({ type: 'GANG', tile, from, gangType: 'MING' });
+        const missingSuit = chengduState.dingQueSelection?.[player];
+        if (!isTileInMissingSuit(tile, missingSuit)) {
+          legal.push({ type: 'GANG', tile, from, gangType: 'MING' });
+        }
       }
       if (inHand >= 2) {
         legal.push({ type: 'PENG', tile, from });
@@ -451,35 +495,59 @@ export const chengduRulePack: RulePack = {
       // 缺一门验证
       const missingSuit = chengduState.dingQueSelection?.[player];
       const hasQue = hasQueYiMen(hand, state.melds[player], missingSuit);
+      console.log(`[自摸检测] ${player} hand.length=${hand.length}, baseHandSize=${baseHandSize}, meldCount=${meldCount}`);
+      console.log(`[自摸检测] ${player} canWin=${canWin}, hasQue=${hasQue}, missingSuit=${missingSuit}`);
       if (canWin && hasQue) {
         baseActions.push({ type: 'HU', tile: hand[hand.length - 1], from: player });
+        console.log(`[自摸检测] ${player} 添加自摸动作`);
       }
 
       // 暗杠和加杠
+      const dingQueSuit = chengduState.dingQueSelection?.[player];
+      console.log(`[暗杠检测] ${player} 手牌:`, hand.map(t => `${t.suit}${t.rank}`).join(' '));
+      console.log(`[暗杠检测] ${player} 定缺花色:`, dingQueSuit || '未定缺');
+      
       for (const tile of hand) {
         const count = countTile(hand, tile);
         if (count === 4) {
-          baseActions.push({ type: 'GANG', tile, from: player, gangType: 'AN' });
+          console.log(`[暗杠检测] ${player} 检测到4张: ${tile.suit}${tile.rank}, 定缺检查:`, isTileInMissingSuit(tile, dingQueSuit) ? '是定缺花色，禁止暗杠' : '非定缺花色，允许暗杠');
+          if (!isTileInMissingSuit(tile, dingQueSuit)) {
+            baseActions.push({ type: 'GANG', tile, from: player, gangType: 'AN' });
+            console.log(`[暗杠检测] ${player} 添加暗杠动作: ${tile.suit}${tile.rank}`);
+          }
         }
         if (canUpgradeToGang(state, player, tile)) {
-          baseActions.push({ type: 'GANG', tile, from: player, gangType: 'JIA' });
+          if (!isTileInMissingSuit(tile, dingQueSuit)) {
+            baseActions.push({ type: 'GANG', tile, from: player, gangType: 'JIA' });
+          }
         }
       }
       
       // 成都规则：必须先打完缺门的牌
-      const dingQueSuit = chengduState.dingQueSelection?.[player];
       if (dingQueSuit) {
         const missingSuitTiles = hand.filter(t => t.suit === dingQueSuit);
         if (missingSuitTiles.length > 0) {
+          console.log(`[暗杠检测] ${player} 有缺门牌 ${dingQueSuit}，应用过滤逻辑`);
           // 有缺门的牌，只能打缺门的牌
           const discardActions = baseActions.filter(a => 
             a.type === 'DISCARD' && a.tile.suit === dingQueSuit
           );
-          // 保留非出牌动作（胡、杠）
+          // 保留所有非出牌动作（胡、杠等）
           const nonDiscardActions = baseActions.filter(a => a.type !== 'DISCARD');
+          console.log(`[暗杠检测] ${player} 最终动作:`, nonDiscardActions.map(a => {
+            if (a.type === 'GANG') return `${a.type}:${(a as any).tile?.suit}${(a as any).tile?.rank}(${(a as any).gangType})`;
+            if (a.type === 'HU') return `${a.type}:${(a as any).tile?.suit}${(a as any).tile?.rank}`;
+            return a.type;
+          }).join(', '));
           return [...nonDiscardActions, ...discardActions];
         }
       }
+      
+      console.log(`[暗杠检测] ${player} 最终动作(无过滤):`, baseActions.map(a => {
+        if (a.type === 'GANG') return `${a.type}:${(a as any).tile?.suit}${(a as any).tile?.rank}(${(a as any).gangType})`;
+        if (a.type === 'HU') return `${a.type}:${(a as any).tile?.suit}${(a as any).tile?.rank}`;
+        return a.type;
+      }).join(', '));
     }
 
     return baseActions;
@@ -627,6 +695,10 @@ export const chengduRulePack: RulePack = {
     if (action.type === 'GANG' && action.gangType === 'AN' && state.currentPlayer === action.from) {
       const hand = state.hands[action.from];
       const meldCount = state.melds[action.from].length;
+
+      // 成都规则：不能暗杠定缺花色
+      const dingQueSuit = chengduState.dingQueSelection?.[action.from];
+      if (isTileInMissingSuit(action.tile, dingQueSuit)) return state;
       
       // 手牌数量验证
       if (!validateHandSize(hand, meldCount, 1)) return state;
@@ -661,7 +733,7 @@ export const chengduRulePack: RulePack = {
         ts: now(),
       };
 
-      return {
+      const nextState = {
         ...state,
         wall: newWall,
         hands: { ...state.hands, [action.from]: finalHand },
@@ -670,18 +742,27 @@ export const chengduRulePack: RulePack = {
         isAfterGang: true,
         pendingEvents: [gangEvent],
       } as ChengduState;
+
+      // 暗杠雨钱：收所有人 10 分
+      applyGangRainMoney(nextState, action.from, 'AN');
+      return nextState;
     }
 
     // 加杠处理（带事件记录和验证）
     if (action.type === 'GANG' && action.gangType === 'JIA' && state.currentPlayer === action.from) {
       const hand = state.hands[action.from];
       const meldCount = state.melds[action.from].length;
+
+      // 成都规则：不能贴杠定缺花色
+      const dingQueSuit = chengduState.dingQueSelection?.[action.from];
+      if (isTileInMissingSuit(action.tile, dingQueSuit)) return state;
       
       // 手牌数量验证
       if (!validateHandSize(hand, meldCount, 1)) return state;
 
       // 防御性检查：验证是否有对应的碰
-      const hasPeng = state.melds[action.from].some(m => m.type === 'PENG' && tileEq(m.tile, action.tile));
+      const pengMeld = state.melds[action.from].find(m => m.type === 'PENG' && tileEq(m.tile, action.tile));
+      const hasPeng = !!pengMeld;
       if (!hasPeng) {
         warn('Cannot upgrade to gang: no matching PENG found');
         return state;
@@ -710,13 +791,17 @@ export const chengduRulePack: RulePack = {
         ts: now(),
       };
 
-      return {
+      const nextState = {
         ...state,
         hands: { ...state.hands, [action.from]: nextHand },
         melds: { ...state.melds, [action.from]: updatedMelds },
         lastAddedGangTile: { tile: action.tile, from: action.from },
         pendingEvents: [gangEvent],
       } as ChengduState;
+
+      // 贴杠雨钱：收最初提供碰的玩家 5 分
+      applyGangRainMoney(nextState, action.from, 'JIA', pengMeld!.from);
+      return nextState;
     }
 
     // 出牌处理（带碰后限制）
@@ -830,8 +915,10 @@ export const chengduRulePack: RulePack = {
               false,
               state.melds[r.playerId].length,
               false,
-              true,
+              false,
               isLastTileInWall(state),
+              false,
+              false,
             );
             const score = calculateScore(yakuList, gangCount);
             applyRonOutcome(chengduState, r.playerId, gangTile.from, score, snapshot);
@@ -927,6 +1014,7 @@ export const chengduRulePack: RulePack = {
 
         if (validPattern) {
           const gangCount = state.melds[r.playerId].filter((m) => m.type === 'GANG').length;
+          const isDiHu = state.turn === 1 && discard.from === 'P0' && r.playerId !== 'P0';
           const yakuList = detectYaku(
             validPattern,
             hand,
@@ -936,6 +1024,8 @@ export const chengduRulePack: RulePack = {
             false,
             false,
             isLastTileInWall(state),
+            false,
+            isDiHu,
           );
           const score = calculateScore(yakuList, gangCount);
           applyRonOutcome(chengduState, r.playerId, discard.from, score, snapshot);
@@ -987,6 +1077,14 @@ export const chengduRulePack: RulePack = {
       const tile = gang.action.tile;
       const from = gang.action.from;
 
+      // 成都规则：不能明杠定缺花色
+      const missingSuit = chengduState.dingQueSelection?.[pid];
+      if (isTileInMissingSuit(tile, missingSuit)) {
+        const nextP = nextActivePlayer({ ...state }, discard.from);
+        const next: GameState = { ...state, lastDiscard: null, currentPlayer: nextP };
+        return { state: next, events: [{ type: 'TURN', playerId: nextP, turn: next.turn, ts: baseTs }] };
+      }
+
       const nextHand = removeNTiles(state.hands[pid], tile, 3);
       if (!nextHand) {
         const nextP = nextActivePlayer({ ...state }, discard.from);
@@ -1016,6 +1114,9 @@ export const chengduRulePack: RulePack = {
         lastGangPlayer: pid,
         isAfterGang: true,
       } as ChengduState;
+
+      // 明杠雨钱：收点杠人 10 分
+      applyGangRainMoney(next as ChengduState, pid, 'MING', from);
 
       return {
         state: next,

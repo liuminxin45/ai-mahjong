@@ -15,6 +15,17 @@ export interface LLMAnalyzer {
     stateSummary: string;
   }): Promise<string>;
 
+  chat(input: {
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    system?: string;
+  }): Promise<string>;
+
+  chatStream?(input: {
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    system?: string;
+    onDelta: (delta: string) => void;
+  }): Promise<string>;
+
   summarizeMatch(stat: MatchStat): Promise<string>;
 
   summarizeMatchReport(report: MatchReport): Promise<string>;
@@ -46,8 +57,130 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
   constructor(cfg: OpenAICompatibleConfig) {
     this.cfg = {
       ...cfg,
-      timeoutMs: cfg.timeoutMs ?? 3000,
+      timeoutMs: cfg.timeoutMs ?? 15000,
     };
+  }
+
+  async chat(input: {
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    system?: string;
+  }): Promise<string> {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), this.cfg.timeoutMs);
+
+    try {
+      const res = await fetch(this.cfg.endpoint, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${this.cfg.apiKey}`,
+          accept: 'text/event-stream',
+        },
+        body: JSON.stringify({
+          model: this.cfg.model,
+          messages: [
+            { role: 'system', content: input.system ?? 'You are a rigorous Chengdu Mahjong coach.' },
+            ...input.messages,
+          ],
+          temperature: 0.2,
+        }),
+        signal: ctrl.signal,
+      });
+
+      if (!res.ok) {
+        throw new Error(`LLM HTTP ${res.status}`);
+      }
+
+      const data = (await res.json()) as any;
+      const text = data?.choices?.[0]?.message?.content;
+      if (typeof text !== 'string' || text.trim().length === 0) {
+        throw new Error('LLM empty response');
+      }
+      return text.trim();
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
+  async chatStream(input: {
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    system?: string;
+    onDelta: (delta: string) => void;
+  }): Promise<string> {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), this.cfg.timeoutMs);
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    let full = '';
+
+    try {
+      const res = await fetch(this.cfg.endpoint, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${this.cfg.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: this.cfg.model,
+          messages: [
+            { role: 'system', content: input.system ?? 'You are a rigorous Chengdu Mahjong coach.' },
+            ...input.messages,
+          ],
+          temperature: 0.2,
+          stream: true,
+        }),
+        signal: ctrl.signal,
+      });
+
+      if (!res.ok) {
+        throw new Error(`LLM HTTP ${res.status}`);
+      }
+
+      if (!res.body) {
+        const txt = await this.chat({ messages: input.messages, system: input.system });
+        input.onDelta(txt);
+        return txt;
+      }
+
+      const reader = res.body.getReader();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        while (true) {
+          const nl = buffer.indexOf('\n');
+          if (nl === -1) break;
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice('data:'.length).trim();
+          if (!payload) continue;
+          if (payload === '[DONE]') {
+            return full.trim();
+          }
+
+          let data: any;
+          try {
+            data = JSON.parse(payload);
+          } catch {
+            continue;
+          }
+
+          const delta: unknown = data?.choices?.[0]?.delta?.content ?? data?.choices?.[0]?.message?.content;
+          if (typeof delta === 'string' && delta.length > 0) {
+            full += delta;
+            input.onDelta(delta);
+          }
+        }
+      }
+
+      return full.trim();
+    } finally {
+      clearTimeout(t);
+    }
   }
 
   async explainDecision(input: {

@@ -7,8 +7,8 @@ type Listener = () => void;
 class SettingsStore {
   difficulty: Difficulty = 'high';
   ruleId: RuleId = 'chengdu';
-  analysisEnabled = false;
-  llmEnabled = false;
+  analysisEnabled = true;
+  llmEnabled = true;
   uiMode: UiMode = 'TABLE';
   timeoutEnabled = false;
   timeoutMs = 30000;
