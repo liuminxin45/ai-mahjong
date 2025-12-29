@@ -10,8 +10,6 @@ import { renderLLMSettingsButton } from '../components/LLMSettingsPanel';
 export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   root.innerHTML = '';
 
-  const chatCleanup = mountAIChatBadge(root, ctx);
-
   const lastLlmState = {
     key: null as string | null,
     text: null as string | null,
@@ -112,6 +110,5 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   return () => {
     unsub();
     unsubSettings();
-    chatCleanup();
   };
 }
