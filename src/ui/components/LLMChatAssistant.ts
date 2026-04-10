@@ -29,13 +29,12 @@ export function renderLLMChatAssistant(
     left: 0;
     width: 380px;
     height: 100vh;
-    background: white;
-    box-shadow: 2px 0 12px rgba(0,0,0,0.15);
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-xl);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     z-index: 1001;
-    font-family: system-ui, -apple-system, sans-serif;
     transition: transform 0.3s ease-in-out;
   `;
 
@@ -45,8 +44,8 @@ export function renderLLMChatAssistant(
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    padding: var(--sp-4);
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
     color: white;
   `;
 
@@ -88,19 +87,19 @@ export function renderLLMChatAssistant(
   messagesArea.style.cssText = `
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
-    background: #f5f5f5;
+    padding: var(--sp-4);
+    background: var(--bg-base);
   `;
 
   // 欢迎消息
   if (chatHistory.length === 0) {
     const welcome = document.createElement('div');
     welcome.style.cssText = `
-      background: white;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      background: var(--bg-surface);
+      border-radius: var(--r-lg);
+      padding: var(--sp-4);
+      margin-bottom: var(--sp-3);
+      box-shadow: var(--shadow-sm);
     `;
     welcome.innerHTML = `
       <div style="font-size: 14px; margin-bottom: 12px;">
@@ -151,18 +150,18 @@ export function renderLLMChatAssistant(
   // 快捷问题（根据游戏阶段显示不同问题）
   const quickQuestions = document.createElement('div');
   quickQuestions.style.cssText = `
-    padding: 8px 16px;
-    background: white;
-    border-top: 1px solid #eee;
+    padding: var(--sp-2) var(--sp-4);
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
     display: flex;
-    gap: 8px;
+    gap: var(--sp-2);
     overflow-x: auto;
   `;
 
   // 根据游戏阶段选择不同的快捷问题
   const phase = gameState?.phase;
   let questions: string[];
-  
+
   if (phase === 'EXCHANGE') {
     questions = [
       '换三张应该换哪3张？',
@@ -190,12 +189,13 @@ export function renderLLMChatAssistant(
     const btn = document.createElement('button');
     btn.style.cssText = `
       padding: 6px 12px;
-      background: #f0f0f0;
+      background: var(--bg-hover);
       border: none;
       border-radius: 16px;
       font-size: 12px;
       white-space: nowrap;
       cursor: pointer;
+      color: var(--text-secondary);
       transition: background 0.2s;
     `;
     btn.textContent = q;
@@ -211,26 +211,21 @@ export function renderLLMChatAssistant(
   const inputArea = document.createElement('div');
   inputArea.style.cssText = `
     display: flex;
-    gap: 8px;
-    padding: 12px 16px;
-    background: white;
-    border-top: 1px solid #eee;
+    gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4);
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
   `;
 
   const input = document.createElement('input');
   input.type = 'text';
   input.placeholder = '输入你的问题...';
-  input.style.cssText = `
+  input.className = 'form-input';
+  input.style.cssText += `
     flex: 1;
-    padding: 12px 16px;
-    border: 1px solid #ddd;
     border-radius: 24px;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s;
+    padding: 12px 16px;
   `;
-  input.onfocus = () => input.style.borderColor = '#11998e';
-  input.onblur = () => input.style.borderColor = '#ddd';
   input.onkeypress = (e) => {
     if (e.key === 'Enter' && input.value.trim()) {
       sendMessage(input.value.trim(), gameState, panel);
@@ -242,7 +237,7 @@ export function renderLLMChatAssistant(
   sendBtn.style.cssText = `
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
     border: none;
     border-radius: 50%;
     color: white;
@@ -306,13 +301,13 @@ function parseMarkdown(text: string): string {
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#1976d2;">$1</a>')
     // 换行
     .replace(/\n/g, '<br>');
-  
+
   // 处理无序列表
   html = html.replace(/(?:^|<br>)[-•]\s+(.+?)(?=<br>|$)/g, '<li style="margin-left:20px;">$1</li>');
-  
+
   // 处理有序列表
   html = html.replace(/(?:^|<br>)(\d+)\.\s+(.+?)(?=<br>|$)/g, '<li style="margin-left:20px;">$2</li>');
-  
+
   return html;
 }
 
@@ -321,26 +316,26 @@ function parseMarkdown(text: string): string {
  */
 function renderMessage(msg: QAMessage): HTMLElement {
   const isUser = msg.role === 'user';
-  
+
   const container = document.createElement('div');
   container.style.cssText = `
     display: flex;
     justify-content: ${isUser ? 'flex-end' : 'flex-start'};
-    margin-bottom: 12px;
+    margin-bottom: var(--sp-3);
   `;
 
   const bubble = document.createElement('div');
   bubble.style.cssText = `
     max-width: 80%;
-    padding: 12px 16px;
+    padding: var(--sp-3) var(--sp-4);
     border-radius: ${isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px'};
-    background: ${isUser ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' : 'white'};
-    color: ${isUser ? 'white' : '#333'};
-    font-size: 14px;
+    background: ${isUser ? 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%)' : 'var(--bg-surface)'};
+    color: ${isUser ? 'white' : 'var(--text-primary)'};
+    font-size: var(--fs-sm);
     line-height: 1.6;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
   `;
-  
+
   // 用户消息直接显示，助手消息解析Markdown
   if (isUser) {
     bubble.textContent = msg.content;
@@ -368,27 +363,27 @@ async function sendMessage(
     context: gameState ? { gameState } : undefined,
   };
   chatHistory.push(userMsg);
-  
+
   // 更新面板显示"思考中"
   isTyping = true;
   updateChatPanel(gameState);
-  
+
   try {
     // 获取历史对话作为上下文
-    const historyContext = chatHistory.slice(-6).map(m => 
+    const historyContext = chatHistory.slice(-6).map(m =>
       `${m.role === 'user' ? '用户' : '助手'}: ${m.content}`
     );
-    
+
     console.log('[LLM Chat] Sending question to LLM...');
-    
+
     // 调用LLM
     const response = await llmService.answerQuestion(content, {
       gameState,
       history: historyContext,
     });
-    
+
     console.log('[LLM Chat] Got response:', response.substring(0, 100) + '...');
-    
+
     // 添加助手消息
     const assistantMsg: QAMessage = {
       role: 'assistant',
@@ -404,7 +399,7 @@ async function sendMessage(
       timestamp: new Date(),
     });
   }
-  
+
   // 更新面板显示响应
   isTyping = false;
   console.log('[LLM Chat] Updating panel with response...');
@@ -418,7 +413,7 @@ function updateChatPanel(gameState?: GameState): void {
   const existingPanel = document.getElementById(CHAT_PANEL_ID_CONST);
   if (existingPanel && existingPanel.parentElement) {
     const parent = existingPanel.parentElement;
-    const newPanel = renderLLMChatAssistant(gameState, () => {});
+    const newPanel = renderLLMChatAssistant(gameState, () => { });
     parent.replaceChild(newPanel, existingPanel);
     console.log('[LLM Chat] Panel updated');
   } else {
@@ -448,12 +443,12 @@ export function renderChatAssistantButton(
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
     border: none;
     color: white;
     font-size: 24px;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
+    box-shadow: var(--shadow-glow);
     z-index: 1000;
     transition: transform 0.2s, box-shadow 0.2s, left 0.3s ease-in-out;
     display: flex;
@@ -461,7 +456,7 @@ export function renderChatAssistantButton(
     justify-content: center;
   `;
   btn.textContent = '💬';
-  
+
   btn.onmouseover = () => {
     btn.style.transform = 'scale(1.1)';
     btn.style.boxShadow = '0 6px 16px rgba(17, 153, 142, 0.5)';
@@ -470,10 +465,10 @@ export function renderChatAssistantButton(
     btn.style.transform = 'scale(1)';
     btn.style.boxShadow = '0 4px 12px rgba(17, 153, 142, 0.4)';
   };
-  
+
   let chatPanel: HTMLElement | null = null;
   let isOpen = false;
-  
+
   btn.onclick = () => {
     if (!chatPanel || !document.body.contains(chatPanel)) {
       // 创建侧边栏面板
@@ -520,7 +515,7 @@ export function renderChatAssistantButton(
       }
     }
   };
-  
+
   return btn;
 }
 

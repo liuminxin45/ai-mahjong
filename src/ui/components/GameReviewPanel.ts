@@ -23,37 +23,28 @@ export async function renderGameReviewPanel(
     width: 700px;
     max-width: 95vw;
     max-height: 90vh;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    background: var(--bg-surface);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-xl);
     overflow: hidden;
     z-index: 2000;
-    font-family: system-ui, -apple-system, sans-serif;
     display: flex;
     flex-direction: column;
   `;
 
-  // 背景遮罩
+  // Overlay
   const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 1999;
-  `;
+  overlay.className = 'overlay';
   overlay.onclick = () => {
     overlay.remove();
     panel.remove();
     onClose?.();
   };
 
-  // 头部 - 根据结果设置不同颜色
+  // Header gradient based on result
   const gradients: Record<string, string> = {
-    win: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
-    lose: 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)',
+    win: 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%)',
+    lose: 'linear-gradient(135deg, var(--c-danger) 0%, #f45c43 100%)',
     draw: 'linear-gradient(135deg, #606c88 0%, #3f4c6b 100%)',
   };
 
@@ -62,7 +53,7 @@ export async function renderGameReviewPanel(
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
+    padding: var(--sp-5) var(--sp-6);
     background: ${gradients[gameRecord.result] || gradients.draw};
     color: white;
   `;
@@ -108,14 +99,14 @@ export async function renderGameReviewPanel(
   content.style.cssText = `
     flex: 1;
     overflow-y: auto;
-    padding: 24px;
+    padding: var(--sp-6);
   `;
 
-  // 加载状态
+  // Loading state
   content.innerHTML = `
     <div style="text-align: center; padding: 40px;">
       <div style="font-size: 32px; margin-bottom: 16px;">🔄</div>
-      <div style="color: #666;">正在分析对局...</div>
+      <div style="color: var(--text-muted);">正在分析对局...</div>
     </div>
   `;
 
@@ -146,12 +137,12 @@ export async function renderGameReviewPanel(
 async function generateReview(gameRecord: GameRecord): Promise<GameReview> {
   // 提取关键决策点（简化实现）
   const keyDecisions: Array<{ turn: number; action: any; state: any }> = [];
-  
+
   if (gameRecord.replay?.events) {
     // 采样关键回合
     const events = gameRecord.replay.events.filter(e => e.playerId === 'P0');
     const sampleIndices = [0, Math.floor(events.length / 3), Math.floor(events.length * 2 / 3), events.length - 1];
-    
+
     for (const idx of sampleIndices) {
       if (events[idx]) {
         keyDecisions.push({
@@ -182,11 +173,11 @@ function renderReviewContent(
     display: flex;
     align-items: center;
     gap: 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    padding: 24px;
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
+    border-radius: var(--r-lg);
+    padding: var(--sp-6);
     color: white;
-    margin-bottom: 24px;
+    margin-bottom: var(--sp-6);
   `;
 
   const gradeColors: Record<string, string> = {
@@ -230,39 +221,39 @@ function renderReviewContent(
   analysisGrid.style.cssText = `
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: var(--sp-4);
+    margin-bottom: var(--sp-6);
   `;
 
   // 优点
   const strengthsCard = document.createElement('div');
   strengthsCard.style.cssText = `
-    background: #e8f5e9;
-    border-radius: 12px;
-    padding: 16px;
+    background: rgba(59, 166, 118, 0.15);
+    border-radius: var(--r-lg);
+    padding: var(--sp-4);
   `;
   strengthsCard.innerHTML = `
-    <div style="font-weight: 600; color: #2e7d32; margin-bottom: 12px;">✅ 做得好的方面</div>
-    <ul style="margin: 0; padding-left: 20px; color: #333; line-height: 1.8;">
-      ${review.overallAssessment.strengths.length > 0 
-        ? review.overallAssessment.strengths.map(s => `<li>${s}</li>`).join('')
-        : '<li>继续保持！</li>'}
+    <div style="font-weight: 600; color: var(--c-success); margin-bottom: 12px;">✅ 做得好的方面</div>
+    <ul style="margin: 0; padding-left: 20px; color: var(--text-primary); line-height: 1.8;">
+      ${review.overallAssessment.strengths.length > 0
+      ? review.overallAssessment.strengths.map(s => `<li>${s}</li>`).join('')
+      : '<li>继续保持！</li>'}
     </ul>
   `;
 
   // 缺点
   const weaknessesCard = document.createElement('div');
   weaknessesCard.style.cssText = `
-    background: #ffebee;
-    border-radius: 12px;
-    padding: 16px;
+    background: rgba(232, 78, 78, 0.15);
+    border-radius: var(--r-lg);
+    padding: var(--sp-4);
   `;
   weaknessesCard.innerHTML = `
-    <div style="font-weight: 600; color: #c62828; margin-bottom: 12px;">⚠️ 需要改进的方面</div>
-    <ul style="margin: 0; padding-left: 20px; color: #333; line-height: 1.8;">
-      ${review.overallAssessment.weaknesses.length > 0 
-        ? review.overallAssessment.weaknesses.map(w => `<li>${w}</li>`).join('')
-        : '<li>表现不错！</li>'}
+    <div style="font-weight: 600; color: var(--c-danger); margin-bottom: 12px;">⚠️ 需要改进的方面</div>
+    <ul style="margin: 0; padding-left: 20px; color: var(--text-primary); line-height: 1.8;">
+      ${review.overallAssessment.weaknesses.length > 0
+      ? review.overallAssessment.weaknesses.map(w => `<li>${w}</li>`).join('')
+      : '<li>表现不错！</li>'}
     </ul>
   `;
 
@@ -273,13 +264,14 @@ function renderReviewContent(
   // 关键时刻分析
   if (review.keyMoments && review.keyMoments.length > 0) {
     const momentsSection = document.createElement('div');
-    momentsSection.style.marginBottom = '24px';
+    momentsSection.style.marginBottom = 'var(--sp-6)';
 
     const momentsTitle = document.createElement('div');
     momentsTitle.style.cssText = `
-      font-weight: 600;
-      font-size: 16px;
-      margin-bottom: 16px;
+      font-weight: var(--fw-semibold);
+      font-size: var(--fs-lg);
+      color: var(--text-primary);
+      margin-bottom: var(--sp-4);
     `;
     momentsTitle.textContent = '🎯 关键时刻分析';
     momentsSection.appendChild(momentsTitle);
@@ -294,13 +286,13 @@ function renderReviewContent(
   // 改进建议
   const improvementsSection = document.createElement('div');
   improvementsSection.style.cssText = `
-    background: #fff3e0;
-    border-radius: 12px;
-    padding: 20px;
+    background: rgba(212, 168, 67, 0.15);
+    border-radius: var(--r-lg);
+    padding: var(--sp-5);
   `;
   improvementsSection.innerHTML = `
-    <div style="font-weight: 600; color: #e65100; margin-bottom: 12px;">💡 改进建议</div>
-    <ol style="margin: 0; padding-left: 24px; color: #333; line-height: 2;">
+    <div style="font-weight: 600; color: var(--c-accent); margin-bottom: 12px;">💡 改进建议</div>
+    <ol style="margin: 0; padding-left: 24px; color: var(--text-primary); line-height: 2;">
       ${review.improvements.map(i => `<li>${i}</li>`).join('')}
     </ol>
   `;
@@ -309,12 +301,12 @@ function renderReviewContent(
   // 技能雷达图（简化文字版）
   const skillsSection = document.createElement('div');
   skillsSection.style.cssText = `
-    margin-top: 24px;
-    background: #f5f5f5;
-    border-radius: 12px;
-    padding: 20px;
+    margin-top: var(--sp-6);
+    background: var(--bg-hover);
+    border-radius: var(--r-lg);
+    padding: var(--sp-5);
   `;
-  
+
   const skills = review.statistics;
   skillsSection.innerHTML = `
     <div style="font-weight: 600; margin-bottom: 16px;">📊 技能评估</div>
@@ -333,11 +325,11 @@ function renderReviewContent(
 function renderKeyMoment(moment: KeyMoment): HTMLElement {
   const card = document.createElement('div');
   card.style.cssText = `
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #eee;
-    padding: 16px;
-    margin-bottom: 12px;
+    background: var(--bg-surface);
+    border-radius: var(--r-md);
+    border: 1px solid var(--border-subtle);
+    padding: var(--sp-4);
+    margin-bottom: var(--sp-3);
   `;
 
   const impactColors: Record<string, string> = {
@@ -354,7 +346,7 @@ function renderKeyMoment(moment: KeyMoment): HTMLElement {
 
   card.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-      <span style="font-weight: 600;">第 ${moment.turn} 轮</span>
+      <span style="font-weight: 600; color: var(--text-primary);">第 ${moment.turn} 轮</span>
       <span style="
         background: ${impactColors[moment.impact]}20;
         color: ${impactColors[moment.impact]};
@@ -364,15 +356,15 @@ function renderKeyMoment(moment: KeyMoment): HTMLElement {
         font-weight: 600;
       ">${impactLabels[moment.impact]}</span>
     </div>
-    <div style="font-size: 13px; color: #666; margin-bottom: 8px;">${moment.situation}</div>
-    <div style="display: flex; gap: 16px; font-size: 13px; margin-bottom: 8px;">
+    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">${moment.situation}</div>
+    <div style="display: flex; gap: 16px; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">
       <div><strong>你的操作:</strong> ${moment.playerAction}</div>
-      <div><strong>建议操作:</strong> <span style="color: #4caf50;">${moment.optimalAction}</span></div>
+      <div><strong>建议操作:</strong> <span style="color: var(--c-success);">${moment.optimalAction}</span></div>
     </div>
-    <div style="background: #f5f5f5; border-radius: 4px; padding: 8px; font-size: 13px;">
+    <div style="background: var(--bg-hover); border-radius: 4px; padding: 8px; font-size: 13px; color: var(--text-primary);">
       ${moment.analysis}
     </div>
-    <div style="margin-top: 8px; font-size: 12px; color: #1976d2;">
+    <div style="margin-top: 8px; font-size: 12px; color: var(--c-primary-light);">
       📝 ${moment.lesson}
     </div>
   `;
@@ -385,16 +377,16 @@ function renderKeyMoment(moment: KeyMoment): HTMLElement {
  */
 function renderSkillBar(name: string, value: number): string {
   const percentage = Math.round(value * 100);
-  const color = percentage >= 70 ? '#4caf50' : percentage >= 40 ? '#ff9800' : '#f44336';
-  
+  const color = percentage >= 70 ? 'var(--c-success)' : percentage >= 40 ? 'var(--c-accent)' : 'var(--c-danger)';
+
   return `
     <div>
-      <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+      <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">
         <span>${name}</span>
         <span style="font-weight: 600;">${percentage}%</span>
       </div>
-      <div style="height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden;">
-        <div style="width: ${percentage}%; height: 100%; background: ${color};"></div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: ${percentage}%; background: ${color};"></div>
       </div>
     </div>
   `;

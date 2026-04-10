@@ -14,39 +14,30 @@ export function renderPlayerPanel(
   missingSuit?: 'W' | 'B' | 'T'
 ): HTMLElement {
   const panel = document.createElement('div');
-  panel.className = 'player-panel';
-  panel.style.border = isCurrent ? '2px solid #4a90e2' : '1px solid #ccc';
-  panel.style.padding = '8px';
-  panel.style.borderRadius = '4px';
-  panel.style.backgroundColor = isCurrent ? '#f0f8ff' : '#fff';
+  panel.className = `player-panel${isCurrent ? ' player-panel--active' : ''}`;
 
   const header = document.createElement('div');
   header.style.fontWeight = '600';
   header.style.marginBottom = '4px';
+  header.style.color = 'var(--text-primary)';
   header.textContent = `${playerId}${isCurrent ? ' ⬅' : ''}`;
 
   const t = languageStore.t().game;
-  
+
   const handInfo = document.createElement('div');
-  handInfo.style.fontSize = '12px';
-  handInfo.style.color = '#666';
+  handInfo.style.fontSize = 'var(--fs-xs)';
+  handInfo.style.color = 'var(--text-muted)';
   handInfo.textContent = `${t.hand}: ${handCount} ${t.tiles}`;
-  
-  // 显示缺门信息
+
+  // Missing suit badge
   if (missingSuit) {
     const missingSuitInfo = document.createElement('div');
-    missingSuitInfo.style.fontSize = '12px';
-    missingSuitInfo.style.fontWeight = '600';
+    missingSuitInfo.className = 'badge badge-gold';
     missingSuitInfo.style.marginTop = '4px';
-    missingSuitInfo.style.padding = '4px 8px';
-    missingSuitInfo.style.backgroundColor = '#fff3cd';
-    missingSuitInfo.style.border = '1px solid #ffc107';
-    missingSuitInfo.style.borderRadius = '3px';
-    missingSuitInfo.style.color = '#856404';
-    
+
     const suitName = missingSuit === 'W' ? t.wan : missingSuit === 'B' ? t.tiao : t.bing;
     missingSuitInfo.textContent = suitName;
-    
+
     panel.appendChild(header);
     panel.appendChild(handInfo);
     panel.appendChild(missingSuitInfo);
@@ -58,49 +49,36 @@ export function renderPlayerPanel(
   // 显示碰杠信息
   if (melds.length > 0) {
     const meldsSection = document.createElement('div');
-    meldsSection.style.fontSize = '12px';
+    meldsSection.style.fontSize = 'var(--fs-xs)';
     meldsSection.style.marginTop = '6px';
-    meldsSection.style.color = '#333';
-    
+    meldsSection.style.color = 'var(--text-secondary)';
+
     const isZh = languageStore.getLanguage() === 'zh';
-    
+
     for (const meld of melds) {
       const meldDiv = document.createElement('div');
       meldDiv.style.marginBottom = '4px';
       meldDiv.style.padding = '2px 4px';
-      meldDiv.style.backgroundColor = '#e8f4f8';
-      meldDiv.style.borderRadius = '3px';
+      meldDiv.style.backgroundColor = 'var(--bg-hover)';
+      meldDiv.style.borderRadius = 'var(--r-sm)';
       meldDiv.style.display = 'inline-flex';
       meldDiv.style.alignItems = 'center';
       meldDiv.style.gap = '1px';
       meldDiv.style.marginRight = '4px';
-      
+
       const tileCount = meld.type === 'GANG' ? 4 : 3;
-      
+
       if (isZh) {
         // 中文模式：显示麻将牌图像
         for (let i = 0; i < tileCount; i++) {
-          const tileEl = renderTile(meld.tile);
-          tileEl.style.width = '20px';
-          tileEl.style.height = '28px';
-          tileEl.style.padding = '1px';
-          tileEl.style.border = 'none';
-          tileEl.style.backgroundColor = 'transparent';
-          
-          const img = tileEl.querySelector('img');
-          if (img) {
-            img.style.width = '18px';
-            img.style.height = '26px';
-            img.style.objectFit = 'contain';
-          }
-          
+          const tileEl = renderTile(meld.tile, 'sm');
           meldDiv.appendChild(tileEl);
         }
       } else {
         // 英文模式：显示文本
         let meldText = '';
         const tileStr = `${meld.tile.suit}${meld.tile.rank}`;
-        
+
         if (meld.type === 'PENG') {
           meldText = `Pong ${tileStr}×3`;
         } else if (meld.type === 'GANG') {
@@ -117,13 +95,13 @@ export function renderPlayerPanel(
         } else if (meld.type === 'CHI') {
           meldText = `Chow ${tileStr}`;
         }
-        
+
         meldDiv.textContent = meldText;
       }
-      
+
       meldsSection.appendChild(meldDiv);
     }
-    
+
     panel.appendChild(meldsSection);
   }
 

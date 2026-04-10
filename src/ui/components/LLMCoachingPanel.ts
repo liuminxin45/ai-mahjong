@@ -41,12 +41,11 @@ export function renderLLMCoachingPanel(
     right: 20px;
     width: 320px;
     max-height: 400px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    background: var(--bg-surface);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-lg);
     overflow: hidden;
     z-index: 1000;
-    font-family: system-ui, -apple-system, sans-serif;
   `;
 
   // 头部
@@ -55,8 +54,8 @@ export function renderLLMCoachingPanel(
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: var(--sp-3) var(--sp-4);
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
     color: white;
   `;
 
@@ -72,7 +71,7 @@ export function renderLLMCoachingPanel(
     font-size: 12px;
     cursor: pointer;
   `;
-  
+
   const levels: GuidanceLevel[] = ['beginner', 'learning', 'practicing', 'advanced'];
   for (const level of levels) {
     const option = document.createElement('option');
@@ -81,7 +80,7 @@ export function renderLLMCoachingPanel(
     option.selected = level === guidanceLevel;
     levelSelect.appendChild(option);
   }
-  
+
   levelSelect.onchange = () => {
     guidanceLevel = levelSelect.value as GuidanceLevel;
     currentAdvice = null;
@@ -94,14 +93,14 @@ export function renderLLMCoachingPanel(
   // 内容区域
   const content = document.createElement('div');
   content.style.cssText = `
-    padding: 16px;
+    padding: var(--sp-4);
     max-height: 300px;
     overflow-y: auto;
   `;
 
   if (isLoading) {
     content.innerHTML = `
-      <div style="text-align: center; padding: 20px; color: #666;">
+      <div style="text-align: center; padding: 20px; color: var(--text-muted);">
         <div style="font-size: 24px; margin-bottom: 8px;">🔄</div>
         <div>正在分析局面...</div>
       </div>
@@ -109,21 +108,21 @@ export function renderLLMCoachingPanel(
   } else if (currentAdvice) {
     // 显示建议
     const adviceSection = document.createElement('div');
-    
+
     // 推荐动作
     const recommendation = document.createElement('div');
     recommendation.style.cssText = `
-      background: #e8f5e9;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 12px;
+      background: rgba(59, 166, 118, 0.15);
+      border-radius: var(--r-md);
+      padding: var(--sp-3);
+      margin-bottom: var(--sp-3);
     `;
     recommendation.innerHTML = `
-      <div style="font-size: 12px; color: #666; margin-bottom: 4px;">推荐操作</div>
-      <div style="font-size: 18px; font-weight: 600; color: #2e7d32;">
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">推荐操作</div>
+      <div style="font-size: 18px; font-weight: 600; color: var(--c-success);">
         ${formatAction(currentAdvice.recommendedAction)}
       </div>
-      <div style="font-size: 12px; color: #666; margin-top: 4px;">
+      <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
         置信度: ${(currentAdvice.confidence * 100).toFixed(0)}%
       </div>
     `;
@@ -132,10 +131,10 @@ export function renderLLMCoachingPanel(
     // 推理过程
     const reasoning = document.createElement('div');
     reasoning.style.cssText = `
-      font-size: 13px;
+      font-size: var(--fs-sm);
       line-height: 1.5;
-      color: #333;
-      margin-bottom: 12px;
+      color: var(--text-secondary);
+      margin-bottom: var(--sp-3);
     `;
     reasoning.textContent = currentAdvice.reasoning;
     adviceSection.appendChild(reasoning);
@@ -162,8 +161,8 @@ export function renderLLMCoachingPanel(
         padding: 2px 8px;
         border-radius: 4px;
         font-weight: 600;
-      ">${currentAdvice.riskAssessment.dealInRisk === 'low' ? '低' : 
-         currentAdvice.riskAssessment.dealInRisk === 'medium' ? '中' : '高'}</span>
+      ">${currentAdvice.riskAssessment.dealInRisk === 'low' ? '低' :
+        currentAdvice.riskAssessment.dealInRisk === 'medium' ? '中' : '高'}</span>
     `;
     adviceSection.appendChild(risk);
 
@@ -171,10 +170,11 @@ export function renderLLMCoachingPanel(
     if (currentAdvice.strategicHints.length > 0) {
       const hints = document.createElement('div');
       hints.style.cssText = `
-        background: #fff3e0;
-        border-radius: 8px;
-        padding: 12px;
-        font-size: 12px;
+        background: rgba(212, 168, 67, 0.15);
+        border-radius: var(--r-md);
+        padding: var(--sp-3);
+        font-size: var(--fs-xs);
+        color: var(--text-secondary);
       `;
       hints.innerHTML = `
         <div style="font-weight: 600; margin-bottom: 8px;">💡 策略提示</div>
@@ -191,12 +191,12 @@ export function renderLLMCoachingPanel(
     const requestBtn = document.createElement('button');
     requestBtn.style.cssText = `
       width: 100%;
-      padding: 16px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: var(--sp-4);
+      background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
       color: white;
       border: none;
-      border-radius: 8px;
-      font-size: 14px;
+      border-radius: var(--r-md);
+      font-size: var(--fs-sm);
       font-weight: 600;
       cursor: pointer;
       transition: transform 0.2s;
@@ -207,7 +207,7 @@ export function renderLLMCoachingPanel(
     requestBtn.onclick = async () => {
       isLoading = true;
       updatePanel();
-      
+
       try {
         currentAdvice = await llmService.getCoachingAdvice(
           state, 'P0', legalActions, guidanceLevel
@@ -215,7 +215,7 @@ export function renderLLMCoachingPanel(
       } catch (e) {
         console.error('[LLM] Failed to get advice:', e);
       }
-      
+
       isLoading = false;
       updatePanel();
       onRequestAdvice?.();
@@ -260,7 +260,7 @@ function formatAction(action: Action): string {
       return `打 ${tile.rank}${suitName}`;
     }
   }
-  
+
   const actionNames: Record<string, string> = {
     PASS: '过',
     PENG: '碰',
@@ -268,7 +268,7 @@ function formatAction(action: Action): string {
     HU: '胡',
     DRAW: '摸牌',
   };
-  
+
   return actionNames[action.type] || action.type;
 }
 

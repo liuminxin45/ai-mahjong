@@ -58,12 +58,12 @@ function mountRouter(root: HTMLElement): void {
   };
 
   window.addEventListener('hashchange', render);
-  
+
   // 监听语言变化，自动重新渲染
   languageStore.subscribe(() => {
     render();
   });
-  
+
   render();
 }
 
@@ -71,8 +71,5 @@ const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) {
   throw new Error('Missing #app');
 }
-
-app.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-app.style.padding = '16px';
 
 mountRouter(app);

@@ -17,25 +17,48 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   };
 
   const t = languageStore.t();
-  
-  const title = document.createElement('h2');
-  title.textContent = t.game.phasePlaying;
 
+  // --- Page container ---
+  const page = document.createElement('div');
+  page.style.cssText = `
+    display: flex; flex-direction: column; height: 100dvh;
+    overflow: hidden; background: var(--bg-base);
+  `;
+
+  // --- Header bar ---
   const header = document.createElement('div');
-  header.style.display = 'flex';
-  header.style.justifyContent = 'space-between';
-  header.style.alignItems = 'center';
-  header.style.marginBottom = '12px';
+  header.style.cssText = `
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-2) var(--sp-4); min-height: 48px;
+    background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0; gap: var(--sp-2);
+  `;
 
-  const controls = document.createElement('div');
-  controls.style.display = 'flex';
-  controls.style.gap = '8px';
+  // Left: back + title
+  const headerLeft = document.createElement('div');
+  headerLeft.style.cssText = 'display: flex; align-items: center; gap: var(--sp-3);';
 
   const back = document.createElement('button');
-  back.textContent = t.common.back;
+  back.className = 'btn btn-ghost btn-sm';
+  back.textContent = '← ' + t.common.back;
   back.onclick = () => ctx.navigate('#/');
 
+  const title = document.createElement('div');
+  title.style.cssText = `
+    font-size: var(--fs-base); font-weight: var(--fw-semibold);
+    color: var(--text-primary);
+  `;
+  title.textContent = t.game.phasePlaying;
+
+  headerLeft.appendChild(back);
+  headerLeft.appendChild(title);
+
+  // Right: controls
+  const controls = document.createElement('div');
+  controls.style.cssText = 'display: flex; align-items: center; gap: var(--sp-2);';
+
   const exportBtn = document.createElement('button');
+  exportBtn.className = 'btn btn-ghost btn-sm';
   exportBtn.textContent = t.game.copyLog;
   exportBtn.onclick = () => {
     ctx.orchestrator.exportReplay();
@@ -43,56 +66,50 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   };
 
   const stopBtn = document.createElement('button');
+  stopBtn.className = 'btn btn-ghost btn-sm';
   stopBtn.textContent = t.common.close;
   stopBtn.onclick = () => ctx.orchestrator.stop();
 
   const switchBtn = document.createElement('button');
-  switchBtn.style.marginLeft = '16px';
-  switchBtn.style.padding = '6px 12px';
-  switchBtn.style.backgroundColor = '#4a90e2';
-  switchBtn.style.color = 'white';
-  switchBtn.style.border = 'none';
-  switchBtn.style.borderRadius = '4px';
-  switchBtn.style.cursor = 'pointer';
+  switchBtn.className = 'btn btn-ghost btn-sm';
 
-  // AI参数按钮
+  // AI params button
   const aiParamsBtn = renderAIParamsButton();
-  
-  // LLM功能按钮组（仅在真人模式下显示）
+
+  // LLM buttons (human mode only)
   const llmBtnGroup = document.createElement('div');
-  llmBtnGroup.style.display = 'flex';
-  llmBtnGroup.style.gap = '6px';
-  llmBtnGroup.style.marginLeft = '8px';
-  
+  llmBtnGroup.style.cssText = 'display: flex; gap: var(--sp-1);';
+
   if (!ctx.settingsStore.p0IsAI) {
     llmBtnGroup.appendChild(renderProfileButton());
     llmBtnGroup.appendChild(renderHistoryButton());
     llmBtnGroup.appendChild(renderLLMSettingsButton());
   }
-  
-  controls.appendChild(back);
+
   controls.appendChild(exportBtn);
   controls.appendChild(stopBtn);
   controls.appendChild(aiParamsBtn);
   controls.appendChild(llmBtnGroup);
   controls.appendChild(switchBtn);
 
-  header.appendChild(title);
+  header.appendChild(headerLeft);
   header.appendChild(controls);
 
-  root.appendChild(header);
-  root.appendChild(document.createElement('hr'));
-
+  // --- Content area ---
   const contentArea = document.createElement('div');
-  root.appendChild(contentArea);
-  
-  // 添加AI参数面板到页面
+  contentArea.style.cssText = 'flex: 1; overflow: hidden; min-height: 0;';
+
+  page.appendChild(header);
+  page.appendChild(contentArea);
+  root.appendChild(page);
+
+  // AI params panel
   const aiPanel = renderAIParamsPanel();
   root.appendChild(aiPanel);
 
   const render = () => {
     const currentMode = ctx.settingsStore.uiMode;
-    switchBtn.textContent = currentMode === 'DEBUG' ? `${t.settings.uiModeTable}` : `${t.settings.uiModeDebug}`;
+    switchBtn.textContent = currentMode === 'DEBUG' ? t.settings.uiModeTable : t.settings.uiModeDebug;
     switchBtn.onclick = () => {
       const newMode = currentMode === 'DEBUG' ? 'TABLE' : 'DEBUG';
       ctx.settingsStore.setUiMode(newMode);

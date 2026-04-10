@@ -4,25 +4,56 @@ import { languageStore } from '../../store/languageStore';
 
 export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   root.innerHTML = '';
-  
+
   const t = languageStore.t().settings;
   const tCommon = languageStore.t().common;
 
+  const container = document.createElement('div');
+  container.className = 'animate-fadeIn';
+  container.style.cssText = 'max-width:700px; margin:0 auto; padding:var(--sp-6);';
+
+  // Title
   const title = document.createElement('h2');
+  title.style.cssText = 'color:var(--c-accent); margin-bottom:var(--sp-6);';
   title.textContent = t.title;
 
-  const difficultyLabel = document.createElement('label');
-  difficultyLabel.textContent = t.aiDifficulty;
+  // Helper for form rows
+  const makeRow = (label: string, control: HTMLElement, description?: string): HTMLElement => {
+    const row = document.createElement('div');
+    row.className = 'form-row';
+    const lbl = document.createElement('label');
+    lbl.className = 'form-label';
+    lbl.textContent = label;
+    row.appendChild(lbl);
+    row.appendChild(control);
+    if (description) {
+      const desc = document.createElement('div');
+      desc.style.cssText = 'font-size:var(--fs-xs); color:var(--text-muted); margin-top:2px;';
+      desc.textContent = description;
+      row.appendChild(desc);
+    }
+    return row;
+  };
 
+  // --- Game Settings Card ---
+  const gameCard = document.createElement('div');
+  gameCard.className = 'card';
+  gameCard.style.marginBottom = 'var(--sp-4)';
+
+  const gameCardTitle = document.createElement('h3');
+  gameCardTitle.style.cssText = 'color:var(--text-primary); margin-bottom:var(--sp-3);';
+  gameCardTitle.textContent = '⚙️ ' + (t.title || 'Game Settings');
+  gameCard.appendChild(gameCardTitle);
+
+  // AI Difficulty
   const difficultyValue = document.createElement('span');
+  difficultyValue.style.cssText = 'font-weight:var(--fw-semibold); color:var(--c-success);';
   difficultyValue.textContent = t.aiDifficultyValue;
-  difficultyValue.style.fontWeight = '600';
-  difficultyValue.style.color = '#5cb85c';
+  gameCard.appendChild(makeRow(t.aiDifficulty, difficultyValue));
 
-  const ruleLabel = document.createElement('label');
-  ruleLabel.textContent = t.rule;
-
+  // Rule selection
   const rule = document.createElement('select');
+  rule.className = 'form-select';
   const ruleOptions: RuleId[] = ['placeholder', 'chengdu'];
   for (const r of ruleOptions) {
     const opt = document.createElement('option');
@@ -32,20 +63,11 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
     rule.appendChild(opt);
   }
   rule.onchange = () => ctx.settingsStore.setRuleId(rule.value as RuleId);
+  gameCard.appendChild(makeRow(t.rule, rule));
 
-  const analysisLabel = document.createElement('label');
-  analysisLabel.textContent = t.analysisEnabled;
-
-  const analysis = document.createElement('input');
-  analysis.type = 'checkbox';
-  analysis.checked = ctx.settingsStore.analysisEnabled;
-  analysis.onchange = () => ctx.settingsStore.setAnalysisEnabled(analysis.checked);
-
-
-  const uiModeLabel = document.createElement('label');
-  uiModeLabel.textContent = t.uiMode;
-
+  // UI Mode
   const uiMode = document.createElement('select');
+  uiMode.className = 'form-select';
   const uiModeOptions: UiMode[] = ['DEBUG', 'TABLE'];
   for (const mode of uiModeOptions) {
     const opt = document.createElement('option');
@@ -55,12 +77,11 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
     uiMode.appendChild(opt);
   }
   uiMode.onchange = () => ctx.settingsStore.setUiMode(uiMode.value as UiMode);
+  gameCard.appendChild(makeRow(t.uiMode, uiMode));
 
-  // 语言切换
-  const languageLabel = document.createElement('label');
-  languageLabel.textContent = t.language;
-
+  // Language
   const language = document.createElement('select');
+  language.className = 'form-select';
   const langOptions = [
     { value: 'zh', label: t.languageChinese },
     { value: 'en', label: t.languageEnglish },
@@ -74,240 +95,142 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   }
   language.onchange = () => {
     languageStore.setLanguage(language.value as 'zh' | 'en');
-    renderSettings(root, ctx); // 重新渲染以应用新语言
+    renderSettings(root, ctx);
   };
+  gameCard.appendChild(makeRow(t.language, language));
 
-  const back = document.createElement('button');
-  back.textContent = tCommon.back;
-  back.onclick = () => {
-    ctx.navigate('#/');
-  };
+  // Analysis toggle
+  const analysis = document.createElement('input');
+  analysis.className = 'form-checkbox';
+  analysis.type = 'checkbox';
+  analysis.checked = ctx.settingsStore.analysisEnabled;
+  analysis.onchange = () => ctx.settingsStore.setAnalysisEnabled(analysis.checked);
+  gameCard.appendChild(makeRow(t.analysisEnabled, analysis));
 
-  const row1 = document.createElement('div');
-  row1.style.display = 'flex';
-  row1.style.gap = '8px';
-  row1.style.alignItems = 'center';
-  row1.appendChild(difficultyLabel);
-  row1.appendChild(difficultyValue);
-
-  const rowRule = document.createElement('div');
-  rowRule.style.display = 'flex';
-  rowRule.style.gap = '8px';
-  rowRule.style.alignItems = 'center';
-  rowRule.appendChild(ruleLabel);
-  rowRule.appendChild(rule);
-
-  const row2 = document.createElement('div');
-  row2.style.display = 'flex';
-  row2.style.gap = '8px';
-  row2.style.alignItems = 'center';
-  row2.appendChild(analysisLabel);
-  row2.appendChild(analysis);
-
-
-  const rowUiMode = document.createElement('div');
-  rowUiMode.style.display = 'flex';
-  rowUiMode.style.gap = '8px';
-  rowUiMode.style.alignItems = 'center';
-  rowUiMode.appendChild(uiModeLabel);
-  rowUiMode.appendChild(uiMode);
-
-  const timeoutLabel = document.createElement('label');
-  timeoutLabel.textContent = t.timeoutEnabled;
-
+  // Timeout toggle
   const timeout = document.createElement('input');
+  timeout.className = 'form-checkbox';
   timeout.type = 'checkbox';
   timeout.checked = ctx.settingsStore.timeoutEnabled;
   timeout.onchange = () => ctx.settingsStore.setTimeoutEnabled(timeout.checked);
+  gameCard.appendChild(makeRow(t.timeoutEnabled, timeout));
 
-  const timeoutMsLabel = document.createElement('label');
-  timeoutMsLabel.textContent = t.timeoutMs;
-
+  // Timeout ms
   const timeoutMsInput = document.createElement('input');
+  timeoutMsInput.className = 'form-input';
   timeoutMsInput.type = 'number';
   timeoutMsInput.value = String(ctx.settingsStore.timeoutMs);
   timeoutMsInput.min = '1000';
   timeoutMsInput.max = '120000';
   timeoutMsInput.step = '1000';
-  timeoutMsInput.style.width = '100px';
+  timeoutMsInput.style.width = '120px';
   timeoutMsInput.onchange = () => {
     const val = parseInt(timeoutMsInput.value, 10);
     if (!isNaN(val) && val >= 1000) {
       ctx.settingsStore.setTimeoutMs(val);
     }
   };
+  gameCard.appendChild(makeRow(t.timeoutMs, timeoutMsInput));
 
-  const rowTimeout = document.createElement('div');
-  rowTimeout.style.display = 'flex';
-  rowTimeout.style.gap = '8px';
-  rowTimeout.style.alignItems = 'center';
-  rowTimeout.appendChild(timeoutLabel);
-  rowTimeout.appendChild(timeout);
-
-  const rowTimeoutMs = document.createElement('div');
-  rowTimeoutMs.style.display = 'flex';
-  rowTimeoutMs.style.gap = '8px';
-  rowTimeoutMs.style.alignItems = 'center';
-  rowTimeoutMs.appendChild(timeoutMsLabel);
-  rowTimeoutMs.appendChild(timeoutMsInput);
-
-  // P0 AI 模式开关
-  const p0AILabel = document.createElement('label');
-  p0AILabel.textContent = t.p0AIMode;
-  p0AILabel.style.fontWeight = '600';
-  p0AILabel.style.color = '#d9534f';
+  // --- P0 AI Mode Card (highlighted) ---
+  const aiCard = document.createElement('div');
+  aiCard.className = 'card';
+  aiCard.style.cssText = 'margin-bottom:var(--sp-4); border-color:var(--c-warning);';
 
   const p0AI = document.createElement('input');
+  p0AI.className = 'form-checkbox';
   p0AI.type = 'checkbox';
   p0AI.checked = ctx.settingsStore.p0IsAI;
   p0AI.onchange = () => {
     ctx.settingsStore.setP0IsAI(p0AI.checked);
-    if (p0AI.checked) {
-      alert(t.p0AIModeAlert);
-    }
+    if (p0AI.checked) alert(t.p0AIModeAlert);
   };
 
-  const rowP0AI = document.createElement('div');
-  rowP0AI.style.display = 'flex';
-  rowP0AI.style.gap = '8px';
-  rowP0AI.style.alignItems = 'center';
-  rowP0AI.style.padding = '8px';
-  rowP0AI.style.backgroundColor = '#fff3cd';
-  rowP0AI.style.border = '1px solid #ffc107';
-  rowP0AI.style.borderRadius = '4px';
-  rowP0AI.appendChild(p0AILabel);
-  rowP0AI.appendChild(p0AI);
+  const aiLabel = document.createElement('label');
+  aiLabel.className = 'form-label';
+  aiLabel.style.color = 'var(--c-warning)';
+  aiLabel.textContent = '🤖 ' + t.p0AIMode;
 
+  const aiRow = document.createElement('div');
+  aiRow.className = 'form-row';
+  aiRow.appendChild(aiLabel);
+  aiRow.appendChild(p0AI);
+  aiCard.appendChild(aiRow);
 
-  // ========== 训练控制区域 ==========
-  const trainingSection = document.createElement('div');
-  trainingSection.style.padding = '12px';
-  trainingSection.style.backgroundColor = '#e3f2fd';
-  trainingSection.style.border = '2px solid #2196f3';
-  trainingSection.style.borderRadius = '6px';
-  trainingSection.style.marginTop = '16px';
+  // --- Training Section Card ---
+  const trainingCard = document.createElement('div');
+  trainingCard.className = 'card';
+  trainingCard.style.marginBottom = 'var(--sp-4)';
 
   const trainingSectionTitle = document.createElement('h3');
-  trainingSectionTitle.textContent = t.trainingStatus;
-  trainingSectionTitle.style.marginTop = '0';
-  trainingSectionTitle.style.marginBottom = '12px';
-  trainingSectionTitle.style.color = '#1976d2';
+  trainingSectionTitle.style.cssText = 'color:var(--c-primary-light); margin-bottom:var(--sp-3);';
+  trainingSectionTitle.textContent = '🧠 ' + t.trainingStatus;
+  trainingCard.appendChild(trainingSectionTitle);
 
-  // 训练局数输入
-  const trainingGamesLabel = document.createElement('label');
-  trainingGamesLabel.textContent = t.trainingGames;
-
+  // Training games input
   const trainingGamesInput = document.createElement('input');
+  trainingGamesInput.className = 'form-input';
   trainingGamesInput.type = 'number';
   trainingGamesInput.value = '100';
   trainingGamesInput.min = '1';
   trainingGamesInput.max = '10000';
-  trainingGamesInput.style.width = '100px';
+  trainingGamesInput.style.width = '120px';
+  trainingCard.appendChild(makeRow(t.trainingGames, trainingGamesInput));
 
-  const rowTrainingGames = document.createElement('div');
-  rowTrainingGames.style.display = 'flex';
-  rowTrainingGames.style.gap = '8px';
-  rowTrainingGames.style.alignItems = 'center';
-  rowTrainingGames.style.marginBottom = '8px';
-  rowTrainingGames.appendChild(trainingGamesLabel);
-  rowTrainingGames.appendChild(trainingGamesInput);
-
-  // 阻塞模式开关
-  const blockingLabel = document.createElement('label');
-  blockingLabel.textContent = t.trainingBlocking;
-
+  // Blocking mode
   const blockingCheckbox = document.createElement('input');
+  blockingCheckbox.className = 'form-checkbox';
   blockingCheckbox.type = 'checkbox';
   blockingCheckbox.checked = false;
+  trainingCard.appendChild(makeRow(t.trainingBlocking, blockingCheckbox));
 
-  const rowBlocking = document.createElement('div');
-  rowBlocking.style.display = 'flex';
-  rowBlocking.style.gap = '8px';
-  rowBlocking.style.alignItems = 'center';
-  rowBlocking.style.marginBottom = '8px';
-  rowBlocking.appendChild(blockingLabel);
-  rowBlocking.appendChild(blockingCheckbox);
-
-  // 详细日志开关
-  const verboseLabel = document.createElement('label');
-  verboseLabel.textContent = t.trainingVerbose;
-
+  // Verbose mode
   const verboseCheckbox = document.createElement('input');
+  verboseCheckbox.className = 'form-checkbox';
   verboseCheckbox.type = 'checkbox';
   verboseCheckbox.checked = false;
+  trainingCard.appendChild(makeRow(t.trainingVerbose, verboseCheckbox));
 
-  const rowVerbose = document.createElement('div');
-  rowVerbose.style.display = 'flex';
-  rowVerbose.style.gap = '8px';
-  rowVerbose.style.alignItems = 'center';
-  rowVerbose.style.marginBottom = '12px';
-  rowVerbose.appendChild(verboseLabel);
-  rowVerbose.appendChild(verboseCheckbox);
-
-  // 训练进度显示
+  // Progress area (hidden by default)
   const progressDiv = document.createElement('div');
-  progressDiv.style.marginBottom = '12px';
-  progressDiv.style.padding = '8px';
-  progressDiv.style.backgroundColor = 'white';
-  progressDiv.style.borderRadius = '4px';
-  progressDiv.style.display = 'none'; // 默认隐藏
+  progressDiv.style.cssText = 'margin:var(--sp-3) 0; display:none;';
 
   const progressText = document.createElement('div');
+  progressText.style.cssText = 'margin-bottom:var(--sp-1); color:var(--text-secondary); font-size:var(--fs-sm);';
   progressText.textContent = `${t.trainingProgress}: 0/0`;
-  progressText.style.marginBottom = '4px';
 
   const progressBar = document.createElement('div');
-  progressBar.style.width = '100%';
-  progressBar.style.height = '20px';
-  progressBar.style.backgroundColor = '#e0e0e0';
-  progressBar.style.borderRadius = '10px';
-  progressBar.style.overflow = 'hidden';
+  progressBar.className = 'progress-track';
 
   const progressBarFill = document.createElement('div');
+  progressBarFill.className = 'progress-fill';
   progressBarFill.style.width = '0%';
-  progressBarFill.style.height = '100%';
-  progressBarFill.style.backgroundColor = '#4caf50';
-  progressBarFill.style.transition = 'width 0.3s';
 
   progressBar.appendChild(progressBarFill);
   progressDiv.appendChild(progressText);
   progressDiv.appendChild(progressBar);
+  trainingCard.appendChild(progressDiv);
 
-  // 训练统计显示
+  // Stats area (hidden by default)
   const statsDiv = document.createElement('div');
-  statsDiv.style.fontSize = '12px';
-  statsDiv.style.color = '#666';
-  statsDiv.style.marginBottom = '12px';
-  statsDiv.style.display = 'none'; // 默认隐藏
+  statsDiv.style.cssText = 'font-size:var(--fs-xs); color:var(--text-muted); margin-bottom:var(--sp-3); display:none;';
   statsDiv.innerHTML = `
     <div>${t.trainingBestFitness}: <span id="bestFitness">-</span></div>
     <div>${t.trainingCurrentFitness}: <span id="currentFitness">-</span></div>
     <div>${t.trainingAcceptRate}: <span id="acceptRate">-</span></div>
   `;
+  trainingCard.appendChild(statsDiv);
 
-  // 开始/停止训练按钮
+  // Training buttons
   const startButton = document.createElement('button');
+  startButton.className = 'btn btn-success';
   startButton.textContent = t.startTraining;
-  startButton.style.padding = '8px 16px';
-  startButton.style.backgroundColor = '#4caf50';
-  startButton.style.color = 'white';
-  startButton.style.border = 'none';
-  startButton.style.borderRadius = '4px';
-  startButton.style.cursor = 'pointer';
-  startButton.style.fontWeight = '600';
 
   const stopButton = document.createElement('button');
+  stopButton.className = 'btn btn-danger';
   stopButton.textContent = t.stopTraining;
-  stopButton.style.padding = '8px 16px';
-  stopButton.style.backgroundColor = '#f44336';
-  stopButton.style.color = 'white';
-  stopButton.style.border = 'none';
-  stopButton.style.borderRadius = '4px';
-  stopButton.style.cursor = 'pointer';
-  stopButton.style.fontWeight = '600';
-  stopButton.style.display = 'none'; // 默认隐藏
+  stopButton.style.display = 'none';
 
-  // 训练控制逻辑
   let trainingInterval: any = null;
 
   startButton.onclick = async () => {
@@ -317,22 +240,18 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
       return;
     }
 
-    // 显示进度
     progressDiv.style.display = 'block';
     statsDiv.style.display = 'block';
     startButton.style.display = 'none';
     stopButton.style.display = 'inline-block';
 
-    // 动态导入训练模块
     const { AutoTrainer } = await import('../../training/autoRun');
     const { setAIParams } = await import('../../agents/algo/aiParams');
     const { loadParams } = await import('../../training/paramPersistence');
 
-    // 加载参数
     const paramsFile = loadParams();
     setAIParams(paramsFile.params);
 
-    // 创建训练器
     const trainer = new AutoTrainer(
       ctx.orchestrator,
       {
@@ -345,13 +264,10 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
         verbose: verboseCheckbox.checked,
       },
       (log) => {
-        if (verboseCheckbox.checked) {
-          console.log('[Training]', log);
-        }
+        if (verboseCheckbox.checked) console.log('[Training]', log);
       }
     );
 
-    // 更新进度
     trainingInterval = setInterval(() => {
       const progress = trainer.getProgress();
       if (progress.isRunning) {
@@ -374,7 +290,6 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
       }
     }, 500);
 
-    // 开始训练
     trainer.start().catch((err) => {
       console.error('Training error:', err);
       clearInterval(trainingInterval);
@@ -385,54 +300,30 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   };
 
   stopButton.onclick = () => {
-    if (trainingInterval) {
-      clearInterval(trainingInterval);
-    }
+    if (trainingInterval) clearInterval(trainingInterval);
     startButton.style.display = 'inline-block';
     stopButton.style.display = 'none';
     alert('Training stopped');
   };
 
   const buttonRow = document.createElement('div');
-  buttonRow.style.display = 'flex';
-  buttonRow.style.gap = '8px';
+  buttonRow.style.cssText = 'display:flex; gap:var(--sp-2);';
   buttonRow.appendChild(startButton);
   buttonRow.appendChild(stopButton);
+  trainingCard.appendChild(buttonRow);
 
-  trainingSection.appendChild(trainingSectionTitle);
-  trainingSection.appendChild(rowTrainingGames);
-  trainingSection.appendChild(rowBlocking);
-  trainingSection.appendChild(rowVerbose);
-  trainingSection.appendChild(progressDiv);
-  trainingSection.appendChild(statsDiv);
-  trainingSection.appendChild(buttonRow);
+  // Back button
+  const back = document.createElement('button');
+  back.className = 'btn btn-ghost btn-lg';
+  back.style.marginTop = 'var(--sp-4)';
+  back.textContent = tCommon.back;
+  back.onclick = () => ctx.navigate('#/');
 
-  // 语言选择行
-  const rowLanguage = document.createElement('div');
-  rowLanguage.style.display = 'flex';
-  rowLanguage.style.gap = '8px';
-  rowLanguage.style.alignItems = 'center';
-  rowLanguage.appendChild(languageLabel);
-  rowLanguage.appendChild(language);
-
-  root.appendChild(title);
-  root.appendChild(row1);
-  root.appendChild(rowRule);
-  row1.style.marginBottom = '8px';
-  rowRule.style.marginBottom = '8px';
-  row2.style.marginBottom = '8px';
-  rowUiMode.style.marginBottom = '8px';
-  rowLanguage.style.marginBottom = '8px';
-  rowTimeout.style.marginBottom = '8px';
-  rowTimeoutMs.style.marginBottom = '16px';
-  root.appendChild(row2);
-  root.appendChild(rowUiMode);
-  root.appendChild(rowLanguage);
-  root.appendChild(rowTimeout);
-  root.appendChild(rowTimeoutMs);
-  rowP0AI.style.marginBottom = '16px';
-  root.appendChild(rowP0AI);
-  root.appendChild(trainingSection);
-  trainingSection.style.marginBottom = '16px';
-  root.appendChild(back);
+  // Assemble
+  container.appendChild(title);
+  container.appendChild(gameCard);
+  container.appendChild(aiCard);
+  container.appendChild(trainingCard);
+  container.appendChild(back);
+  root.appendChild(container);
 }

@@ -19,14 +19,18 @@ export function renderEventLine(ev: GameEvent): string {
 
 export function renderEventLog(events: GameEvent[]): HTMLElement {
   const wrap = document.createElement('div');
-  wrap.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, monospace';
-  wrap.style.fontSize = '12px';
-  wrap.style.whiteSpace = 'pre-wrap';
-  wrap.style.border = '1px solid #eee';
-  wrap.style.borderRadius = '8px';
-  wrap.style.padding = '8px';
-  wrap.style.maxHeight = '240px';
-  wrap.style.overflow = 'auto';
+  wrap.style.cssText = `
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--fs-xs);
+    white-space: pre-wrap;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: var(--sp-2);
+    max-height: 240px;
+    overflow: auto;
+    background: var(--bg-base);
+    color: var(--text-secondary);
+  `;
 
   const lines = events.slice(-20).map(renderEventLine);
   wrap.textContent = lines.join('\n');

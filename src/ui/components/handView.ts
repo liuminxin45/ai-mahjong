@@ -8,28 +8,26 @@ export function renderHand(
   missingSuit?: 'W' | 'B' | 'T',
 ): HTMLElement {
   const wrap = document.createElement('div');
-  wrap.style.display = 'flex';
-  wrap.style.flexWrap = 'wrap';
-  wrap.style.gap = '6px';
+  wrap.style.cssText = `
+    display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-end;
+    padding: var(--sp-2) 0;
+  `;
 
-  // 自动排序手牌，定缺牌放右边
   const sortedHand = sortTilesWithMissingSuit(hand, missingSuit);
 
   for (const t of sortedHand) {
-    const el = renderTile(t) as HTMLButtonElement;
-    
-    // 定缺牌显示为灰色
+    const el = renderTile(t, 'md') as HTMLButtonElement;
+
     if (missingSuit && t.suit === missingSuit) {
-      el.style.opacity = '0.5';
-      el.style.filter = 'grayscale(50%)';
+      el.classList.add('mj-tile--dimmed');
     }
-    
+
     if (onClickTile) {
+      el.classList.add('mj-tile--clickable');
       el.addEventListener('click', () => onClickTile(t));
     } else {
       el.disabled = true;
       el.style.cursor = 'default';
-      el.style.opacity = '0.7';
     }
     wrap.appendChild(el);
   }

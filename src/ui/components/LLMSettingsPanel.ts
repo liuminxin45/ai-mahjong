@@ -41,25 +41,16 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
     transform: translate(-50%, -50%);
     width: 450px;
     max-height: 80vh;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    background: var(--bg-surface);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-xl);
     overflow: hidden;
     z-index: 2000;
-    font-family: system-ui, -apple-system, sans-serif;
   `;
 
   // 背景遮罩
   const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 1999;
-  `;
+  overlay.className = 'overlay';
   overlay.onclick = () => {
     overlay.remove();
     panel.remove();
@@ -72,8 +63,8 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: var(--sp-5) var(--sp-6);
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
     color: white;
   `;
 
@@ -105,7 +96,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
   // 内容
   const content = document.createElement('div');
   content.style.cssText = `
-    padding: 24px;
+    padding: var(--sp-6);
     max-height: calc(80vh - 100px);
     overflow-y: auto;
     overflow-x: hidden;
@@ -118,7 +109,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
   const providerGroup = createFormGroup('AI服务提供商', () => {
     const select = document.createElement('select');
     select.style.cssText = inputStyle;
-    
+
     const providers = [
       { value: 'openai', label: 'OpenAI (GPT-4)' },
       { value: 'anthropic', label: 'Anthropic (Claude)' },
@@ -126,7 +117,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
       { value: 'custom', label: '自定义API' },
       { value: 'local', label: '本地模式（无需API）' },
     ];
-    
+
     for (const p of providers) {
       const option = document.createElement('option');
       option.value = p.value;
@@ -134,7 +125,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
       option.selected = currentConfig.provider === p.value;
       select.appendChild(option);
     }
-    
+
     select.onchange = () => {
       config.provider = select.value as any;
       // 根据provider更新默认model
@@ -150,7 +141,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
         (modelInput as HTMLInputElement).value = config.model;
       }
     };
-    
+
     return select;
   });
   content.appendChild(providerGroup);
@@ -163,7 +154,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
     input.value = config.apiKey || '';
     input.style.cssText = inputStyle;
     input.onchange = () => config.apiKey = input.value;
-    
+
     // 显示/隐藏按钮
     const toggleBtn = document.createElement('button');
     toggleBtn.type = 'button';
@@ -181,7 +172,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
     toggleBtn.onclick = () => {
       input.type = input.type === 'password' ? 'text' : 'password';
     };
-    
+
     const wrapper = document.createElement('div');
     wrapper.style.position = 'relative';
     wrapper.appendChild(input);
@@ -222,7 +213,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
     container.style.display = 'flex';
     container.style.alignItems = 'center';
     container.style.gap = '12px';
-    
+
     const slider = document.createElement('input');
     slider.type = 'range';
     slider.min = '0';
@@ -230,16 +221,16 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
     slider.step = '0.1';
     slider.value = String(config.temperature ?? currentConfig.temperature);
     slider.style.cssText = 'flex: 1;';
-    
+
     const value = document.createElement('span');
     value.style.cssText = 'width: 40px; text-align: center; font-weight: 600;';
     value.textContent = slider.value;
-    
+
     slider.oninput = () => {
       value.textContent = slider.value;
       config.temperature = parseFloat(slider.value);
     };
-    
+
     container.appendChild(slider);
     container.appendChild(value);
     return container;
@@ -249,12 +240,12 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
   // 提示信息
   const tips = document.createElement('div');
   tips.style.cssText = `
-    margin-top: 16px;
-    padding: 12px;
-    background: #f0f7ff;
-    border-radius: 8px;
-    font-size: 12px;
-    color: #1976d2;
+    margin-top: var(--sp-4);
+    padding: var(--sp-3);
+    background: rgba(59, 166, 118, 0.1);
+    border-radius: var(--r-md);
+    font-size: var(--fs-xs);
+    color: var(--c-primary-light);
     line-height: 1.6;
   `;
   tips.innerHTML = `
@@ -271,21 +262,22 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
   const footer = document.createElement('div');
   footer.style.cssText = `
     display: flex;
-    gap: 12px;
-    padding: 16px 24px;
-    background: #f5f5f5;
-    border-top: 1px solid #eee;
+    gap: var(--sp-3);
+    padding: var(--sp-4) var(--sp-6);
+    background: var(--bg-hover);
+    border-top: 1px solid var(--border-subtle);
   `;
 
   const cancelBtn = document.createElement('button');
   cancelBtn.textContent = '取消';
   cancelBtn.style.cssText = `
     flex: 1;
-    padding: 12px;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 14px;
+    padding: var(--sp-3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    font-size: var(--fs-sm);
+    color: var(--text-primary);
     cursor: pointer;
   `;
   cancelBtn.onclick = () => {
@@ -298,12 +290,12 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
   saveBtn.textContent = '保存设置';
   saveBtn.style.cssText = `
     flex: 1;
-    padding: 12px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: var(--sp-3);
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
     border: none;
-    border-radius: 8px;
+    border-radius: var(--r-md);
     color: white;
-    font-size: 14px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     cursor: pointer;
   `;
@@ -312,7 +304,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
     overlay.remove();
     panel.remove();
     onClose?.();
-    
+
     // 显示保存成功提示
     showToast('设置已保存');
   };
@@ -331,9 +323,11 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
 const inputStyle = `
   width: 100%;
   padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm);
+  background: var(--bg-base);
+  color: var(--text-primary);
   outline: none;
   transition: border-color 0.2s;
   box-sizing: border-box;
@@ -347,15 +341,15 @@ function createFormGroup(
   inputFactory: () => HTMLElement
 ): HTMLElement {
   const group = document.createElement('div');
-  group.style.marginBottom = '20px';
+  group.style.marginBottom = 'var(--sp-5)';
 
   const labelEl = document.createElement('label');
   labelEl.style.cssText = `
     display: block;
     margin-bottom: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #333;
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-semibold);
+    color: var(--text-primary);
   `;
   labelEl.textContent = label;
 
@@ -375,11 +369,11 @@ function showToast(message: string): void {
     bottom: 100px;
     left: 50%;
     transform: translateX(-50%);
-    background: #333;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 14px;
+    background: var(--bg-active);
+    color: var(--text-primary);
+    padding: var(--sp-3) var(--sp-6);
+    border-radius: var(--r-md);
+    font-size: var(--fs-sm);
     z-index: 3000;
     animation: fadeInOut 2s ease-in-out;
   `;
@@ -423,7 +417,7 @@ export function renderLLMSettingsButton(): HTMLElement {
   `;
   btn.innerHTML = '🤖 <span>LLM设置</span>';
   btn.onclick = () => renderLLMSettingsPanel();
-  
+
   return btn;
 }
 

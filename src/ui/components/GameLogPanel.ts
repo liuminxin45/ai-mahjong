@@ -7,68 +7,45 @@ import { gameLogStore } from '../../store/gameLogStore';
 
 export function renderGameLogPanel(container: HTMLElement): void {
   container.innerHTML = '';
-  container.style.display = 'flex';
-  container.style.flexDirection = 'column';
-  container.style.height = '100%';
-  container.style.border = '1px solid #ccc';
-  container.style.borderRadius = '4px';
-  container.style.backgroundColor = '#fff';
-  container.style.overflow = 'hidden';
+  container.style.cssText = `
+    display:flex; flex-direction:column; height:100%;
+    border:1px solid var(--border-default); border-radius:var(--r-md);
+    background:var(--bg-surface); overflow:hidden;
+  `;
 
-  // 标题栏
+  // Header
   const header = document.createElement('div');
-  header.style.display = 'flex';
-  header.style.justifyContent = 'space-between';
-  header.style.alignItems = 'center';
-  header.style.padding = '6px 8px';
-  header.style.backgroundColor = '#f5f5f5';
-  header.style.borderBottom = '1px solid #ccc';
+  header.style.cssText = `
+    display:flex; justify-content:space-between; align-items:center;
+    padding:var(--sp-2); background:var(--bg-hover);
+    border-bottom:1px solid var(--border-default);
+  `;
 
   const title = document.createElement('div');
+  title.style.cssText = 'font-weight:var(--fw-semibold); font-size:var(--fs-sm);';
   title.textContent = '📋 Game Log';
-  title.style.fontWeight = '600';
-  title.style.fontSize = '13px';
 
   const buttonGroup = document.createElement('div');
-  buttonGroup.style.display = 'flex';
-  buttonGroup.style.gap = '8px';
+  buttonGroup.style.cssText = 'display:flex; gap:var(--sp-1);';
 
-  // 复制按钮
   const copyBtn = document.createElement('button');
+  copyBtn.className = 'btn btn-primary btn-sm';
+  copyBtn.style.cssText += 'font-size:11px; padding:3px 8px;';
   copyBtn.textContent = '📋 Copy';
-  copyBtn.style.padding = '3px 8px';
-  copyBtn.style.fontSize = '11px';
-  copyBtn.style.backgroundColor = '#4a90e2';
-  copyBtn.style.color = '#fff';
-  copyBtn.style.border = 'none';
-  copyBtn.style.borderRadius = '3px';
-  copyBtn.style.cursor = 'pointer';
   copyBtn.onclick = () => {
     const text = gameLogStore.getAllLogsAsText();
     navigator.clipboard.writeText(text).then(() => {
       copyBtn.textContent = '✅';
-      setTimeout(() => {
-        copyBtn.textContent = '📋 Copy';
-      }, 2000);
-    }).catch(() => {
-      alert('Failed to copy logs to clipboard');
-    });
+      setTimeout(() => { copyBtn.textContent = '📋 Copy'; }, 2000);
+    }).catch(() => alert('Failed to copy logs'));
   };
 
-  // 清空按钮
   const clearBtn = document.createElement('button');
+  clearBtn.className = 'btn btn-danger btn-sm';
+  clearBtn.style.cssText += 'font-size:11px; padding:3px 8px;';
   clearBtn.textContent = '🗑️';
-  clearBtn.style.padding = '3px 8px';
-  clearBtn.style.fontSize = '11px';
-  clearBtn.style.backgroundColor = '#dc3545';
-  clearBtn.style.color = '#fff';
-  clearBtn.style.border = 'none';
-  clearBtn.style.borderRadius = '3px';
-  clearBtn.style.cursor = 'pointer';
   clearBtn.onclick = () => {
-    if (confirm('Clear all logs?')) {
-      gameLogStore.clear();
-    }
+    if (confirm('Clear all logs?')) gameLogStore.clear();
   };
 
   buttonGroup.appendChild(copyBtn);
@@ -76,16 +53,13 @@ export function renderGameLogPanel(container: HTMLElement): void {
   header.appendChild(title);
   header.appendChild(buttonGroup);
 
-  // 日志内容区域
+  // Log content
   const logContent = document.createElement('div');
-  logContent.style.flex = '1';
-  logContent.style.overflowY = 'auto';
-  logContent.style.padding = '6px';
-  logContent.style.fontFamily = 'monospace';
-  logContent.style.fontSize = '11px';
-  logContent.style.lineHeight = '1.4';
-  logContent.style.whiteSpace = 'pre-wrap';
-  logContent.style.wordBreak = 'break-word';
+  logContent.style.cssText = `
+    flex:1; overflow-y:auto; padding:var(--sp-2);
+    font-family:monospace; font-size:11px;
+    line-height:1.4; white-space:pre-wrap; word-break:break-word;
+  `;
 
   const renderLogs = () => {
     const logs = gameLogStore.getLogs();
@@ -94,9 +68,7 @@ export function renderGameLogPanel(container: HTMLElement): void {
     if (logs.length === 0) {
       const emptyMsg = document.createElement('div');
       emptyMsg.textContent = 'No logs yet. Start a game to see logs.';
-      emptyMsg.style.color = '#999';
-      emptyMsg.style.textAlign = 'center';
-      emptyMsg.style.marginTop = '20px';
+      emptyMsg.style.cssText = 'color:var(--text-muted); text-align:center; margin-top:20px;';
       logContent.appendChild(emptyMsg);
       return;
     }
@@ -104,36 +76,27 @@ export function renderGameLogPanel(container: HTMLElement): void {
     for (const log of logs) {
       const logLine = document.createElement('div');
       logLine.style.marginBottom = '2px';
-      
-      // 根据类型设置颜色
+
       if (log.type === 'phase') {
-        logLine.style.color = '#4a90e2';
-        logLine.style.fontWeight = '600';
+        logLine.style.color = 'var(--c-primary-light)';
+        logLine.style.fontWeight = 'var(--fw-semibold)';
       } else if (log.type === 'action') {
-        logLine.style.color = '#333';
+        logLine.style.color = 'var(--text-primary)';
       } else if (log.type === 'error') {
-        logLine.style.color = '#dc3545';
+        logLine.style.color = 'var(--c-danger)';
       } else {
-        logLine.style.color = '#666';
+        logLine.style.color = 'var(--text-muted)';
       }
 
       logLine.textContent = log.message;
       logContent.appendChild(logLine);
     }
 
-    // 自动滚动到底部
     logContent.scrollTop = logContent.scrollHeight;
   };
 
-  // 初始渲染
   renderLogs();
-
-  // 订阅日志更新
-  const unsubscribe = gameLogStore.subscribe(() => {
-    renderLogs();
-  });
-
-  // 清理函数（如果需要）
+  const unsubscribe = gameLogStore.subscribe(() => renderLogs());
   (container as any).__unsubscribe = unsubscribe;
 
   container.appendChild(header);

@@ -22,27 +22,18 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
     width: 600px;
     max-width: 95vw;
     max-height: 85vh;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    background: var(--bg-surface);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-xl);
     overflow: hidden;
     z-index: 2000;
-    font-family: system-ui, -apple-system, sans-serif;
     display: flex;
     flex-direction: column;
   `;
 
   // 背景遮罩
   const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 1999;
-  `;
+  overlay.className = 'overlay';
   overlay.onclick = () => {
     overlay.remove();
     panel.remove();
@@ -55,8 +46,8 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    padding: var(--sp-5) var(--sp-6);
+    background: linear-gradient(135deg, var(--c-accent) 0%, var(--c-primary) 100%);
     color: white;
   `;
 
@@ -90,7 +81,7 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
   content.style.cssText = `
     flex: 1;
     overflow-y: auto;
-    padding: 24px;
+    padding: var(--sp-6);
   `;
 
   // 加载数据
@@ -104,7 +95,7 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
 
   if (!historyData || historyData.games.length === 0) {
     content.innerHTML = `
-      <div style="text-align: center; padding: 60px 20px; color: #999;">
+      <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
         <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
         <div style="font-size: 16px; margin-bottom: 8px;">暂无对局记录</div>
         <div style="font-size: 13px;">完成一局游戏后，记录将自动保存</div>
@@ -117,8 +108,8 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
     statsSection.style.cssText = `
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 24px;
+      gap: var(--sp-3);
+      margin-bottom: var(--sp-6);
     `;
 
     const statItems = [
@@ -131,15 +122,15 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
     for (const item of statItems) {
       const statCard = document.createElement('div');
       statCard.style.cssText = `
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        border-radius: 12px;
-        padding: 16px;
+        background: var(--bg-hover);
+        border-radius: var(--r-lg);
+        padding: var(--sp-4);
         text-align: center;
       `;
       statCard.innerHTML = `
         <div style="font-size: 24px; margin-bottom: 8px;">${item.icon}</div>
-        <div style="font-size: 20px; font-weight: 600; color: #333;">${item.value}</div>
-        <div style="font-size: 12px; color: #666;">${item.label}</div>
+        <div style="font-size: 20px; font-weight: 600; color: var(--text-primary);">${item.value}</div>
+        <div style="font-size: 12px; color: var(--text-muted);">${item.label}</div>
       `;
       statsSection.appendChild(statCard);
     }
@@ -149,10 +140,10 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
     // 胜负分布图
     const chartSection = document.createElement('div');
     chartSection.style.cssText = `
-      background: #f8f9fa;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 24px;
+      background: var(--bg-hover);
+      border-radius: var(--r-lg);
+      padding: var(--sp-4);
+      margin-bottom: var(--sp-6);
     `;
 
     const total = stats.totalGames || 1;
@@ -161,16 +152,16 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
     const drawPct = (stats.draws / total * 100).toFixed(1);
 
     chartSection.innerHTML = `
-      <div style="font-weight: 600; margin-bottom: 12px;">胜负分布</div>
+      <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 12px;">胜负分布</div>
       <div style="display: flex; height: 24px; border-radius: 12px; overflow: hidden;">
-        <div style="width: ${winPct}%; background: #4caf50;" title="胜: ${stats.wins}"></div>
-        <div style="width: ${lossPct}%; background: #f44336;" title="负: ${stats.losses}"></div>
-        <div style="width: ${drawPct}%; background: #9e9e9e;" title="平: ${stats.draws}"></div>
+        <div style="width: ${winPct}%; background: var(--c-success);" title="胜: ${stats.wins}"></div>
+        <div style="width: ${lossPct}%; background: var(--c-danger);" title="负: ${stats.losses}"></div>
+        <div style="width: ${drawPct}%; background: var(--text-muted);" title="平: ${stats.draws}"></div>
       </div>
       <div style="display: flex; justify-content: space-around; margin-top: 8px; font-size: 12px;">
-        <span style="color: #4caf50;">● 胜 ${stats.wins}</span>
-        <span style="color: #f44336;">● 负 ${stats.losses}</span>
-        <span style="color: #9e9e9e;">● 平 ${stats.draws}</span>
+        <span style="color: var(--c-success);">● 胜 ${stats.wins}</span>
+        <span style="color: var(--c-danger);">● 负 ${stats.losses}</span>
+        <span style="color: var(--text-muted);">● 平 ${stats.draws}</span>
       </div>
     `;
     content.appendChild(chartSection);
@@ -216,22 +207,14 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
     display: flex;
     gap: 12px;
     padding: 16px 24px;
-    background: #f5f5f5;
-    border-top: 1px solid #eee;
+    background: var(--bg-hover);
+    border-top: 1px solid var(--border-subtle);
   `;
 
   const exportBtn = document.createElement('button');
   exportBtn.textContent = '📤 导出数据';
-  exportBtn.style.cssText = `
-    flex: 1;
-    padding: 12px;
-    background: #4caf50;
-    border: none;
-    border-radius: 8px;
-    color: white;
-    font-size: 14px;
-    cursor: pointer;
-  `;
+  exportBtn.className = 'btn btn-success';
+  exportBtn.style.flex = '1';
   exportBtn.onclick = async () => {
     try {
       const data = await historyStorage.exportData();
@@ -249,15 +232,7 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
 
   const clearBtn = document.createElement('button');
   clearBtn.textContent = '🗑️ 清除全部';
-  clearBtn.style.cssText = `
-    padding: 12px 20px;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    color: #666;
-    font-size: 14px;
-    cursor: pointer;
-  `;
+  clearBtn.className = 'btn btn-ghost';
   clearBtn.onclick = async () => {
     if (confirm('确定要清除所有对局记录吗？此操作不可恢复。')) {
       await historyStorage.clearAll();
@@ -286,14 +261,14 @@ function renderGameItem(game: GameRecord): HTMLElement {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #eee;
+    padding: var(--sp-3) var(--sp-4);
+    background: var(--bg-surface);
+    border-radius: var(--r-md);
+    border: 1px solid var(--border-subtle);
     cursor: pointer;
     transition: box-shadow 0.2s;
   `;
-  item.onmouseover = () => item.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+  item.onmouseover = () => item.style.boxShadow = 'var(--shadow-md)';
   item.onmouseout = () => item.style.boxShadow = 'none';
 
   // 结果图标
@@ -303,9 +278,9 @@ function renderGameItem(game: GameRecord): HTMLElement {
     draw: '🤝',
   };
   const resultColors: Record<string, string> = {
-    win: '#4caf50',
-    lose: '#f44336',
-    draw: '#9e9e9e',
+    win: 'var(--c-success)',
+    lose: 'var(--c-danger)',
+    draw: 'var(--text-muted)',
   };
 
   const icon = document.createElement('div');
@@ -324,15 +299,15 @@ function renderGameItem(game: GameRecord): HTMLElement {
   // 信息区
   const info = document.createElement('div');
   info.style.flex = '1';
-  
+
   const date = new Date(game.timestamp);
   const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
-  
+
   info.innerHTML = `
-    <div style="font-weight: 600; color: #333; margin-bottom: 4px;">
+    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
       ${game.result === 'win' ? '胜利' : game.result === 'lose' ? '失败' : '流局'}
     </div>
-    <div style="font-size: 12px; color: #999;">${dateStr} · 时长 ${Math.floor(game.duration / 60)}分钟</div>
+    <div style="font-size: 12px; color: var(--text-muted);">${dateStr} · 时长 ${Math.floor(game.duration / 60)}分钟</div>
   `;
 
   // 得分
@@ -340,7 +315,7 @@ function renderGameItem(game: GameRecord): HTMLElement {
   score.style.cssText = `
     font-size: 18px;
     font-weight: 600;
-    color: ${game.score >= 0 ? '#4caf50' : '#f44336'};
+    color: ${game.score >= 0 ? 'var(--c-success)' : 'var(--c-danger)'};
   `;
   score.textContent = game.score >= 0 ? `+${game.score}` : String(game.score);
 
@@ -370,6 +345,6 @@ export function renderHistoryButton(): HTMLElement {
   `;
   btn.innerHTML = '📊 <span>对局历史</span>';
   btn.onclick = () => renderGameHistoryPanel();
-  
+
   return btn;
 }

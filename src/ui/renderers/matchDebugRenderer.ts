@@ -29,6 +29,7 @@ export function renderDebugMode(
   info.style.gap = '12px';
   info.style.alignItems = 'center';
   info.style.marginBottom = '12px';
+  info.style.color = 'var(--text-secondary)';
 
   const cur = document.createElement('div');
   cur.textContent = `Current: ${s.currentPlayer} | Turn: ${s.turn} | Wall: ${s.wall.length}`;
@@ -65,9 +66,9 @@ export function renderDebugMode(
   const canDiscard = !s.lastDiscard && s.currentPlayer === 'P0' && s.hands.P0.length === baseP0 + 1;
   const onClick = canDiscard
     ? (tile: Tile) => {
-        const action: Action = { type: 'DISCARD', tile };
-        ctx.orchestrator.dispatchHumanAction(action);
-      }
+      const action: Action = { type: 'DISCARD', tile };
+      ctx.orchestrator.dispatchHumanAction(action);
+    }
     : undefined;
 
   handWrap.appendChild(renderHand(s.hands.P0, onClick));

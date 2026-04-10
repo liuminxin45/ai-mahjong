@@ -65,28 +65,34 @@ const suitIconMap: Record<Tile['suit'], Record<Tile['rank'], string>> = {
   },
 };
 
-export function renderTile(tile: Tile): HTMLElement {
+export function renderTile(tile: Tile, size: 'sm' | 'md' | 'lg' = 'md'): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
-  el.style.padding = '6px 8px';
-  el.style.border = '1px solid #ddd';
-  el.style.borderRadius = '6px';
-  el.style.background = '#fff';
-  el.style.cursor = 'pointer';
+  el.className = `mj-tile mj-tile--${size}`;
 
   const currentLang = languageStore.getLanguage();
   if (currentLang === 'zh') {
     const img = document.createElement('img');
     img.src = suitIconMap[tile.suit][tile.rank];
     img.alt = tileToString(tile);
-    img.style.width = '28px';
-    img.style.height = '40px';
-    img.style.objectFit = 'contain';
-    img.style.display = 'block';
-    el.textContent = '';
+    img.onerror = () => {
+      // Fallback to text if image fails
+      el.removeChild(img);
+      el.textContent = tileToString(tile);
+      el.style.color = '#333';
+      el.style.minWidth = '32px';
+      el.style.minHeight = '44px';
+      el.style.fontSize = '12px';
+      el.style.fontWeight = 'bold';
+    };
     el.appendChild(img);
   } else {
     el.textContent = tileToString(tile);
+    el.style.fontWeight = 'var(--fw-semibold)';
+    el.style.fontSize = size === 'sm' ? 'var(--fs-xs)' : size === 'lg' ? 'var(--fs-base)' : 'var(--fs-sm)';
+    el.style.color = '#333';
+    el.style.minWidth = size === 'sm' ? '24px' : size === 'lg' ? '40px' : '32px';
+    el.style.minHeight = size === 'sm' ? '32px' : size === 'lg' ? '54px' : '44px';
   }
 
   return el;

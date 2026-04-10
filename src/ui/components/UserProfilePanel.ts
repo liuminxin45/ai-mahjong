@@ -22,27 +22,18 @@ export async function renderUserProfilePanel(onClose?: () => void): Promise<HTML
     width: 550px;
     max-width: 95vw;
     max-height: 85vh;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    background: var(--bg-surface);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-xl);
     overflow: hidden;
     z-index: 2000;
-    font-family: system-ui, -apple-system, sans-serif;
     display: flex;
     flex-direction: column;
   `;
 
   // 背景遮罩
   const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 1999;
-  `;
+  overlay.className = 'overlay';
   overlay.onclick = () => {
     overlay.remove();
     panel.remove();
@@ -55,8 +46,8 @@ export async function renderUserProfilePanel(onClose?: () => void): Promise<HTML
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: var(--sp-5) var(--sp-6);
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
     color: white;
   `;
 
@@ -93,14 +84,14 @@ export async function renderUserProfilePanel(onClose?: () => void): Promise<HTML
   content.style.cssText = `
     flex: 1;
     overflow-y: auto;
-    padding: 24px;
+    padding: var(--sp-6);
   `;
 
-  // 加载状态
+  // Loading
   content.innerHTML = `
     <div style="text-align: center; padding: 60px 20px;">
       <div style="font-size: 32px; margin-bottom: 16px;">🔄</div>
-      <div style="color: #666;">正在分析你的游戏数据...</div>
+      <div style="color: var(--text-muted);">正在分析你的游戏数据...</div>
     </div>
   `;
 
@@ -112,7 +103,7 @@ export async function renderUserProfilePanel(onClose?: () => void): Promise<HTML
   try {
     await historyStorage.init();
     const stats = await historyStorage.calculateStatsForAnalysis();
-    
+
     if (stats.totalGames < 3) {
       renderInsufficientData(content, stats.totalGames);
     } else {
@@ -126,17 +117,17 @@ export async function renderUserProfilePanel(onClose?: () => void): Promise<HTML
           lastActive: new Date(),
           ...profileData,
         } as UserProfile;
-        
+
         // 保存到存储
         await historyStorage.saveProfile(cachedProfile);
       }
-      
+
       renderProfileContent(content, cachedProfile, stats);
     }
   } catch (e) {
     console.error('[UserProfile] Failed to load:', e);
     content.innerHTML = `
-      <div style="text-align: center; padding: 60px 20px; color: #f44336;">
+      <div style="text-align: center; padding: 60px 20px; color: var(--c-danger);">
         <div style="font-size: 32px; margin-bottom: 16px;">❌</div>
         <div>加载失败，请稍后重试</div>
       </div>
@@ -179,7 +170,7 @@ function renderInsufficientData(container: HTMLElement, gameCount: number): void
  * 渲染画像内容
  */
 function renderProfileContent(
-  container: HTMLElement, 
+  container: HTMLElement,
   profile: UserProfile,
   stats: { totalGames: number; winRate: number; avgDealIn: number }
 ): void {
@@ -188,11 +179,11 @@ function renderProfileContent(
   // 等级卡片
   const levelCard = document.createElement('div');
   levelCard.style.cssText = `
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    padding: 24px;
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
+    border-radius: var(--r-lg);
+    padding: var(--sp-6);
     color: white;
-    margin-bottom: 20px;
+    margin-bottom: var(--sp-5);
     display: flex;
     align-items: center;
     gap: 20px;
@@ -265,9 +256,9 @@ function renderProfileContent(
       <div style="font-weight: 600; margin-bottom: 16px;">📈 技能评估</div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
         ${Object.entries(skills).map(([key, value]) => {
-          const pct = value as number;
-          const color = pct >= 70 ? '#4caf50' : pct >= 40 ? '#ff9800' : '#f44336';
-          return `
+      const pct = value as number;
+      const color = pct >= 70 ? '#4caf50' : pct >= 40 ? '#ff9800' : '#f44336';
+      return `
             <div>
               <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
                 <span>${skillLabels[key] || key}</span>
@@ -278,7 +269,7 @@ function renderProfileContent(
               </div>
             </div>
           `;
-        }).join('')}
+    }).join('')}
       </div>
     `;
     container.appendChild(skillsSection);
@@ -377,7 +368,7 @@ function renderProfileContent(
         <div style="color: #666;">正在重新分析...</div>
       </div>
     `;
-    
+
     try {
       const newStats = await historyStorage.calculateStatsForAnalysis();
       const profileData = await llmService.analyzeProfile(newStats);
@@ -416,7 +407,7 @@ export function renderProfileButton(): HTMLElement {
   `;
   btn.innerHTML = '👤 <span>我的画像</span>';
   btn.onclick = () => renderUserProfilePanel();
-  
+
   return btn;
 }
 
