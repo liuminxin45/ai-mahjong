@@ -7,7 +7,7 @@ import type { RulePack, RoundResult } from '../../RulePack';
 import type { DiscardValidator } from '../../validation/types';
 import { placeholderRulePack } from '../placeholder';
 import { ruleConfig } from './rule.config';
-import { findWinPatterns, detectYaku, calculateScore, hasQueYiMen } from './patterns';
+import { findWinPatterns, detectYaku, calculateScore, hasQueYiMen, canPerformGuaFengXiaYu } from './patterns';
 import { validateExchangeTiles, performExchange, removeTilesFromHand } from './exchange';
 import { selectExchangeTiles, selectDingQueSuit } from './aiStrategy';
 import { sortTiles } from './sort';
@@ -180,19 +180,34 @@ function applySelfDrawOutcome(state: ChengduState, winner: PlayerId, score: numb
   }
 }
 
-function evaluateSelfDrawScore(state: GameState, playerId: PlayerId, isGangShangKaiHua: boolean): number {
+function evaluateSelfDrawScore(state: GameState, playerId: PlayerId, isGangShangKaiHua: boolean, isGuaFengXiaYu: boolean = false): number {
   const hand = state.hands[playerId];
   if (!hand || hand.length === 0) return 0;
   const winTile = hand[hand.length - 1];
-  const patterns = findWinPatterns(hand);
+
+  // 对于"刮风下雨"胡牌，需要移除那张与PENG相同的牌来计算胡牌模式
+  let testHand = hand;
+  if (isGuaFengXiaYu) {
+    // 找到与PENG相同的手牌，并从测试手牌中移除
+    const pengMelds = state.melds[playerId].filter(m => m.type === 'PENG');
+    for (const pengMeld of pengMelds) {
+      const matchTile = hand.find(t => tileEq(t, pengMeld.tile));
+      if (matchTile) {
+        testHand = hand.filter(t => !tileEq(t, matchTile));
+        break;
+      }
+    }
+  }
+
+  const patterns = findWinPatterns(testHand);
   const validPattern = patterns && patterns.find((p) => p && p.isValid);
   if (!validPattern) return 0;
   const gangCount = state.melds[playerId].filter((m) => m.type === 'GANG').length;
   const isTianHu = playerId === 'P0' && state.turn === 0;
   const yakuList = detectYaku(
     validPattern,
-    hand,
-    winTile,
+    testHand,
+    isGuaFengXiaYu ? (testHand[testHand.length - 1] || winTile) : winTile,
     true,
     state.melds[playerId].length,
     isGangShangKaiHua,
@@ -200,6 +215,7 @@ function evaluateSelfDrawScore(state: GameState, playerId: PlayerId, isGangShang
     isLastTileInWall(state),
     isTianHu,
     false,
+    isGuaFengXiaYu,
   );
   return calculateScore(yakuList, gangCount);
 }
@@ -274,7 +290,7 @@ function cryptoRandomInt(max: number): number {
 function shuffle<T>(arr: T[], seed?: number): T[] {
   const a = arr.slice();
   const rng = seed !== undefined ? new SeededRandom(seed) : null;
-  
+
   for (let i = a.length - 1; i > 0; i--) {
     // 有种子时使用伪随机（训练可复现），否则使用 crypto 高质量随机
     const j = rng ? rng.nextInt(0, i) : cryptoRandomInt(i);
@@ -300,10 +316,10 @@ export const chengduRulePack: RulePack = {
     const trainingSeed = (globalThis as any).__trainingGameSeed;
     const seed = trainingSeed !== undefined ? trainingSeed : Date.now() + Math.random() * 1000000;
     log(`[GameInit] Game #${gameCounter}, seed: ${seed} (training: ${trainingSeed !== undefined})`);
-    
+
     // 重新洗牌手牌
     const tiles = shuffle(this.getTileSet(), seed);
-    
+
     const hands: Record<PlayerId, Tile[]> = {
       P0: [],
       P1: [],
@@ -375,7 +391,7 @@ export const chengduRulePack: RulePack = {
 
       // AI 玩家（包括 P0 AI 模式）智能选择换三张的牌
       log(`[Exchange] ${player} checking AI mode: p0IsAI=${settingsStore.p0IsAI}, player=${player}`);
-      
+
       if (player !== 'P0' || settingsStore.p0IsAI) {
         const hand = state.hands[player];
         const selectedTiles = selectExchangeTiles(hand);
@@ -388,7 +404,7 @@ export const chengduRulePack: RulePack = {
         // 人类玩家：返回所有可能的3张同花色组合
         const hand = state.hands[player];
         const legalActions: Action[] = [];
-        
+
         const suits = ['W', 'B', 'T'] as const;
         for (const suit of suits) {
           const sameSuitTiles = hand.filter(t => t.suit === suit);
@@ -397,7 +413,7 @@ export const chengduRulePack: RulePack = {
             legalActions.push({ type: 'EXCHANGE_SELECT', tiles: sameSuitTiles.slice(0, 3) });
           }
         }
-        
+
         if (legalActions.length > 0) {
           return legalActions;
         }
@@ -412,7 +428,7 @@ export const chengduRulePack: RulePack = {
       if (dingQue) {
         return [{ type: 'PASS' }];
       }
-      
+
       // AI 玩家（包括 P0 AI 模式）智能选择定缺花色
       if (player !== 'P0' || settingsStore.p0IsAI) {
         const hand = state.hands[player];
@@ -420,7 +436,7 @@ export const chengduRulePack: RulePack = {
         log(`[DingQue] ${player} AI selecting missing suit: ${selectedSuit}`);
         return [{ type: 'DING_QUE', suit: selectedSuit }];
       }
-      
+
       return [
         { type: 'DING_QUE', suit: 'W' },
         { type: 'DING_QUE', suit: 'B' },
@@ -499,11 +515,34 @@ export const chengduRulePack: RulePack = {
         console.log(`[自摸检测] ${player} 添加自摸动作`);
       }
 
+      // 刮风下雨检测：检查是否可以用与PENG相同的手牌进行胡牌
+      const pengMelds = state.melds[player].filter(m => m.type === 'PENG');
+      if (pengMelds.length > 0) {
+        for (const pengMeld of pengMelds) {
+          // 检查手里是否有与this PENG相同的牌
+          const guaFengTile = hand.find(t => tileEq(t, pengMeld.tile));
+          if (guaFengTile && !isTileInMissingSuit(guaFengTile, missingSuit)) {
+            // 检查移除这张牌后是否能胡
+            if (canPerformGuaFengXiaYu(hand, state.melds[player], guaFengTile)) {
+              // 检查缺一门是否满足
+              const testHand = hand.filter(t => !tileEq(t, guaFengTile));
+              const testQueResult = hasQueYiMen(testHand, state.melds[player], missingSuit);
+              console.log(`[刮风下雨检测] ${player} 检测到可能的刮风下雨: ${guaFengTile.suit}${guaFengTile.rank}`);
+              console.log(`[刮风下雨检测] ${player} 缺一门检测: ${testQueResult}`);
+              if (testQueResult) {
+                baseActions.push({ type: 'HU', tile: guaFengTile, from: player });
+                console.log(`[刮风下雨检测] ${player} 添加刮风下雨动作: ${guaFengTile.suit}${guaFengTile.rank}`);
+              }
+            }
+          }
+        }
+      }
+
       // 暗杠和加杠
       const dingQueSuit = chengduState.dingQueSelection?.[player];
       console.log(`[暗杠检测] ${player} 手牌:`, hand.map(t => `${t.suit}${t.rank}`).join(' '));
       console.log(`[暗杠检测] ${player} 定缺花色:`, dingQueSuit || '未定缺');
-      
+
       for (const tile of hand) {
         const count = countTile(hand, tile);
         if (count === 4) {
@@ -519,14 +558,14 @@ export const chengduRulePack: RulePack = {
           }
         }
       }
-      
+
       // 成都规则：必须先打完缺门的牌
       if (dingQueSuit) {
         const missingSuitTiles = hand.filter(t => t.suit === dingQueSuit);
         if (missingSuitTiles.length > 0) {
           console.log(`[暗杠检测] ${player} 有缺门牌 ${dingQueSuit}，应用过滤逻辑`);
           // 有缺门的牌，只能打缺门的牌
-          const discardActions = baseActions.filter(a => 
+          const discardActions = baseActions.filter(a =>
             a.type === 'DISCARD' && a.tile.suit === dingQueSuit
           );
           // 保留所有非出牌动作（胡、杠等）
@@ -539,7 +578,7 @@ export const chengduRulePack: RulePack = {
           return [...nonDiscardActions, ...discardActions];
         }
       }
-      
+
       console.log(`[暗杠检测] ${player} 最终动作(无过滤):`, baseActions.map(a => {
         if (a.type === 'GANG') return `${a.type}:${(a as any).tile?.suit}${(a as any).tile?.rank}(${(a as any).gangType})`;
         if (a.type === 'HU') return `${a.type}:${(a as any).tile?.suit}${(a as any).tile?.rank}`;
@@ -572,7 +611,7 @@ export const chengduRulePack: RulePack = {
       }
 
       log(`[EXCHANGE_SELECT] ✅ ${player} tiles saved successfully`);
-      
+
       // 保存选择后，不切换玩家，等待当前玩家确认
       return {
         ...state,
@@ -586,10 +625,10 @@ export const chengduRulePack: RulePack = {
     // 换三张确认
     if (action.type === 'EXCHANGE_CONFIRM' && state.phase === 'EXCHANGE') {
       const player = state.currentPlayer;
-      
+
       log(`[EXCHANGE_CONFIRM] ${player} confirming exchange`);
       log(`[EXCHANGE_CONFIRM] ${player} selected:`, chengduState.exchangeSelections?.[player]?.map(t => `${t.suit}${t.rank}`).join(', '));
-      
+
       const newState = {
         ...state,
         exchangeConfirmed: {
@@ -606,7 +645,7 @@ export const chengduRulePack: RulePack = {
 
       if (allConfirmed) {
         log('[EXCHANGE] 🔄 All players confirmed, performing exchange (CLOCKWISE)');
-        
+
         const exchanged = performExchange(
           newState.exchangeSelections!,
           'CLOCKWISE'
@@ -617,7 +656,7 @@ export const chengduRulePack: RulePack = {
           const playerId = pid as PlayerId;
           log(`[EXCHANGE] ${playerId} sending:`, newState.exchangeSelections![playerId].map(t => `${t.suit}${t.rank}`).join(', '));
           log(`[EXCHANGE] ${playerId} receiving:`, tiles.map(t => `${t.suit}${t.rank}`).join(', '));
-          
+
           const remaining = removeTilesFromHand(
             newHands[playerId],
             newState.exchangeSelections![playerId]
@@ -647,10 +686,10 @@ export const chengduRulePack: RulePack = {
     // 定缺
     if (action.type === 'DING_QUE' && state.phase === 'DING_QUE') {
       const player = state.currentPlayer;
-      
+
       log(`[DING_QUE] ${player} selecting missing suit: ${action.suit}`);
       log(`[DING_QUE] ${player} hand:`, state.hands[player].map(t => `${t.suit}${t.rank}`).join(' '));
-      
+
       // 统计花色数量
       const suitCounts = { W: 0, B: 0, T: 0 };
       for (const tile of state.hands[player]) {
@@ -659,7 +698,7 @@ export const chengduRulePack: RulePack = {
         }
       }
       log(`[DING_QUE] ${player} suit counts: W=${suitCounts.W}, B=${suitCounts.B}, T=${suitCounts.T}`);
-      
+
       const newState = {
         ...state,
         dingQueSelection: {
@@ -696,10 +735,10 @@ export const chengduRulePack: RulePack = {
       // 成都规则：不能暗杠定缺花色
       const dingQueSuit = chengduState.dingQueSelection?.[action.from];
       if (isTileInMissingSuit(action.tile, dingQueSuit)) return state;
-      
+
       // 手牌数量验证
       if (!validateHandSize(hand, meldCount, 1)) return state;
-      
+
       // 状态一致性：先检查牌墙
       if (state.wall.length === 0) {
         warn('Cannot draw tile for AN gang: wall is empty');
@@ -718,7 +757,7 @@ export const chengduRulePack: RulePack = {
       const finalHand = [...nextHand, drawnTile];
 
       const meld: Meld = { type: 'GANG', tile: action.tile, from: action.from };
-      
+
       // 事件记录
       const gangEvent: GameEvent = {
         type: 'GANG',
@@ -753,7 +792,7 @@ export const chengduRulePack: RulePack = {
       // 成都规则：不能贴杠定缺花色
       const dingQueSuit = chengduState.dingQueSelection?.[action.from];
       if (isTileInMissingSuit(action.tile, dingQueSuit)) return state;
-      
+
       // 手牌数量验证
       if (!validateHandSize(hand, meldCount, 1)) return state;
 
@@ -806,7 +845,7 @@ export const chengduRulePack: RulePack = {
       const player = state.currentPlayer;
       const hand = state.hands[player];
       const meldCount = state.melds[player].length;
-      
+
       // 手牌数量验证
       if (!validateHandSize(hand, meldCount, 1)) {
         warn('Hand size validation failed for discard');
@@ -831,19 +870,28 @@ export const chengduRulePack: RulePack = {
 
     // 自摸胡处理
     if (action.type === 'HU' && action.from === state.currentPlayer && !state.lastDiscard) {
+      // 检测是否是"刮风下雨"胡牌
+      let isGuaFengXiaYu = false;
+      if (action.tile) {
+        const pengMelds = state.melds[action.from].filter(
+          m => m.type === 'PENG' && tileEq(m.tile, action.tile),
+        );
+        isGuaFengXiaYu = pengMelds.length > 0;
+      }
+
       const isGangShangKaiHua = !!(
         chengduState.isAfterGang && chengduState.lastGangPlayer === action.from
       );
       const newDeclaredHu = { ...state.declaredHu, [action.from]: true };
-      
+
       // 血战到底：计算已胡玩家数量
       const huCount = Object.values(newDeclaredHu).filter(Boolean).length;
       // 3人胡牌或牌墙空时结束
       const shouldEnd = huCount >= 3 || state.wall.length === 0;
-      
+
       // 找下一个未胡的玩家
       const nextP = nextActivePlayer({ ...state, declaredHu: newDeclaredHu }, action.from);
-      
+
       const next: ChengduState = {
         ...state,
         declaredHu: newDeclaredHu,
@@ -853,8 +901,8 @@ export const chengduRulePack: RulePack = {
         lastDiscard: null,
         currentPlayer: shouldEnd ? action.from : nextP,
       } as ChengduState;
-      const selfDrawScore = evaluateSelfDrawScore(next, action.from, isGangShangKaiHua);
-      console.log(`[Chengdu] ${action.from} 自摸胡牌, 计算得分: ${selfDrawScore}`);
+      const selfDrawScore = evaluateSelfDrawScore(next, action.from, isGangShangKaiHua, isGuaFengXiaYu);
+      console.log(`[Chengdu] ${action.from} 胡牌${isGuaFengXiaYu ? '(刮风下雨)' : ''}, 计算得分: ${selfDrawScore}`);
       if (selfDrawScore > 0) {
         applySelfDrawOutcome(next, action.from, selfDrawScore);
         console.log(`[Chengdu] 应用得分后 roundScores:`, next.roundScores);
@@ -947,7 +995,7 @@ export const chengduRulePack: RulePack = {
         const huCount = Object.values(declaredHu).filter(Boolean).length;
         // 3人胡牌或牌墙空时结束
         const shouldEnd = huCount >= 3 || state.wall.length === 0;
-        
+
         const nextP = nextActivePlayer({ ...state, declaredHu }, gangTile.from);
         const next: GameState = {
           ...state,
@@ -1054,7 +1102,7 @@ export const chengduRulePack: RulePack = {
       const huCount = Object.values(declaredHu).filter(Boolean).length;
       // 3人胡牌或牌墙空时结束
       const shouldEnd = huCount >= 3 || state.wall.length === 0;
-      
+
       const nextP = nextActivePlayer({ ...state, declaredHu }, discard.from);
       const next: GameState = {
         ...state,

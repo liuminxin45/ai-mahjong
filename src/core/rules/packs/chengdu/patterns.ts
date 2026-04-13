@@ -38,7 +38,8 @@ export type YakuType =
   | 'TIAN_HU'           // 天胡（头家第一张胡牌）
   | 'DI_HU'             // 地胡（非头家第一巡点炮胡牌）
   | 'ZI_MO'             // 自摸
-  | 'JIN_GOU_DIAO';     // 金钩钓（单钓将）
+  | 'JIN_GOU_DIAO'      // 金钩钓（单钓将）
+  | 'GUAFENG_XIАYU';    // 刮风下雨（用与碰相同的牌胡）
 
 export type Yaku = {
   type: YakuType;
@@ -87,12 +88,12 @@ export function findWinPatterns(hand: Tile[]): WinPattern[] {
   const patterns: WinPattern[] = [];
 
   const counts = countTiles(sorted);
-  
+
   for (const [key, count] of counts.entries()) {
     if (count >= 2) {
       const [suit, rank] = key.split('-');
       const jiangTile: Tile = { suit: suit as Tile['suit'], rank: parseInt(rank) as Tile['rank'] };
-      
+
       let remainingCount = count;
       const remaining = sorted.filter(t => {
         if (tileEq(t, jiangTile)) {
@@ -135,7 +136,7 @@ function tryFormGroups(tiles: Tile[]): TileGroup[] | null {
   if (tiles.length % 3 !== 0) return null;
 
   const sorted = sortTiles(tiles);
-  
+
   const first = sorted[0];
   const sameCount = sorted.filter(t => tileEq(t, first)).length;
 
@@ -149,7 +150,7 @@ function tryFormGroups(tiles: Tile[]): TileGroup[] | null {
   if (first.rank <= 7) {
     const second: Tile = { suit: first.suit, rank: (first.rank + 1) as Tile['rank'] };
     const third: Tile = { suit: first.suit, rank: (first.rank + 2) as Tile['rank'] };
-    
+
     const hasSecond = sorted.some(t => tileEq(t, second));
     const hasThird = sorted.some(t => tileEq(t, third));
 
@@ -166,7 +167,7 @@ function tryFormGroups(tiles: Tile[]): TileGroup[] | null {
 
 function checkQiDuiZi(tiles: Tile[]): WinPattern | null {
   if (tiles.length !== 14) return null;
-  
+
   const counts = countTiles(tiles);
   // 七对：7 种牌各 2 张
   // 龙七对：6 种牌，其中 1 种 4 张（算两对）+ 5 种 2 张
@@ -191,7 +192,7 @@ function checkQiDuiZi(tiles: Tile[]): WinPattern | null {
 
   const groups: TileGroup[] = [];
   const processed = new Set<string>();
-  
+
   for (const tile of tiles) {
     const key = `${tile.suit}-${tile.rank}`;
     if (processed.has(key)) continue;
@@ -221,7 +222,8 @@ export function detectYaku(
   isQiangGang: boolean,
   isHaiDi: boolean,
   isTianHu: boolean,
-  isDiHu: boolean
+  isDiHu: boolean,
+  isGuaFengXiaYu: boolean = false,
 ): Yaku[] {
   const yakuList: Yaku[] = [];
 
@@ -287,6 +289,10 @@ export function detectYaku(
     yakuList.push({ type: 'JIN_GOU_DIAO', fan: 2, description: '金钩钓' });
   }
 
+  if (isGuaFengXiaYu) {
+    yakuList.push({ type: 'GUAFENG_XIАYU', fan: 2, description: '刮风下雨' });
+  }
+
   if (yakuList.length === 0) {
     yakuList.push({ type: 'PING_HU', fan: 1, description: '平胡' });
   }
@@ -303,7 +309,7 @@ export function detectYaku(
  */
 export function hasQueYiMen(hand: Tile[], melds?: Array<{ type: string; tile: Tile }>, missingSuit?: 'W' | 'B' | 'T'): boolean {
   const allTiles = [...hand];
-  
+
   // 收集副露的牌
   if (melds) {
     for (const meld of melds) {
@@ -312,7 +318,7 @@ export function hasQueYiMen(hand: Tile[], melds?: Array<{ type: string; tile: Ti
       }
     }
   }
-  
+
   // 成都规则：如果指定了定缺花色，必须完全没有该花色的牌
   if (missingSuit) {
     const hasMissingSuit = allTiles.some(t => t.suit === missingSuit);
@@ -321,17 +327,61 @@ export function hasQueYiMen(hand: Tile[], melds?: Array<{ type: string; tile: Ti
     }
     return true; // 手牌中没有定缺的花色，满足
   }
-  
+
   // 通用规则：统计花色
   const suits = new Set(allTiles.map(t => t.suit));
-  
+
   // 只统计万条筒三种花色
   const numSuits = ['W', 'B', 'T'].filter(s => suits.has(s as Tile['suit'])).length;
-  
+
   // 必须缺少至少一种花色（最多只有2种花色）
   return numSuits <= 2;
 }
+/**
+ * 检查是否可以进行"刮风下雨"胡牌
+ * 刮风下雨：手里有与某个PENG相同的牌，可以用这张牌和PENG组成新的组合胡牌
+ * @param hand 手里的牌
+ * @param melds 副露（碰、杠）
+ * @param discardTile 可选的出牌牌（用来检查是否能通过出这张牌来进行刮风下雨）
+ * @returns 如果可以在出牌阶段进行刮风下雨，返回true
+ */
+export function canPerformGuaFengXiaYu(
+  hand: Tile[],
+  melds: Array<{ type: string; tile: Tile }> = [],
+  discardTile?: Tile,
+): boolean {
+  // 如果没有指定出牌牌，则检查手里是否有与PENG相同的牌
+  if (discardTile === undefined) {
+    // 检查是否有PENG，并且手里有同样的牌
+    const pengMelds = melds.filter(m => m.type === 'PENG');
+    const handCounts = countTiles(hand);
+    for (const meld of pengMelds) {
+      const key = `${meld.tile.suit}-${meld.tile.rank}`;
+      const count = handCounts.get(key) || 0;
+      if (count > 0) {
+        return true; // 可以进行刮风下雨
+      }
+    }
+    return false;
+  }
 
+  // 如果指定了出牌牌，检查出这张牌是否能形成刮风下雨胡牌
+  // 需要有与此牌相同的PENG
+  const pengMelds = melds.filter(
+    m => m.type === 'PENG' && tileEq(m.tile, discardTile),
+  );
+
+  if (pengMelds.length === 0) {
+    return false; // 没有相同的PENG
+  }
+
+  // 移除这张要出的牌后，剩余的手牌是否能胡
+  // 因为出这张牌会和PENG组成一个刻子，所以相当于用这张牌来完成一个完整的刻子组
+  const remainingHand = hand.filter(t => !tileEq(t, discardTile));
+  const testPatterns = findWinPatterns(remainingHand);
+
+  return testPatterns && testPatterns.some(p => p.isValid);
+}
 export function calculateScore(yakuList: Yaku[], genCount: number = 0): number {
   const yakuFan = yakuList.reduce((sum, y) => sum + y.fan, 0);
   // 成都规则包优化：底分 5 分；每个杠算 1 番（genCount 参数沿用，但语义调整为“杠番”）
