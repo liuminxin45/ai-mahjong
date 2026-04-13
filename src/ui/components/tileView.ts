@@ -29,6 +29,8 @@ import b7Icon from '../../../resource/png/32-bamboos-7.png';
 import b8Icon from '../../../resource/png/33-bamboos-8.png';
 import b9Icon from '../../../resource/png/34-bamboos-9.png';
 
+export type TileVariant = 'hand' | 'drawn' | 'discard' | 'discard-focus' | 'meld' | 'wall' | 'back';
+
 const suitIconMap: Record<Tile['suit'], Record<Tile['rank'], string>> = {
   W: {
     1: w1Icon,
@@ -65,10 +67,28 @@ const suitIconMap: Record<Tile['suit'], Record<Tile['rank'], string>> = {
   },
 };
 
-export function renderTile(tile: Tile, size: 'sm' | 'md' | 'lg' = 'md'): HTMLElement {
+export function renderTile(
+  tile: Tile,
+  size: 'xs' | 'sm' | 'md' | 'lg' = 'md',
+  variant: TileVariant = 'hand',
+): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
-  el.className = `mj-tile mj-tile--${size}`;
+  el.className = `mj-tile mj-tile--${size} mj-tile--${variant}`;
+  el.setAttribute('aria-label', tileToString(tile));
+
+  if (variant === 'wall' || variant === 'back') {
+    if (variant === 'back') {
+      const pattern = document.createElement('span');
+      pattern.className = 'mj-tile__back-pattern';
+      el.appendChild(pattern);
+    } else {
+      const wallFace = document.createElement('span');
+      wallFace.className = 'mj-tile__wall-face';
+      el.appendChild(wallFace);
+    }
+    return el;
+  }
 
   const currentLang = languageStore.getLanguage();
   if (currentLang === 'zh') {
@@ -76,23 +96,15 @@ export function renderTile(tile: Tile, size: 'sm' | 'md' | 'lg' = 'md'): HTMLEle
     img.src = suitIconMap[tile.suit][tile.rank];
     img.alt = tileToString(tile);
     img.onerror = () => {
-      // Fallback to text if image fails
+      if (!el.contains(img)) return;
       el.removeChild(img);
       el.textContent = tileToString(tile);
-      el.style.color = '#333';
-      el.style.minWidth = '32px';
-      el.style.minHeight = '44px';
-      el.style.fontSize = '12px';
-      el.style.fontWeight = 'bold';
+      el.classList.add('mj-tile--fallback');
     };
     el.appendChild(img);
   } else {
     el.textContent = tileToString(tile);
-    el.style.fontWeight = 'var(--fw-semibold)';
-    el.style.fontSize = size === 'sm' ? 'var(--fs-xs)' : size === 'lg' ? 'var(--fs-base)' : 'var(--fs-sm)';
-    el.style.color = '#333';
-    el.style.minWidth = size === 'sm' ? '24px' : size === 'lg' ? '40px' : '32px';
-    el.style.minHeight = size === 'sm' ? '32px' : size === 'lg' ? '54px' : '44px';
+    el.classList.add('mj-tile--fallback');
   }
 
   return el;

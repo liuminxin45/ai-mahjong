@@ -8,29 +8,51 @@ export function renderHand(
   missingSuit?: 'W' | 'B' | 'T',
 ): HTMLElement {
   const wrap = document.createElement('div');
-  wrap.style.cssText = `
-    display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-end;
-    padding: var(--sp-2) 0;
-  `;
+  wrap.className = 'hand-dock';
 
-  const sortedHand = sortTilesWithMissingSuit(hand, missingSuit);
+  const mainRow = document.createElement('div');
+  mainRow.className = 'hand-dock__main';
 
-  for (const t of sortedHand) {
-    const el = renderTile(t, 'md') as HTMLButtonElement;
+  const drawSlot = document.createElement('div');
+  drawSlot.className = 'hand-dock__draw-slot';
 
-    if (missingSuit && t.suit === missingSuit) {
+  // The drawn tile is always the last element of the (unsorted) hand array,
+  // because DRAW appends `wall[0]` via `hand.concat([top])`.
+  const hasDrawn = hand.length % 3 === 2;
+  const drawnTile = hasDrawn ? hand[hand.length - 1] : null;
+  const sortedHand = [...sortTilesWithMissingSuit(hasDrawn ? hand.slice(0, -1) : hand, missingSuit)];
+
+  const appendTile = (tile: Tile, variant: 'hand' | 'drawn') => {
+    const el = renderTile(tile, 'lg', variant) as HTMLButtonElement;
+
+    if (missingSuit && tile.suit === missingSuit) {
       el.classList.add('mj-tile--dimmed');
     }
 
     if (onClickTile) {
       el.classList.add('mj-tile--clickable');
-      el.addEventListener('click', () => onClickTile(t));
+      el.addEventListener('click', () => onClickTile(tile));
     } else {
       el.disabled = true;
       el.style.cursor = 'default';
     }
-    wrap.appendChild(el);
+
+    if (variant === 'drawn') {
+      drawSlot.appendChild(el);
+    } else {
+      mainRow.appendChild(el);
+    }
+  };
+
+  for (const tile of sortedHand) {
+    appendTile(tile, 'hand');
   }
 
+  if (drawnTile) {
+    appendTile(drawnTile, 'drawn');
+  }
+
+  wrap.appendChild(mainRow);
+  wrap.appendChild(drawSlot);
   return wrap;
 }
