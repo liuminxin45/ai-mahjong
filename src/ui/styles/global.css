@@ -455,10 +455,11 @@ h4 {
 .mj-tile--reaction-target {
     border-color: rgba(123, 224, 157, 0.95);
     box-shadow:
-        0 0 0 2px rgba(123, 224, 157, 0.36),
+        0 0 0 3px rgba(123, 224, 157, 0.36),
         0 6px 0 rgba(77, 140, 96, 0.92),
         inset 0 1px 0 rgba(255, 255, 255, 0.56),
         0 10px 16px rgba(48, 110, 70, 0.28);
+    animation: reactionEdgeBlink 1s steps(2, end) infinite;
 }
 
 .mj-tile--dimmed {
@@ -874,6 +875,50 @@ h4 {
 
     100% {
         background-position: 200% center;
+    }
+}
+
+@keyframes reactionEdgeBlink {
+
+    0%,
+    45%,
+    100% {
+        border-color: rgba(255, 219, 92, 1);
+        box-shadow:
+            0 0 0 3px rgba(255, 219, 92, 0.62),
+            0 6px 0 rgba(77, 140, 96, 0.92),
+            inset 0 1px 0 rgba(255, 255, 255, 0.6),
+            0 10px 16px rgba(168, 126, 20, 0.34);
+    }
+
+    50%,
+    95% {
+        border-color: rgba(123, 224, 157, 0.55);
+        box-shadow:
+            0 0 0 2px rgba(123, 224, 157, 0.18),
+            0 6px 0 rgba(77, 140, 96, 0.78),
+            inset 0 1px 0 rgba(255, 255, 255, 0.5),
+            0 10px 16px rgba(48, 110, 70, 0.18);
+    }
+}
+
+@keyframes reactionEdgeBlinkPixel {
+
+    0%,
+    45%,
+    100% {
+        border-color: #ffdc5a;
+        box-shadow:
+            2px 2px 0 rgba(62, 44, 25, 0.95),
+            0 0 0 3px rgba(255, 220, 90, 0.58);
+    }
+
+    50%,
+    95% {
+        border-color: rgba(123, 224, 157, 0.58);
+        box-shadow:
+            2px 2px 0 rgba(62, 44, 25, 0.95),
+            0 0 0 1px rgba(123, 224, 157, 0.18);
     }
 }
 
@@ -2526,7 +2571,8 @@ h4 {
     border-color: #7be09d;
     box-shadow:
         2px 2px 0 rgba(62, 44, 25, 0.95),
-        0 0 0 2px rgba(123, 224, 157, 0.3);
+        0 0 0 3px rgba(123, 224, 157, 0.3);
+    animation: reactionEdgeBlinkPixel 1s steps(2, end) infinite;
 }
 
 .pixel-table .mj-tile--discard-focus {
