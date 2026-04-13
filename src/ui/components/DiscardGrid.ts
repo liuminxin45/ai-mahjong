@@ -1,14 +1,19 @@
 import type { Tile } from '../../core/model/tile';
 import { renderTile } from './tileView';
 
-export function renderDiscardGrid(discards: Tile[]): HTMLElement {
+export function renderDiscardGrid(
+  discards: Tile[],
+  direction: 'top' | 'right' | 'bottom' | 'left' = 'bottom',
+  focusLast = false,
+): HTMLElement {
   const grid = document.createElement('div');
-  grid.style.cssText = 'display:flex; flex-wrap:wrap; gap:2px; justify-content:center;';
+  grid.className = `discard-grid discard-grid--${direction}`;
 
-  for (const tile of discards) {
-    const tileEl = renderTile(tile, 'sm');
+  discards.forEach((tile, index) => {
+    const isFocus = focusLast && index === discards.length - 1;
+    const tileEl = renderTile(tile, 'sm', isFocus ? 'discard-focus' : 'discard');
     grid.appendChild(tileEl);
-  }
+  });
 
   return grid;
 }

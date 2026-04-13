@@ -1,14 +1,8 @@
 import type { UiCtx } from '../context';
 import { renderHand } from '../components/handView';
-import { renderCenterStatus } from '../components/CenterStatus';
-import { renderGameLogPanel } from '../components/GameLogPanel';
 import { renderDiscardGrid } from '../components/DiscardGrid';
 import { renderTile } from '../components/tileView';
 import { renderEventLine } from '../components/eventLogView';
-import { renderAIParamsPanel } from '../components/AIParamsPanel';
-import { renderChatAssistantButton } from '../components/LLMChatAssistant';
-import { initLLMConfig } from '../components/LLMSettingsPanel';
-import { MahjongTableScene } from '../pixi/MahjongTableScene';
 import type { Action } from '../../core/model/action';
 import type { Tile } from '../../core/model/tile';
 import type { PlayerId } from '../../core/model/types';
@@ -17,287 +11,87 @@ import type { Meld } from '../../core/model/state';
 import { sortTiles } from '../../core/rules/packs/chengdu/sort';
 import { languageStore } from '../../store/languageStore';
 
-initLLMConfig();
-
 const playerOrder: PlayerId[] = ['P0', 'P1', 'P2', 'P3'];
-const playerScores: Record<PlayerId, number> = {
-  P0: 4997,
-  P1: 5000,
-  P2: 5000,
-  P3: 5003,
+const seatDirectionByPlayer: Record<PlayerId, 'bottom' | 'right' | 'top' | 'left'> = {
+  P0: 'bottom',
+  P1: 'right',
+  P2: 'top',
+  P3: 'left',
 };
-
-function getSeatWallCounts(wallRemaining: number): Record<PlayerId, number> {
-  const perSide = Math.round(wallRemaining / 4);
-  return {
-    P0: wallRemaining - perSide * 3,
-    P1: perSide,
-    P2: perSide,
-    P3: perSide,
-  };
-}
+const hiddenTileStub: Tile = { suit: 'W', rank: 1 };
 
 export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
-  const s = ctx.gameStore.state;
-  const evs = ctx.gameStore.events;
+  const state = ctx.gameStore.state;
+  const events = ctx.gameStore.events;
 
-  if (!s) {
+  if (!state) {
     root.innerHTML = '<div style="padding:var(--sp-8);text-align:center;color:var(--text-muted);">No match running.</div>';
     return;
   }
 
-  if (s.phase === 'EXCHANGE') { renderExchangePhase(root, ctx, s); return; }
-  if (s.phase === 'DING_QUE') { renderDingQuePhase(root, ctx, s); return; }
-  if (s.phase === 'END') { renderEndPhase(root, ctx, s); return; }
+  if (state.phase === 'EXCHANGE') {
+    renderExchangePhase(root, ctx, state);
+    return;
+  }
+  if (state.phase === 'DING_QUE') {
+    renderDingQuePhase(root, ctx, state);
+    return;
+  }
+  if (state.phase === 'END') {
+    renderEndPhase(root, ctx, state);
+    return;
+  }
 
   root.innerHTML = '';
-  const t = languageStore.t().game;
-  const chengduState = s as any;
+
+  const tableScreen = document.createElement('div');
+  tableScreen.className = 'pixel-table-screen';
+
+  const table = document.createElement('section');
+  table.className = 'pixel-table';
+  table.setAttribute('aria-label', 'Mahjong table');
+
+  const chengduState = state as any;
   const dingQueSelections = chengduState.dingQueSelection || {};
-  const lastEvent = evs.length > 0 ? evs[evs.length - 1] : null;
+  const lastEvent = events.length > 0 ? events[events.length - 1] : null;
 
-  const scene = document.createElement('div');
-  scene.className = ctx.settingsStore.p0IsAI ? 'table-screen table-screen--spectator' : 'table-screen';
+  table.appendChild(renderOpponentSeat('P2', state, dingQueSelections));
+  table.appendChild(renderOpponentSeat('P3', state, dingQueSelections));
+  table.appendChild(renderOpponentSeat('P1', state, dingQueSelections));
+  table.appendChild(renderCenterBoard(state, lastEvent));
+  table.appendChild(renderPlayerSeat(ctx, state, dingQueSelections));
 
-  const tableScene = document.createElement('div');
-  tableScene.className = 'table-scene';
+  tableScreen.appendChild(table);
+  root.appendChild(tableScreen);
+}
 
-  mountPixiScene(tableScene, s, evs);
-  tableScene.appendChild(renderPlayerAnchors(s, dingQueSelections));
-  tableScene.appendChild(renderCenterZoneHudOnly(s, evs, lastEvent));
-  tableScene.appendChild(renderBottomDock(ctx, s, dingQueSelections));
-  mountTimer(tableScene);
+function renderOpponentSeat(
+  playerId: PlayerId,
+  state: any,
+  dingQueSelections: Record<string, 'W' | 'B' | 'T' | undefined>,
+): HTMLElement {
+  const direction = seatDirectionByPlayer[playerId];
+  const seat = document.createElement('section');
+  seat.className = `pixel-seat pixel-seat--${direction}`;
 
-  scene.appendChild(tableScene);
+  const header = renderSeatHeader(playerId, state.currentPlayer === playerId, dingQueSelections[playerId], state.hands[playerId].length);
+  seat.appendChild(header);
+  seat.appendChild(renderHiddenHand(state.hands[playerId].length, direction));
 
-  if (ctx.settingsStore.p0IsAI) {
-    const logPanel = document.createElement('div');
-    logPanel.className = 'table-side-panel';
-    renderGameLogPanel(logPanel);
-    scene.appendChild(logPanel);
+  if (state.melds[playerId]?.length) {
+    seat.appendChild(renderCompactMelds(state.melds[playerId], 'pixel-meld-strip pixel-meld-strip--opponent'));
   }
 
-  root.appendChild(scene);
-  mountSharedPanels(root, ctx, s);
+  return seat;
 }
 
-// --- Pixi scene management ---
-let _pixiScene: MahjongTableScene | null = null;
-let _pixiHost: HTMLElement | null = null;
-let _pixiResizeObserver: ResizeObserver | null = null;
-
-function mountPixiScene(tableScene: HTMLElement, state: any, evs: any[]): void {
-  // If no existing host, create it
-  if (!_pixiHost) {
-    _pixiHost = document.createElement('div');
-    _pixiHost.className = 'pixi-host';
-    tableScene.insertBefore(_pixiHost, tableScene.firstChild);
-
-    _pixiScene = new MahjongTableScene(_pixiHost);
-    // Capture references so the closure uses the values at init time
-    const capturedState = state;
-    const capturedEvs = evs;
-    void _pixiScene.init().then(() => {
-      if (_pixiScene && _pixiHost) {
-        _pixiScene.resize(_pixiHost.clientWidth, _pixiHost.clientHeight);
-        _pixiScene.update(capturedState, capturedEvs);
-      }
-    });
-
-    _pixiResizeObserver = new ResizeObserver((entries) => {
-      const e = entries[0];
-      if (e && _pixiScene) {
-        _pixiScene.resize(e.contentRect.width, e.contentRect.height);
-      }
-    });
-    _pixiResizeObserver.observe(_pixiHost);
-  } else {
-    // Re-use existing scene, just update state
-    tableScene.insertBefore(_pixiHost, tableScene.firstChild);
-    if (_pixiScene) _pixiScene.update(state, evs);
-  }
-}
-
-export function destroyPixiScene(): void {
-  _pixiResizeObserver?.disconnect();
-  _pixiResizeObserver = null;
-  _pixiScene?.destroy();
-  _pixiScene = null;
-  _pixiHost?.remove();
-  _pixiHost = null;
-}
-
-// --- Game timer ---
-let _timerInterval: ReturnType<typeof setInterval> | null = null;
-let _timerStartMs = 0;
-
-function mountTimer(tableScene: HTMLElement): void {
-  // Remove existing timer if any
-  tableScene.querySelector('.game-timer')?.remove();
-
-  const timerEl = document.createElement('div');
-  timerEl.className = 'game-timer';
-  tableScene.appendChild(timerEl);
-
-  if (_timerInterval === null) {
-    _timerStartMs = Date.now();
-  }
-
-  const update = () => {
-    const elapsed = Math.floor((Date.now() - _timerStartMs) / 1000);
-    const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
-    const s = (elapsed % 60).toString().padStart(2, '0');
-    timerEl.textContent = `${m}:${s}`;
-  };
-  update();
-
-  if (_timerInterval === null) {
-    _timerStartMs = Date.now();
-    _timerInterval = setInterval(update, 1000);
-  }
-}
-
-export function resetTimer(): void {
-  if (_timerInterval !== null) clearInterval(_timerInterval);
-  _timerInterval = null;
-  _timerStartMs = 0;
-}
-
-function renderPlayerAnchors(state: any, dingQueSelections: Record<string, 'W' | 'B' | 'T' | undefined>): HTMLElement {
-  const anchors = document.createElement('div');
-  anchors.className = 'table-anchors';
-  const wallCounts = getSeatWallCounts(state.wall.length);
-
-  for (const playerId of playerOrder.filter((pid) => pid !== 'P0')) {
-    const anchor = document.createElement('div');
-    const dir = playerId === 'P1' ? 'right' : playerId === 'P2' ? 'top' : 'left';
-    anchor.className = `table-anchor table-anchor--${dir}`;
-
-    const seat = document.createElement('div');
-    seat.className = `table-anchor__seat table-anchor__seat--${dir}`;
-
-    const count = document.createElement('div');
-    count.className = 'table-anchor__count';
-    count.textContent = String(wallCounts[playerId]);
-    seat.appendChild(count);
-
-    const body = document.createElement('div');
-    body.className = `table-anchor__body table-anchor__body--${dir}`;
-
-    const chip = document.createElement('div');
-    chip.className = state.currentPlayer === playerId ? 'score-chip score-chip--active' : 'score-chip';
-
-    const name = document.createElement('span');
-    name.className = 'score-chip__name';
-    name.textContent = playerId;
-
-    const score = document.createElement('span');
-    score.className = 'score-chip__score';
-    score.textContent = String(playerScores[playerId]);
-
-    chip.appendChild(name);
-    chip.appendChild(score);
-
-    const dingQue = dingQueSelections[playerId];
-    if (dingQue) {
-      const suitBadge = document.createElement('span');
-      suitBadge.className = 'table-pill table-pill--gold';
-      suitBadge.textContent = dingQue === 'W' ? '万' : dingQue === 'B' ? '条' : '饼';
-      chip.appendChild(suitBadge);
-    }
-
-    body.appendChild(chip);
-
-    // Keep exposed melds aligned toward the center-facing side of each seat,
-    // instead of floating over the remaining hand tiles.
-    if (state.melds[playerId]?.length) {
-      const meldRow = document.createElement('div');
-      meldRow.className = `anchor-melds anchor-melds--${dir}`;
-      for (const meld of state.melds[playerId] as Meld[]) {
-        const group = document.createElement('div');
-        group.className = 'anchor-melds__group';
-        const tileCount = meld.type === 'GANG' ? 4 : 3;
-        for (let i = 0; i < tileCount; i++) {
-          group.appendChild(renderTile(meld.tile, 'sm', 'meld'));
-        }
-        meldRow.appendChild(group);
-      }
-      body.appendChild(meldRow);
-    }
-
-    seat.appendChild(body);
-    anchor.appendChild(seat);
-    anchors.appendChild(anchor);
-  }
-
-  return anchors;
-}
-
-/** Renders only the HUD card (compass + wall + turn). Discard/focus tiles are handled by Pixi. */
-function renderCenterZoneHudOnly(state: any, evs: GameEvent[], lastEvent: GameEvent | null): HTMLElement {
-  const zone = document.createElement('div');
-  zone.className = 'table-center';
-
-  const lastActionText = formatLastAction(lastEvent);
-  zone.appendChild(renderCenterStatus({
-    currentPlayer: state.currentPlayer,
-    wallRemaining: state.wall.length,
-    turn: state.turn,
-    lastActionText,
-    lastDiscardTile: null,  // shown by Pixi instead
-    lastDiscardFrom: state.lastDiscard?.from ?? null,
-  }));
-
-  return zone;
-}
-
-/** @deprecated kept for reference — now handled by Pixi */
-function renderCenterZone(state: any, evs: GameEvent[], lastEvent: GameEvent | null): HTMLElement {
-  return renderCenterZoneHudOnly(state, evs, lastEvent);
-}
-
-function createDiscardTray(direction: 'top' | 'right' | 'bottom' | 'left', discards: Tile[], focusLast: boolean): HTMLElement {
-  const tray = document.createElement('div');
-  tray.className = `discard-tray discard-tray--${direction}`;
-  tray.appendChild(renderDiscardGrid(discards, direction, focusLast));
-  return tray;
-}
-
-function renderBottomDock(ctx: UiCtx, state: any, dingQueSelections: Record<string, 'W' | 'B' | 'T' | undefined>): HTMLElement {
-  const t = languageStore.t().game;
-  const dock = document.createElement('div');
-  dock.className = 'hand-area';
-  const wallCounts = getSeatWallCounts(state.wall.length);
-
-  const handDock = document.createElement('div');
-  handDock.className = state.currentPlayer === 'P0' ? 'player-hand-dock player-hand-dock--active' : 'player-hand-dock';
-
-  // Minimal tag bar — no identity or tile-count text, just status pills
-  if (dingQueSelections.P0 || state.currentPlayer === 'P0' || wallCounts.P0 >= 0) {
-    const tags = document.createElement('div');
-    tags.className = 'player-hand-dock__tags';
-    if (dingQueSelections.P0) {
-      const suit = document.createElement('span');
-      suit.className = 'table-pill table-pill--gold';
-      suit.textContent = dingQueSelections.P0 === 'W' ? t.wan : dingQueSelections.P0 === 'B' ? t.tiao : t.bing;
-      tags.appendChild(suit);
-    }
-    if (state.currentPlayer === 'P0') {
-      const active = document.createElement('span');
-      active.className = 'table-pill table-pill--jade';
-      active.textContent = '你的回合';
-      tags.appendChild(active);
-    }
-    const wallCount = document.createElement('span');
-    wallCount.className = 'table-pill table-pill--mist';
-    wallCount.textContent = `${wallCounts.P0}`;
-    tags.appendChild(wallCount);
-    handDock.appendChild(tags);
-  }
-
-  if (state.melds.P0.length > 0) {
-    handDock.appendChild(renderMeldStrip(state.melds.P0, '碰杠'));
-  }
+function renderPlayerSeat(
+  ctx: UiCtx,
+  state: any,
+  dingQueSelections: Record<string, 'W' | 'B' | 'T' | undefined>,
+): HTMLElement {
+  const seat = document.createElement('section');
+  seat.className = 'pixel-seat pixel-seat--bottom';
 
   const meldCountP0 = state.melds.P0.length;
   const baseP0 = 13 - meldCountP0 * 3;
@@ -308,103 +102,218 @@ function renderBottomDock(ctx: UiCtx, state: any, dingQueSelections: Record<stri
       ctx.orchestrator.dispatchHumanAction(action);
     }
     : undefined;
-  handDock.appendChild(renderHand(state.hands.P0, onClick, dingQueSelections.P0));
 
-  dock.appendChild(handDock);
+  const legal = ctx.orchestrator.getLegalActions('P0');
+  const reactionTargetTiles: Tile[] =
+    state.lastDiscard && state.lastDiscard.from !== 'P0'
+      ? legal
+        .filter((action) => action.type === 'PENG' || action.type === 'GANG')
+        .map((action) => action.tile)
+      : [];
 
-  if (!ctx.settingsStore.p0IsAI) {
-    dock.appendChild(renderReactionDock(ctx, state));
+  const handShell = document.createElement('div');
+  handShell.className = 'pixel-hand-shell';
+
+  const chrome = document.createElement('div');
+  chrome.className = 'pixel-hand-shell__chrome';
+  chrome.appendChild(renderSeatHeader('P0', state.currentPlayer === 'P0', dingQueSelections.P0, state.hands.P0.length, true));
+
+  if (state.melds.P0.length > 0) {
+    chrome.appendChild(renderCompactMelds(state.melds.P0, 'pixel-meld-strip pixel-meld-strip--self'));
   }
 
-  return dock;
+  if (!ctx.settingsStore.p0IsAI) {
+    chrome.appendChild(renderReactionRow(ctx, state));
+  }
+
+  handShell.appendChild(chrome);
+  handShell.appendChild(renderHand(state.hands.P0, onClick, dingQueSelections.P0, reactionTargetTiles));
+  seat.appendChild(handShell);
+
+  return seat;
 }
 
-function renderMeldStrip(melds: Meld[], label: string): HTMLElement {
-  const section = document.createElement('div');
-  section.className = 'meld-strip';
+function renderSeatHeader(
+  playerId: PlayerId,
+  isCurrent: boolean,
+  missingSuit: 'W' | 'B' | 'T' | undefined,
+  handCount: number,
+  isSelf = false,
+): HTMLElement {
+  const t = languageStore.t().game;
+  const header = document.createElement('div');
+  header.className = isCurrent ? 'pixel-seat__header pixel-seat__header--active' : 'pixel-seat__header';
 
   const title = document.createElement('div');
-  title.className = 'meld-strip__title';
-  title.textContent = label;
-  section.appendChild(title);
+  title.className = 'pixel-seat__title';
+  title.textContent = isSelf ? `${playerId} / ${t.you}` : playerId;
+  header.appendChild(title);
 
-  const list = document.createElement('div');
-  list.className = 'meld-strip__list';
+  const meta = document.createElement('div');
+  meta.className = 'pixel-seat__meta';
+
+  const count = document.createElement('span');
+  count.className = 'pixel-seat__badge';
+  count.textContent = `${handCount}`;
+  meta.appendChild(count);
+
+  if (missingSuit) {
+    const badge = document.createElement('span');
+    badge.className = 'pixel-seat__badge pixel-seat__badge--accent';
+    badge.textContent = missingSuit === 'W' ? t.wan : missingSuit === 'B' ? t.tiao : t.bing;
+    meta.appendChild(badge);
+  }
+
+  if (isCurrent) {
+    const active = document.createElement('span');
+    active.className = 'pixel-seat__badge pixel-seat__badge--turn';
+    active.textContent = t.turn;
+    meta.appendChild(active);
+  }
+
+  header.appendChild(meta);
+  return header;
+}
+
+function renderHiddenHand(count: number, direction: 'top' | 'right' | 'left' | 'bottom'): HTMLElement {
+  const hand = document.createElement('div');
+  hand.className = `pixel-hidden-hand pixel-hidden-hand--${direction}`;
+
+  for (let i = 0; i < count; i += 1) {
+    hand.appendChild(renderTile(hiddenTileStub, 'xs', 'back'));
+  }
+
+  return hand;
+}
+
+function renderCompactMelds(melds: Meld[], className: string): HTMLElement {
+  const strip = document.createElement('div');
+  strip.className = className;
 
   for (const meld of melds) {
     const group = document.createElement('div');
-    group.className = 'meld-strip__group';
+    group.className = 'pixel-meld-group';
     const tileCount = meld.type === 'GANG' ? 4 : 3;
-    for (let i = 0; i < tileCount; i++) {
-      group.appendChild(renderTile(meld.tile, 'sm', 'meld'));
+    for (let i = 0; i < tileCount; i += 1) {
+      group.appendChild(renderTile(meld.tile, 'xs', 'meld'));
     }
-    list.appendChild(group);
+    strip.appendChild(group);
   }
 
-  section.appendChild(list);
-  return section;
+  return strip;
 }
 
-function renderReactionDock(ctx: UiCtx, state: any): HTMLElement {
-  const t = languageStore.t().game;
-  const panel = document.createElement('div');
-  panel.className = 'reaction-dock';
+function renderCenterBoard(state: any, lastEvent: GameEvent | null): HTMLElement {
+  const center = document.createElement('section');
+  center.className = 'pixel-center';
 
-  const p0Legal = ctx.orchestrator.getLegalActions('P0');
-  const p0Reactions = p0Legal.filter((a) => a.type === 'PASS' || a.type === 'PENG' || a.type === 'GANG' || a.type === 'HU');
-  const hasRealReactions = p0Reactions.some((a) => a.type !== 'PASS');
+  center.appendChild(renderDiscardLane(state.discards.P2, 'top', state.lastDiscard?.from === 'P2'));
+  center.appendChild(renderDiscardLane(state.discards.P3, 'left', state.lastDiscard?.from === 'P3'));
+  center.appendChild(renderStatusBlock(state, lastEvent));
+  center.appendChild(renderDiscardLane(state.discards.P1, 'right', state.lastDiscard?.from === 'P1'));
+  center.appendChild(renderDiscardLane(state.discards.P0, 'bottom', state.lastDiscard?.from === 'P0'));
+
+  return center;
+}
+
+function renderDiscardLane(
+  discards: Tile[],
+  direction: 'top' | 'right' | 'bottom' | 'left',
+  focusLast: boolean,
+): HTMLElement {
+  const lane = document.createElement('div');
+  lane.className = `pixel-discard-lane pixel-discard-lane--${direction}`;
+  lane.appendChild(renderDiscardGrid(discards, direction, focusLast));
+  return lane;
+}
+
+function renderStatusBlock(state: any, lastEvent: GameEvent | null): HTMLElement {
+  const t = languageStore.t().game;
+  const block = document.createElement('div');
+  block.className = 'pixel-status';
+
+  const title = document.createElement('div');
+  title.className = 'pixel-status__title';
+  title.textContent = `${state.currentPlayer} ${t.thinking}`;
+  block.appendChild(title);
+
+  const stats = document.createElement('div');
+  stats.className = 'pixel-status__stats';
+
+  const wall = document.createElement('span');
+  wall.className = 'pixel-status__chip';
+  wall.textContent = `${t.wallRemaining} ${state.wall.length}`;
+  stats.appendChild(wall);
+
+  const turn = document.createElement('span');
+  turn.className = 'pixel-status__chip';
+  turn.textContent = `${t.turn} ${state.turn}`;
+  stats.appendChild(turn);
+
+  block.appendChild(stats);
+
+  const action = document.createElement('div');
+  action.className = 'pixel-status__action';
+  action.textContent = formatLastAction(lastEvent);
+  block.appendChild(action);
+
+  if (state.lastDiscard) {
+    const focus = document.createElement('div');
+    focus.className = 'pixel-status__focus';
+
+    focus.appendChild(renderTile(state.lastDiscard.tile, 'sm', 'discard-focus'));
+
+    const label = document.createElement('span');
+    label.textContent = `${state.lastDiscard.from} ${t.discard}`;
+    focus.appendChild(label);
+
+    block.appendChild(focus);
+  }
+
+  return block;
+}
+
+function renderReactionRow(ctx: UiCtx, state: any): HTMLElement {
+  const t = languageStore.t().game;
+  const row = document.createElement('div');
+  row.className = 'pixel-actions';
+
+  const legal = ctx.orchestrator.getLegalActions('P0');
+  const reactions = legal.filter((action) => action.type === 'PASS' || action.type === 'PENG' || action.type === 'GANG' || action.type === 'HU');
+  const hasRealReactions = reactions.some((action) => action.type !== 'PASS');
   const actions: Action[] = [];
 
   if (state.lastDiscard && state.lastDiscard.from !== 'P0' && hasRealReactions) {
-    actions.push(...['HU', 'GANG', 'PENG', 'PASS'].map((type) => p0Reactions.find((a) => a.type === type as Action['type'])).filter(Boolean) as Action[]);
+    actions.push(
+      ...['HU', 'GANG', 'PENG', 'PASS']
+        .map((type) => reactions.find((action) => action.type === type as Action['type']))
+        .filter(Boolean) as Action[],
+    );
   }
 
   if (state.currentPlayer === 'P0' && !state.lastDiscard) {
-    const selfDrawHu = p0Legal.find((a) => a.type === 'HU');
+    const selfDrawHu = legal.find((action) => action.type === 'HU');
     if (selfDrawHu) actions.push(selfDrawHu);
   }
 
   if (actions.length === 0) {
-    panel.classList.add('reaction-dock--hidden');
-    const hintText = state.currentPlayer === 'P0' ? '请选择要打出的牌' : '';
-    if (hintText) {
-      panel.innerHTML = `<div class="reaction-dock__hint">${hintText}</div>`;
-    }
-    return panel;
+    const hint = document.createElement('div');
+    hint.className = 'pixel-actions__hint';
+    hint.textContent = state.currentPlayer === 'P0' ? '选择要打出的牌' : '';
+    row.appendChild(hint);
+    return row;
   }
 
-  const list = document.createElement('div');
-  list.className = 'reaction-dock__actions';
-
-  actions.forEach((action) => {
+  for (const action of actions) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = `reaction-btn reaction-btn--${action.type.toLowerCase()}`;
+    btn.className = `pixel-action-btn pixel-action-btn--${action.type.toLowerCase()}`;
     btn.textContent = mapActionLabel(action.type, t);
     btn.onclick = () => ctx.orchestrator.dispatchHumanAction(action);
-    list.appendChild(btn);
-  });
-
-  panel.appendChild(list);
-  return panel;
-}
-
-// Wall ring removed — rendered by Pixi MahjongTableScene
-
-function mountSharedPanels(root: HTMLElement, ctx: UiCtx, state: any): void {
-  const existingPanel = document.getElementById('ai-params-panel');
-  if (existingPanel) existingPanel.remove();
-  const aiParamsPanel = renderAIParamsPanel();
-  aiParamsPanel.id = 'ai-params-panel';
-  root.appendChild(aiParamsPanel);
-
-  const existingChatBtn = document.getElementById('llm-chat-btn');
-  if (existingChatBtn) existingChatBtn.remove();
-  if (!ctx.settingsStore.p0IsAI) {
-    const chatBtn = renderChatAssistantButton(state);
-    chatBtn.id = 'llm-chat-btn';
-    root.appendChild(chatBtn);
+    row.appendChild(btn);
   }
+
+  return row;
 }
 
 function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
@@ -475,7 +384,6 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   body.appendChild(handWrap);
   actions.appendChild(confirmBtn);
   root.appendChild(container);
-  mountSharedPanels(root, ctx, state);
 }
 
 function renderDingQuePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
@@ -494,7 +402,6 @@ function renderDingQuePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
     waiting.textContent = t.dingSelected(getSuitLabel(hasSelected));
     body.appendChild(waiting);
     root.appendChild(container);
-    mountSharedPanels(root, ctx, state);
     return;
   }
 
@@ -529,7 +436,6 @@ function renderDingQuePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   });
 
   root.appendChild(container);
-  mountSharedPanels(root, ctx, state);
 }
 
 function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
@@ -561,7 +467,7 @@ function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
 
     const name = document.createElement('div');
     name.className = 'result-player__name';
-    name.textContent = pid === 'P0' ? '你' : pid;
+    name.textContent = pid === 'P0' ? t.you : pid;
 
     const score = document.createElement('div');
     score.className = 'result-player__score';
@@ -580,7 +486,7 @@ function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
     item.appendChild(hand);
 
     if (state.melds[pid]?.length) {
-      item.appendChild(renderMeldStrip(state.melds[pid], '碰杠'));
+      item.appendChild(renderCompactMelds(state.melds[pid], 'pixel-meld-strip pixel-meld-strip--result'));
     }
 
     list.appendChild(item);
@@ -595,13 +501,11 @@ function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   copyLogBtn.textContent = t.copyLog;
   copyLogBtn.onclick = () => {
     const replay = ctx.orchestrator.exportReplay();
-    const lines = replay.events.map(ev => renderEventLine(ev));
-    const text = lines.join('\n');
+    const text = replay.events.map((event) => renderEventLine(event)).join('\n');
     navigator.clipboard.writeText(text).then(() => {
       copyLogBtn.textContent = '✓ 已复制';
       setTimeout(() => { copyLogBtn.textContent = t.copyLog; }, 2000);
     }).catch(() => {
-      // Fallback: select text in a temporary textarea
       const ta = document.createElement('textarea');
       ta.value = text;
       document.body.appendChild(ta);
@@ -625,7 +529,6 @@ function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   panel.appendChild(actions);
   overlay.appendChild(panel);
   root.appendChild(overlay);
-  mountSharedPanels(root, ctx, state);
 }
 
 function createPhaseShell(titleText: string, descriptionText: string): HTMLElement {
@@ -655,15 +558,15 @@ function mapActionLabel(type: Action['type'], t: ReturnType<typeof languageStore
 function formatLastAction(event: GameEvent | null): string {
   const t = languageStore.t().game;
   if (!event) return t.waiting;
-  const actor = event.playerId ?? '系统';
+  const actor = event.playerId ?? 'SYSTEM';
   switch (event.type) {
-    case 'DRAW': return `${actor} 摸牌`;
-    case 'DISCARD': return `${actor} 打出`;
-    case 'PENG': return `${actor} 碰牌`;
-    case 'GANG': return `${actor} 杠牌`;
-    case 'HU': return `${actor} 胡牌`;
+    case 'DRAW': return `${actor} ${t.draw}`;
+    case 'DISCARD': return `${actor} ${t.discard}`;
+    case 'PENG': return `${actor} ${t.peng}`;
+    case 'GANG': return `${actor} ${t.gang}`;
+    case 'HU': return `${actor} ${t.hu}`;
     case 'TURN': return `${actor} ${t.thinking}`;
     case 'END': return t.gameOver;
-    default: return `${actor} 行动`;
+    default: return `${actor}`;
   }
 }

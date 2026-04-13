@@ -75,7 +75,7 @@ export class AutoTrainer {
     this.orchestrator = orchestrator;
     this.config = { ...DEFAULT_TRAINING_CONFIG, ...config };
     this.logger = logger;
-    
+
     // 加载或初始化优化器
     const paramsFile = loadParams();
     const effectiveSeed = seed ?? paramsFile.trainingState.rngSeed;
@@ -83,7 +83,7 @@ export class AutoTrainer {
       paramsFile.params,
       effectiveSeed
     );
-    
+
     // 恢复训练状态
     if (paramsFile.trainingState.currentStep > 0) {
       this.optimizer.setState({
@@ -101,7 +101,7 @@ export class AutoTrainer {
     } else {
       console.log('[Training] 🆕 Starting fresh training');
     }
-    
+
     this.progress = {
       currentGame: 0,
       totalGames: config.totalGames,
@@ -130,7 +130,10 @@ export class AutoTrainer {
     const wasP0AIEnabled = settingsStore.p0IsAI;
     const wasTrainingMode = testConfig.trainingMode;
     settingsStore.setP0IsAI(true);
-    testConfig.trainingMode = true;  // 启用训练模式，禁用日志
+    // NOTE: Do NOT set trainingMode=true — it bypasses all AI params
+    // (uses fastDiscardDecision which ignores the 27 tunable parameters).
+    // Training must use the full EV path so params actually affect play.
+    testConfig.trainingMode = false;
 
     this.isRunning = true;
     this.shouldStop = false;
@@ -213,13 +216,13 @@ export class AutoTrainer {
   private async runSingleGame(): Promise<void> {
     // 增加游戏计数器
     this.gameCounter++;
-    
+
     // 1. 生成候选参数（批次开始时）
     if (!this.currentCandidateParams) {
       const candidateParams = this.optimizer.generateCandidate();
       this.currentCandidateParams = candidateParams;
       this.currentParamDiff = getParamDiff(this.optimizer.getState().currentParams, candidateParams);
-      
+
       console.log(`[DEBUG] Game #${this.gameCounter} - Candidate params generated. Changes: ${this.currentParamDiff.length}`);
       if (this.currentParamDiff.length > 0) {
         console.log(`[DEBUG] First change: ${this.currentParamDiff[0].key} ${this.currentParamDiff[0].from} → ${this.currentParamDiff[0].to}`);
@@ -233,11 +236,14 @@ export class AutoTrainer {
     setAIParams(this.currentCandidateParams!);
 
     // 3. 运行游戏
-    // 传递唯一的游戏种子
-    (globalThis as any).__trainingGameSeed = Date.now() + this.gameCounter * 1000000;
+    // 传递确定性游戏种子（batch-aligned for reproducibility）
+    const batchSeed = this.optimizer.getState().step * 100000;
+    (globalThis as any).__trainingGameSeed = batchSeed + this.pendingBatchMetrics.length * 1000003;
     this.orchestrator.startNewMatch(this.config.ruleId);
-    
-    // 等待游戏结束（简化版，实际需要监听游戏状态）
+    // Override params AFTER startNewMatch (which loads from file and calls setAIParams)
+    setAIParams(this.currentCandidateParams!);
+
+    // 等待游戏结束
     await this.waitForGameEnd();
 
     // 4. 提取游戏结果
@@ -247,38 +253,20 @@ export class AutoTrainer {
       return;
     }
 
-    // 提取所有玩家的指标
-    const allMetrics: GameMetrics[] = [];
-    for (const pid of TRAINING_PLAYERS) {
-      const metrics = extractMetrics(state, pid);
-      allMetrics.push(metrics);
-    }
-    
-    // 计算集体表现
-    const winners = allMetrics.filter(m => m.didWin);
-    const winCount = winners.length;
+    // Use a rotating representative player (unbiased in mirror mode)
+    const pid = TRAINING_PLAYERS[this.gameCounter % 4];
+    const metrics = extractMetrics(state, pid);
+
+    // 计算集体表现 (for logging only)
+    const allMetrics = TRAINING_PLAYERS.map(p => extractMetrics(state, p));
+    const winCount = allMetrics.filter(m => m.didWin).length;
     const avgScore = allMetrics.reduce((s, m) => s + m.finalScore, 0) / 4;
     const firstHuPlayer = allMetrics.find(m => m.isFirstHu)?.playerId || 'none';
-    
+
     console.log(`[Training] Game #${this.gameCounter}: ${winCount}/4 AI won, avgScore=${avgScore.toFixed(0)}, firstHu=${firstHuPlayer}`);
     this.logRoundScores(state);
 
-    // ⭐ 关键修复：在零和游戏中，只用赢家的指标来评估参数质量
-    // 如果无人胡牌（流局），用向听数最低的玩家
-    let metricsToUse: GameMetrics;
-    if (winners.length > 0) {
-      // 有赢家：优先用首胡玩家，否则用第一个赢家
-      const firstHu = winners.find(m => m.isFirstHu);
-      metricsToUse = firstHu || winners[0];
-    } else {
-      // 流局：用分数最高的玩家（表现最好）
-      metricsToUse = allMetrics.reduce((best, m) => 
-        m.finalScore > best.finalScore ? m : best
-      , allMetrics[0]);
-    }
-    
-    // 只收集代表性样本，而不是所有4个玩家
-    this.pendingBatchMetrics.push(metricsToUse);
+    this.pendingBatchMetrics.push(metrics);
 
     // 每局产生1个样本
     if (
@@ -304,7 +292,7 @@ export class AutoTrainer {
           clearInterval(checkInterval);
           resolve();
         }
-      }, 100);
+      }, 1);
     });
   }
 
@@ -379,7 +367,7 @@ export class AutoTrainer {
     console.log(`[Training] 📊 Batch summary: ${batchMetrics.length} samples, ${winCount} wins, totalScore=${totalScore}`);
 
     const updateResult = this.optimizer.update(batchMetrics, this.currentCandidateParams);
-    
+
     // 验证日志：训练是否生效
     const currentStats = this.optimizer.getStats();
     console.log(
@@ -387,7 +375,7 @@ export class AutoTrainer {
       `fitness=${updateResult.fitness.toFixed(0)} (delta=${updateResult.delta >= 0 ? '+' : ''}${updateResult.delta.toFixed(0)}) ` +
       `best=${currentStats.bestFitness.toFixed(0)} step=${currentStats.step} temp=${currentStats.temperature.toFixed(3)}`
     );
-    
+
     // 验证日志：参数是否变化
     if (updateResult.accepted && this.currentParamDiff.length > 0) {
       console.log(`[Training] 🔧 Params changed: ${this.currentParamDiff.slice(0, 3).map(d => `${d.key}: ${d.from.toFixed(2)}→${d.to.toFixed(2)}`).join(', ')}`);

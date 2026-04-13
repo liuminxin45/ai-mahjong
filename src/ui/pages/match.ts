@@ -1,11 +1,8 @@
 import type { UiCtx } from '../context';
 import { renderDebugMode } from '../renderers/matchDebugRenderer';
 import { renderTableMode } from '../renderers/matchTableRenderer';
+import { renderEventLine } from '../components/eventLogView';
 import { languageStore } from '../../store/languageStore';
-import { renderAIParamsButton, renderAIParamsPanel } from '../components/AIParamsPanel';
-import { renderProfileButton } from '../components/UserProfilePanel';
-import { renderHistoryButton } from '../components/GameHistoryPanel';
-import { renderLLMSettingsButton } from '../components/LLMSettingsPanel';
 
 export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   root.innerHTML = '';
@@ -16,108 +13,57 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
     inFlight: false,
   };
 
-  const t = languageStore.t();
-
-  // --- Page container ---
   const page = document.createElement('div');
-  page.style.cssText = `
-    display: flex; flex-direction: column; height: 100dvh;
-    overflow: hidden; background: var(--bg-base);
-  `;
+  page.className = 'match-page';
 
-  // --- Header bar ---
-  const header = document.createElement('div');
-  header.style.cssText = `
-    display: flex; align-items: center; justify-content: space-between;
-    padding: var(--sp-2) var(--sp-4); min-height: 48px;
-    background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle);
-    flex-shrink: 0; gap: var(--sp-2);
-  `;
+  const toolbar = document.createElement('div');
+  toolbar.className = 'match-toolbar';
 
-  // Left: back + title
-  const headerLeft = document.createElement('div');
-  headerLeft.style.cssText = 'display: flex; align-items: center; gap: var(--sp-3);';
-
-  const back = document.createElement('button');
-  back.className = 'btn btn-ghost btn-sm';
-  back.textContent = '← ' + t.common.back;
-  back.onclick = () => ctx.navigate('#/');
-
-  const title = document.createElement('div');
-  title.style.cssText = `
-    font-size: var(--fs-base); font-weight: var(--fw-semibold);
-    color: var(--text-primary);
-  `;
-  title.textContent = t.game.phasePlaying;
-
-  headerLeft.appendChild(back);
-  headerLeft.appendChild(title);
-
-  // Right: controls
-  const controls = document.createElement('div');
-  controls.style.cssText = 'display: flex; align-items: center; gap: var(--sp-2);';
-
-  const exportBtn = document.createElement('button');
-  exportBtn.className = 'btn btn-ghost btn-sm';
-  exportBtn.textContent = t.game.copyLog;
-  exportBtn.onclick = () => {
-    ctx.orchestrator.exportReplay();
-    ctx.navigate('#/replay');
-  };
-
-  const stopBtn = document.createElement('button');
-  stopBtn.className = 'btn btn-ghost btn-sm';
-  stopBtn.textContent = t.common.close;
-  stopBtn.onclick = () => ctx.orchestrator.stop();
-
-  const switchBtn = document.createElement('button');
-  switchBtn.className = 'btn btn-ghost btn-sm';
-
-  // AI params button
-  const aiParamsBtn = renderAIParamsButton();
-
-  // LLM buttons (human mode only)
-  const llmBtnGroup = document.createElement('div');
-  llmBtnGroup.style.cssText = 'display: flex; gap: var(--sp-1);';
-
-  if (!ctx.settingsStore.p0IsAI) {
-    llmBtnGroup.appendChild(renderProfileButton());
-    llmBtnGroup.appendChild(renderHistoryButton());
-    llmBtnGroup.appendChild(renderLLMSettingsButton());
-  }
-
-  controls.appendChild(exportBtn);
-  controls.appendChild(stopBtn);
-  controls.appendChild(aiParamsBtn);
-  controls.appendChild(llmBtnGroup);
-  controls.appendChild(switchBtn);
-
-  header.appendChild(headerLeft);
-  header.appendChild(controls);
-
-  // --- Content area ---
   const contentArea = document.createElement('div');
-  contentArea.style.cssText = 'flex: 1; overflow: hidden; min-height: 0;';
+  contentArea.className = 'match-page__content';
 
-  page.appendChild(header);
+  page.appendChild(toolbar);
   page.appendChild(contentArea);
   root.appendChild(page);
 
-  // AI params panel
-  const aiPanel = renderAIParamsPanel();
-  root.appendChild(aiPanel);
+  const appendToolbarButton = (label: string, onClick: () => void, emphasis = false) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = emphasis ? 'match-toolbar__button match-toolbar__button--accent' : 'match-toolbar__button';
+    btn.textContent = label;
+    btn.onclick = onClick;
+    toolbar.appendChild(btn);
+  };
+
+  const renderToolbar = () => {
+    const t = languageStore.t();
+    toolbar.innerHTML = '';
+
+    appendToolbarButton(t.common.back, () => ctx.navigate('#/'));
+    appendToolbarButton(t.game.copyLog, () => {
+      const replay = ctx.orchestrator.exportReplay();
+      const text = replay.events.map(ev => renderEventLine(ev)).join('\n');
+      navigator.clipboard.writeText(text).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      });
+    });
+    appendToolbarButton(ctx.settingsStore.uiMode === 'DEBUG' ? t.settings.uiModeTable : t.settings.uiModeDebug, () => {
+      ctx.settingsStore.setUiMode(ctx.settingsStore.uiMode === 'DEBUG' ? 'TABLE' : 'DEBUG');
+    });
+
+    appendToolbarButton(t.common.close, () => ctx.orchestrator.stop(), true);
+  };
 
   const render = () => {
-    const currentMode = ctx.settingsStore.uiMode;
-    switchBtn.textContent = currentMode === 'DEBUG' ? t.settings.uiModeTable : t.settings.uiModeDebug;
-    switchBtn.onclick = () => {
-      const newMode = currentMode === 'DEBUG' ? 'TABLE' : 'DEBUG';
-      ctx.settingsStore.setUiMode(newMode);
-    };
-
+    renderToolbar();
     contentArea.innerHTML = '';
 
-    if (currentMode === 'DEBUG') {
+    if (ctx.settingsStore.uiMode === 'DEBUG') {
       renderDebugMode(contentArea, ctx, lastLlmState);
     } else {
       renderTableMode(contentArea, ctx);

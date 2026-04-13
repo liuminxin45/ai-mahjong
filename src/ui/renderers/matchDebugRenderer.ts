@@ -71,11 +71,19 @@ export function renderDebugMode(
     }
     : undefined;
 
-  handWrap.appendChild(renderHand(s.hands.P0, onClick));
   left.appendChild(handWrap);
 
   const p0Legal = ctx.orchestrator.getLegalActions('P0');
   const p0Reactions = p0Legal.filter((a) => a.type === 'PASS' || a.type === 'PENG' || a.type === 'GANG' || a.type === 'HU');
+  const reactionTargetTiles =
+    s.lastDiscard && s.lastDiscard.from !== 'P0'
+      ? p0Reactions
+        .filter((a) => a.type === 'PENG' || a.type === 'GANG')
+        .map((a) => a.tile)
+      : [];
+
+  handWrap.innerHTML = '';
+  handWrap.appendChild(renderHand(s.hands.P0, onClick, undefined, reactionTargetTiles));
 
   if (s.lastDiscard && s.lastDiscard.from !== 'P0' && p0Reactions.length > 0) {
     const title = document.createElement('div');
@@ -165,7 +173,7 @@ export function renderDebugMode(
 
       const wallN = s.wall.length;
       const phase = wallN <= 16 ? '后巡' : wallN <= 28 ? '中巡' : '早巡';
-      const stateSummary = `${phase}，wall=${wallN}，玩家副露=${meldCountP0} 组`;
+      const stateSummary = `${phase}，wall=${wallN}，玩家碰杠=${meldCountP0} 组`;
 
       const key = `${stateSummary}|${recs
         .map((r) => `${r.discard}:${r.shantenAfter}:${r.ukeireTotal}:${r.dangerLevel}`)

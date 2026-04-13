@@ -1,6 +1,7 @@
 import type { RuleId, UiMode } from '../../store/settingsStore';
 import type { UiCtx } from '../context';
 import { languageStore } from '../../store/languageStore';
+import { createPixelButton } from '../components/pixelFrame';
 
 export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   root.innerHTML = '';
@@ -8,230 +9,205 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   const t = languageStore.t().settings;
   const tCommon = languageStore.t().common;
 
-  const container = document.createElement('div');
-  container.className = 'animate-fadeIn';
-  container.style.cssText = 'max-width:700px; margin:0 auto; padding:var(--sp-6);';
+  const page = document.createElement('div');
+  page.className = 'pixel-app-page';
 
-  // Title
-  const title = document.createElement('h2');
-  title.style.cssText = 'color:var(--c-accent); margin-bottom:var(--sp-6);';
+  const shell = document.createElement('section');
+  shell.className = 'pixel-page-shell';
+
+  const header = document.createElement('div');
+  header.className = 'pixel-page-header';
+
+  const titleWrap = document.createElement('div');
+  const title = document.createElement('div');
+  title.className = 'pixel-page-title';
   title.textContent = t.title;
+  const subtitle = document.createElement('div');
+  subtitle.className = 'pixel-page-subtitle';
+  subtitle.textContent = languageStore.getLanguage() === 'zh'
+    ? '像素扁平设置台。所有控制统一到单层壳体内。'
+    : 'Pixel-flat control desk. All controls stay in one shell.';
+  titleWrap.appendChild(title);
+  titleWrap.appendChild(subtitle);
 
-  // Helper for form rows
-  const makeRow = (label: string, control: HTMLElement, description?: string): HTMLElement => {
-    const row = document.createElement('div');
-    row.className = 'form-row';
-    const lbl = document.createElement('label');
-    lbl.className = 'form-label';
-    lbl.textContent = label;
-    row.appendChild(lbl);
-    row.appendChild(control);
-    if (description) {
-      const desc = document.createElement('div');
-      desc.style.cssText = 'font-size:var(--fs-xs); color:var(--text-muted); margin-top:2px;';
-      desc.textContent = description;
-      row.appendChild(desc);
-    }
-    return row;
-  };
+  const toolbar = document.createElement('div');
+  toolbar.className = 'pixel-page-toolbar';
+  const back = createPixelButton(tCommon.back, 'neutral');
+  back.onclick = () => ctx.navigate('#/');
+  toolbar.appendChild(back);
 
-  // --- Game Settings Card ---
-  const gameCard = document.createElement('div');
-  gameCard.className = 'card';
-  gameCard.style.marginBottom = 'var(--sp-4)';
+  header.appendChild(titleWrap);
+  header.appendChild(toolbar);
 
-  const gameCardTitle = document.createElement('h3');
-  gameCardTitle.style.cssText = 'color:var(--text-primary); margin-bottom:var(--sp-3);';
-  gameCardTitle.textContent = '⚙️ ' + (t.title || 'Game Settings');
-  gameCard.appendChild(gameCardTitle);
+  const body = document.createElement('div');
+  body.className = 'pixel-page-body';
 
-  // AI Difficulty
-  const difficultyValue = document.createElement('span');
-  difficultyValue.style.cssText = 'font-weight:var(--fw-semibold); color:var(--c-success);';
-  difficultyValue.textContent = t.aiDifficultyValue;
-  gameCard.appendChild(makeRow(t.aiDifficulty, difficultyValue));
+  body.appendChild(renderSettingsSection(ctx));
+  body.appendChild(renderAISection(ctx));
+  body.appendChild(renderTrainingSection(ctx));
 
-  // Rule selection
+  shell.appendChild(header);
+  shell.appendChild(body);
+  page.appendChild(shell);
+  root.appendChild(page);
+}
+
+function renderSettingsSection(ctx: UiCtx): HTMLElement {
+  const t = languageStore.t().settings;
+  const section = createSection(t.title, languageStore.getLanguage() === 'zh' ? 'RULE / UI / LANGUAGE / TIMEOUT' : 'RULE / UI / LANGUAGE / TIMEOUT');
+  const body = section.querySelector('.pixel-page-section__body') as HTMLElement;
+
+  const difficultyRow = createInfoRow(t.aiDifficulty, t.aiDifficultyValue);
+  body.appendChild(difficultyRow);
+
   const rule = document.createElement('select');
-  rule.className = 'form-select';
-  const ruleOptions: RuleId[] = ['placeholder', 'chengdu'];
-  for (const r of ruleOptions) {
-    const opt = document.createElement('option');
-    opt.value = r;
-    opt.textContent = r === 'chengdu' ? t.ruleChengdu : t.rulePlaceholder;
-    if (ctx.settingsStore.ruleId === r) opt.selected = true;
-    rule.appendChild(opt);
+  rule.className = 'pixel-select';
+  for (const optionValue of ['placeholder', 'chengdu'] as RuleId[]) {
+    const option = document.createElement('option');
+    option.value = optionValue;
+    option.textContent = optionValue === 'chengdu' ? t.ruleChengdu : t.rulePlaceholder;
+    option.selected = ctx.settingsStore.ruleId === optionValue;
+    rule.appendChild(option);
   }
   rule.onchange = () => ctx.settingsStore.setRuleId(rule.value as RuleId);
-  gameCard.appendChild(makeRow(t.rule, rule));
+  body.appendChild(createField(t.rule, rule));
 
-  // UI Mode
   const uiMode = document.createElement('select');
-  uiMode.className = 'form-select';
-  const uiModeOptions: UiMode[] = ['DEBUG', 'TABLE'];
-  for (const mode of uiModeOptions) {
-    const opt = document.createElement('option');
-    opt.value = mode;
-    opt.textContent = mode === 'DEBUG' ? t.uiModeDebug : t.uiModeTable;
-    if (ctx.settingsStore.uiMode === mode) opt.selected = true;
-    uiMode.appendChild(opt);
+  uiMode.className = 'pixel-select';
+  for (const optionValue of ['DEBUG', 'TABLE'] as UiMode[]) {
+    const option = document.createElement('option');
+    option.value = optionValue;
+    option.textContent = optionValue === 'DEBUG' ? t.uiModeDebug : t.uiModeTable;
+    option.selected = ctx.settingsStore.uiMode === optionValue;
+    uiMode.appendChild(option);
   }
   uiMode.onchange = () => ctx.settingsStore.setUiMode(uiMode.value as UiMode);
-  gameCard.appendChild(makeRow(t.uiMode, uiMode));
+  body.appendChild(createField(t.uiMode, uiMode));
 
-  // Language
   const language = document.createElement('select');
-  language.className = 'form-select';
-  const langOptions = [
+  language.className = 'pixel-select';
+  for (const lang of [
     { value: 'zh', label: t.languageChinese },
     { value: 'en', label: t.languageEnglish },
-  ];
-  for (const lang of langOptions) {
-    const opt = document.createElement('option');
-    opt.value = lang.value;
-    opt.textContent = lang.label;
-    if (languageStore.getLanguage() === lang.value) opt.selected = true;
-    language.appendChild(opt);
+  ]) {
+    const option = document.createElement('option');
+    option.value = lang.value;
+    option.textContent = lang.label;
+    option.selected = languageStore.getLanguage() === lang.value;
+    language.appendChild(option);
   }
   language.onchange = () => {
     languageStore.setLanguage(language.value as 'zh' | 'en');
-    renderSettings(root, ctx);
   };
-  gameCard.appendChild(makeRow(t.language, language));
+  body.appendChild(createField(t.language, language));
 
-  // Analysis toggle
   const analysis = document.createElement('input');
-  analysis.className = 'form-checkbox';
   analysis.type = 'checkbox';
+  analysis.className = 'pixel-checkbox';
   analysis.checked = ctx.settingsStore.analysisEnabled;
   analysis.onchange = () => ctx.settingsStore.setAnalysisEnabled(analysis.checked);
-  gameCard.appendChild(makeRow(t.analysisEnabled, analysis));
+  body.appendChild(createInlineField(t.analysisEnabled, analysis));
 
-  // Timeout toggle
   const timeout = document.createElement('input');
-  timeout.className = 'form-checkbox';
   timeout.type = 'checkbox';
+  timeout.className = 'pixel-checkbox';
   timeout.checked = ctx.settingsStore.timeoutEnabled;
   timeout.onchange = () => ctx.settingsStore.setTimeoutEnabled(timeout.checked);
-  gameCard.appendChild(makeRow(t.timeoutEnabled, timeout));
+  body.appendChild(createInlineField(t.timeoutEnabled, timeout));
 
-  // Timeout ms
   const timeoutMsInput = document.createElement('input');
-  timeoutMsInput.className = 'form-input';
   timeoutMsInput.type = 'number';
+  timeoutMsInput.className = 'pixel-input';
   timeoutMsInput.value = String(ctx.settingsStore.timeoutMs);
   timeoutMsInput.min = '1000';
   timeoutMsInput.max = '120000';
   timeoutMsInput.step = '1000';
-  timeoutMsInput.style.width = '120px';
   timeoutMsInput.onchange = () => {
     const val = parseInt(timeoutMsInput.value, 10);
-    if (!isNaN(val) && val >= 1000) {
+    if (!Number.isNaN(val) && val >= 1000) {
       ctx.settingsStore.setTimeoutMs(val);
     }
   };
-  gameCard.appendChild(makeRow(t.timeoutMs, timeoutMsInput));
+  body.appendChild(createField(t.timeoutMs, timeoutMsInput));
 
-  // --- P0 AI Mode Card (highlighted) ---
-  const aiCard = document.createElement('div');
-  aiCard.className = 'card';
-  aiCard.style.cssText = 'margin-bottom:var(--sp-4); border-color:var(--c-warning);';
+  return section;
+}
 
-  const p0AI = document.createElement('input');
-  p0AI.className = 'form-checkbox';
-  p0AI.type = 'checkbox';
-  p0AI.checked = ctx.settingsStore.p0IsAI;
-  p0AI.onchange = () => {
-    ctx.settingsStore.setP0IsAI(p0AI.checked);
-    if (p0AI.checked) alert(t.p0AIModeAlert);
+function renderAISection(ctx: UiCtx): HTMLElement {
+  const t = languageStore.t().settings;
+  const section = createSection(t.p0AIMode, t.p0AIModeDesc);
+  const body = section.querySelector('.pixel-page-section__body') as HTMLElement;
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.className = 'pixel-checkbox';
+  checkbox.checked = ctx.settingsStore.p0IsAI;
+  checkbox.onchange = () => {
+    ctx.settingsStore.setP0IsAI(checkbox.checked);
+    if (checkbox.checked) alert(t.p0AIModeAlert);
   };
 
-  const aiLabel = document.createElement('label');
-  aiLabel.className = 'form-label';
-  aiLabel.style.color = 'var(--c-warning)';
-  aiLabel.textContent = '🤖 ' + t.p0AIMode;
+  body.appendChild(createInlineField(t.p0AIMode, checkbox));
+  return section;
+}
 
-  const aiRow = document.createElement('div');
-  aiRow.className = 'form-row';
-  aiRow.appendChild(aiLabel);
-  aiRow.appendChild(p0AI);
-  aiCard.appendChild(aiRow);
+function renderTrainingSection(ctx: UiCtx): HTMLElement {
+  const t = languageStore.t().settings;
+  const section = createSection(t.trainingStatus, languageStore.getLanguage() === 'zh' ? 'TRAINING / METRICS / CONTROL' : 'TRAINING / METRICS / CONTROL');
+  const body = section.querySelector('.pixel-page-section__body') as HTMLElement;
 
-  // --- Training Section Card ---
-  const trainingCard = document.createElement('div');
-  trainingCard.className = 'card';
-  trainingCard.style.marginBottom = 'var(--sp-4)';
-
-  const trainingSectionTitle = document.createElement('h3');
-  trainingSectionTitle.style.cssText = 'color:var(--c-primary-light); margin-bottom:var(--sp-3);';
-  trainingSectionTitle.textContent = '🧠 ' + t.trainingStatus;
-  trainingCard.appendChild(trainingSectionTitle);
-
-  // Training games input
   const trainingGamesInput = document.createElement('input');
-  trainingGamesInput.className = 'form-input';
   trainingGamesInput.type = 'number';
+  trainingGamesInput.className = 'pixel-input';
   trainingGamesInput.value = '100';
   trainingGamesInput.min = '1';
   trainingGamesInput.max = '10000';
-  trainingGamesInput.style.width = '120px';
-  trainingCard.appendChild(makeRow(t.trainingGames, trainingGamesInput));
+  body.appendChild(createField(t.trainingGames, trainingGamesInput));
 
-  // Blocking mode
   const blockingCheckbox = document.createElement('input');
-  blockingCheckbox.className = 'form-checkbox';
   blockingCheckbox.type = 'checkbox';
-  blockingCheckbox.checked = false;
-  trainingCard.appendChild(makeRow(t.trainingBlocking, blockingCheckbox));
+  blockingCheckbox.className = 'pixel-checkbox';
+  body.appendChild(createInlineField(t.trainingBlocking, blockingCheckbox));
 
-  // Verbose mode
   const verboseCheckbox = document.createElement('input');
-  verboseCheckbox.className = 'form-checkbox';
   verboseCheckbox.type = 'checkbox';
-  verboseCheckbox.checked = false;
-  trainingCard.appendChild(makeRow(t.trainingVerbose, verboseCheckbox));
+  verboseCheckbox.className = 'pixel-checkbox';
+  body.appendChild(createInlineField(t.trainingVerbose, verboseCheckbox));
 
-  // Progress area (hidden by default)
-  const progressDiv = document.createElement('div');
-  progressDiv.style.cssText = 'margin:var(--sp-3) 0; display:none;';
+  const progress = document.createElement('div');
+  progress.className = 'pixel-progress';
+  progress.style.display = 'none';
 
-  const progressText = document.createElement('div');
-  progressText.style.cssText = 'margin-bottom:var(--sp-1); color:var(--text-secondary); font-size:var(--fs-sm);';
-  progressText.textContent = `${t.trainingProgress}: 0/0`;
+  const progressLabel = document.createElement('div');
+  progressLabel.className = 'pixel-progress__label';
+  progressLabel.innerHTML = `<span>${t.trainingProgress}</span><span>0/0</span>`;
 
-  const progressBar = document.createElement('div');
-  progressBar.className = 'progress-track';
+  const track = document.createElement('div');
+  track.className = 'pixel-progress__track';
+  const fill = document.createElement('div');
+  fill.className = 'pixel-progress__fill';
+  fill.style.width = '0%';
+  track.appendChild(fill);
+  progress.appendChild(progressLabel);
+  progress.appendChild(track);
+  body.appendChild(progress);
 
-  const progressBarFill = document.createElement('div');
-  progressBarFill.className = 'progress-fill';
-  progressBarFill.style.width = '0%';
+  const stats = document.createElement('div');
+  stats.className = 'pixel-kv';
+  stats.style.display = 'none';
+  stats.appendChild(createKvRow(t.trainingBestFitness, '-'));
+  stats.appendChild(createKvRow(t.trainingCurrentFitness, '-'));
+  stats.appendChild(createKvRow(t.trainingAcceptRate, '-'));
+  body.appendChild(stats);
 
-  progressBar.appendChild(progressBarFill);
-  progressDiv.appendChild(progressText);
-  progressDiv.appendChild(progressBar);
-  trainingCard.appendChild(progressDiv);
+  const actions = document.createElement('div');
+  actions.className = 'pixel-btn-row';
 
-  // Stats area (hidden by default)
-  const statsDiv = document.createElement('div');
-  statsDiv.style.cssText = 'font-size:var(--fs-xs); color:var(--text-muted); margin-bottom:var(--sp-3); display:none;';
-  statsDiv.innerHTML = `
-    <div>${t.trainingBestFitness}: <span id="bestFitness">-</span></div>
-    <div>${t.trainingCurrentFitness}: <span id="currentFitness">-</span></div>
-    <div>${t.trainingAcceptRate}: <span id="acceptRate">-</span></div>
-  `;
-  trainingCard.appendChild(statsDiv);
-
-  // Training buttons
-  const startButton = document.createElement('button');
-  startButton.className = 'btn btn-success';
-  startButton.textContent = t.startTraining;
-
-  const stopButton = document.createElement('button');
-  stopButton.className = 'btn btn-danger';
-  stopButton.textContent = t.stopTraining;
+  const startButton = createPixelButton(t.startTraining, 'success');
+  const stopButton = createPixelButton(t.stopTraining, 'danger');
   stopButton.style.display = 'none';
 
-  let trainingInterval: any = null;
+  let trainingInterval: ReturnType<typeof setInterval> | null = null;
 
   startButton.onclick = async () => {
     const games = parseInt(trainingGamesInput.value, 10);
@@ -240,10 +216,10 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
       return;
     }
 
-    progressDiv.style.display = 'block';
-    statsDiv.style.display = 'block';
+    progress.style.display = 'grid';
+    stats.style.display = 'grid';
     startButton.style.display = 'none';
-    stopButton.style.display = 'inline-block';
+    stopButton.style.display = 'inline-flex';
 
     const { AutoTrainer } = await import('../../training/autoRun');
     const { setAIParams } = await import('../../agents/algo/aiParams');
@@ -265,26 +241,22 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
       },
       (log) => {
         if (verboseCheckbox.checked) console.log('[Training]', log);
-      }
+      },
     );
 
     trainingInterval = setInterval(() => {
-      const progress = trainer.getProgress();
-      if (progress.isRunning) {
-        const percentage = (progress.currentGame / progress.totalGames) * 100;
-        progressText.textContent = `${t.trainingProgress}: ${progress.currentGame}/${progress.totalGames} (${percentage.toFixed(1)}%)`;
-        progressBarFill.style.width = `${percentage}%`;
-
-        const bestFitnessEl = document.getElementById('bestFitness');
-        const currentFitnessEl = document.getElementById('currentFitness');
-        const acceptRateEl = document.getElementById('acceptRate');
-
-        if (bestFitnessEl) bestFitnessEl.textContent = progress.bestFitness.toFixed(1);
-        if (currentFitnessEl) currentFitnessEl.textContent = progress.currentFitness.toFixed(1);
-        if (acceptRateEl) acceptRateEl.textContent = `${(progress.acceptRate * 100).toFixed(1)}%`;
+      const currentProgress = trainer.getProgress();
+      if (currentProgress.isRunning) {
+        const percentage = (currentProgress.currentGame / currentProgress.totalGames) * 100;
+        progressLabel.innerHTML = `<span>${t.trainingProgress}</span><span>${currentProgress.currentGame}/${currentProgress.totalGames} (${percentage.toFixed(1)}%)</span>`;
+        fill.style.width = `${percentage}%`;
+        setKvValue(stats, 0, currentProgress.bestFitness.toFixed(1));
+        setKvValue(stats, 1, currentProgress.currentFitness.toFixed(1));
+        setKvValue(stats, 2, `${(currentProgress.acceptRate * 100).toFixed(1)}%`);
       } else {
-        clearInterval(trainingInterval);
-        startButton.style.display = 'inline-block';
+        if (trainingInterval) clearInterval(trainingInterval);
+        trainingInterval = null;
+        startButton.style.display = 'inline-flex';
         stopButton.style.display = 'none';
         alert('Training completed!');
       }
@@ -292,38 +264,89 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
 
     trainer.start().catch((err) => {
       console.error('Training error:', err);
-      clearInterval(trainingInterval);
-      startButton.style.display = 'inline-block';
+      if (trainingInterval) clearInterval(trainingInterval);
+      trainingInterval = null;
+      startButton.style.display = 'inline-flex';
       stopButton.style.display = 'none';
-      alert('Training failed: ' + err.message);
+      alert(`Training failed: ${err.message}`);
     });
   };
 
   stopButton.onclick = () => {
     if (trainingInterval) clearInterval(trainingInterval);
-    startButton.style.display = 'inline-block';
+    trainingInterval = null;
+    startButton.style.display = 'inline-flex';
     stopButton.style.display = 'none';
     alert('Training stopped');
   };
 
-  const buttonRow = document.createElement('div');
-  buttonRow.style.cssText = 'display:flex; gap:var(--sp-2);';
-  buttonRow.appendChild(startButton);
-  buttonRow.appendChild(stopButton);
-  trainingCard.appendChild(buttonRow);
+  actions.appendChild(startButton);
+  actions.appendChild(stopButton);
+  body.appendChild(actions);
 
-  // Back button
-  const back = document.createElement('button');
-  back.className = 'btn btn-ghost btn-lg';
-  back.style.marginTop = 'var(--sp-4)';
-  back.textContent = tCommon.back;
-  back.onclick = () => ctx.navigate('#/');
+  return section;
+}
 
-  // Assemble
-  container.appendChild(title);
-  container.appendChild(gameCard);
-  container.appendChild(aiCard);
-  container.appendChild(trainingCard);
-  container.appendChild(back);
-  root.appendChild(container);
+function createSection(title: string, subtitle?: string): HTMLElement {
+  const section = document.createElement('section');
+  section.className = 'pixel-page-section';
+  section.innerHTML = `
+    <div class="pixel-page-section__header">
+      <div class="pixel-page-section__title">${title}</div>
+      ${subtitle ? `<div class="pixel-page-section__subtitle">${subtitle}</div>` : ''}
+    </div>
+    <div class="pixel-page-section__body"></div>
+  `;
+  return section;
+}
+
+function createField(label: string, control: HTMLElement, description?: string): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'pixel-field';
+
+  const labelEl = document.createElement('label');
+  labelEl.className = 'pixel-field__label';
+  labelEl.textContent = label;
+  wrap.appendChild(labelEl);
+
+  wrap.appendChild(control);
+
+  if (description) {
+    const desc = document.createElement('div');
+    desc.className = 'pixel-field__desc';
+    desc.textContent = description;
+    wrap.appendChild(desc);
+  }
+
+  return wrap;
+}
+
+function createInlineField(label: string, control: HTMLElement): HTMLElement {
+  const row = document.createElement('div');
+  row.className = 'pixel-field__inline';
+
+  const labelEl = document.createElement('div');
+  labelEl.className = 'pixel-field__label';
+  labelEl.textContent = label;
+  row.appendChild(labelEl);
+  row.appendChild(control);
+  return row;
+}
+
+function createInfoRow(label: string, value: string): HTMLElement {
+  return createKvRow(label, value);
+}
+
+function createKvRow(label: string, value: string): HTMLElement {
+  const row = document.createElement('div');
+  row.className = 'pixel-kv__row';
+  row.innerHTML = `<span class="pixel-kv__label">${label}</span><span class="pixel-kv__value">${value}</span>`;
+  return row;
+}
+
+function setKvValue(container: HTMLElement, index: number, value: string): void {
+  const row = container.children[index] as HTMLElement | undefined;
+  if (!row) return;
+  const valueEl = row.querySelector('.pixel-kv__value');
+  if (valueEl) valueEl.textContent = value;
 }

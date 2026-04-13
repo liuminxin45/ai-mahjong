@@ -1,16 +1,14 @@
-/**
- * LLM设置面板组件
- * 用于配置LLM API密钥和参数
- */
-
 import { llmService } from '../../llm';
 import type { LLMConfig } from '../../llm/types';
+import {
+  createPixelButton,
+  createPixelModalSurface,
+  createPixelToast,
+  mountPixelSurface,
+} from './pixelFrame';
 
 const STORAGE_KEY = 'ai-mahjong:llm-config';
 
-/**
- * 从本地存储加载配置
- */
 function loadConfig(): Partial<LLMConfig> {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -20,410 +18,162 @@ function loadConfig(): Partial<LLMConfig> {
   }
 }
 
-/**
- * 保存配置到本地存储
- */
 function saveConfig(config: Partial<LLMConfig>): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
   llmService.updateConfig(config);
 }
 
-/**
- * 渲染LLM设置面板
- */
 export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
-  const panel = document.createElement('div');
-  panel.className = 'llm-settings-panel';
-  panel.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 450px;
-    max-height: 80vh;
-    background: var(--bg-surface);
-    border-radius: var(--r-lg);
-    box-shadow: var(--shadow-xl);
-    overflow: hidden;
-    z-index: 2000;
-  `;
-
-  // 背景遮罩
-  const overlay = document.createElement('div');
-  overlay.className = 'overlay';
-  overlay.onclick = () => {
-    overlay.remove();
-    panel.remove();
-    onClose?.();
-  };
-
-  // 头部
-  const header = document.createElement('div');
-  header.style.cssText = `
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--sp-5) var(--sp-6);
-    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
-    color: white;
-  `;
-
-  const title = document.createElement('div');
-  title.innerHTML = '<div style="font-size: 18px; font-weight: 600;">⚙️ LLM设置</div>';
-
-  const closeBtn = document.createElement('button');
-  closeBtn.style.cssText = `
-    background: rgba(255,255,255,0.2);
-    border: none;
-    color: white;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 18px;
-  `;
-  closeBtn.textContent = '✕';
-  closeBtn.onclick = () => {
-    overlay.remove();
-    panel.remove();
-    onClose?.();
-  };
-
-  header.appendChild(title);
-  header.appendChild(closeBtn);
-  panel.appendChild(header);
-
-  // 内容
-  const content = document.createElement('div');
-  content.style.cssText = `
-    padding: var(--sp-6);
-    max-height: calc(80vh - 100px);
-    overflow-y: auto;
-    overflow-x: hidden;
-  `;
+  const surface = createPixelModalSurface({
+    title: 'LLM Settings',
+    subtitle: 'PROVIDER / MODEL / API',
+    width: 'min(94vw, 520px)',
+    onClose,
+  });
 
   const config = loadConfig();
   const currentConfig = llmService.getConfig();
 
-  // Provider选择
-  const providerGroup = createFormGroup('AI服务提供商', () => {
-    const select = document.createElement('select');
-    select.style.cssText = inputStyle;
+  const provider = document.createElement('select');
+  provider.className = 'pixel-select';
+  for (const item of [
+    { value: 'openai', label: 'OpenAI' },
+    { value: 'anthropic', label: 'Anthropic' },
+    { value: 'deepseek', label: 'DeepSeek' },
+    { value: 'custom', label: 'Custom API' },
+    { value: 'local', label: 'Local Mode' },
+  ]) {
+    const option = document.createElement('option');
+    option.value = item.value;
+    option.textContent = item.label;
+    option.selected = currentConfig.provider === item.value;
+    provider.appendChild(option);
+  }
 
-    const providers = [
-      { value: 'openai', label: 'OpenAI (GPT-4)' },
-      { value: 'anthropic', label: 'Anthropic (Claude)' },
-      { value: 'deepseek', label: 'DeepSeek' },
-      { value: 'custom', label: '自定义API' },
-      { value: 'local', label: '本地模式（无需API）' },
-    ];
+  const modelInput = document.createElement('input');
+  modelInput.type = 'text';
+  modelInput.className = 'pixel-input';
+  modelInput.value = config.model || currentConfig.model;
 
-    for (const p of providers) {
-      const option = document.createElement('option');
-      option.value = p.value;
-      option.textContent = p.label;
-      option.selected = currentConfig.provider === p.value;
-      select.appendChild(option);
+  provider.onchange = () => {
+    config.provider = provider.value as LLMConfig['provider'];
+    const defaultModels: Record<string, string> = {
+      openai: 'gpt-4o-mini',
+      anthropic: 'claude-3-haiku-20240307',
+      deepseek: 'deepseek-chat',
+      custom: '',
+      local: '',
+    };
+    if (defaultModels[provider.value] !== undefined) {
+      config.model = defaultModels[provider.value];
+      modelInput.value = config.model;
     }
+  };
 
-    select.onchange = () => {
-      config.provider = select.value as any;
-      // 根据provider更新默认model
-      const defaultModels: Record<string, string> = {
-        openai: 'gpt-4o-mini',
-        anthropic: 'claude-3-haiku-20240307',
-        deepseek: 'deepseek-chat',
-        custom: '',
-        local: '',
-      };
-      if (defaultModels[select.value]) {
-        config.model = defaultModels[select.value];
-        (modelInput as HTMLInputElement).value = config.model;
-      }
-    };
+  const apiKeyInput = document.createElement('input');
+  apiKeyInput.type = 'password';
+  apiKeyInput.className = 'pixel-input';
+  apiKeyInput.placeholder = 'API KEY';
+  apiKeyInput.value = config.apiKey || '';
 
-    return select;
-  });
-  content.appendChild(providerGroup);
+  const baseUrlInput = document.createElement('input');
+  baseUrlInput.type = 'text';
+  baseUrlInput.className = 'pixel-input';
+  baseUrlInput.placeholder = 'BASE URL';
+  baseUrlInput.value = config.baseUrl || '';
 
-  // API Key
-  const apiKeyGroup = createFormGroup('API Key', () => {
-    const input = document.createElement('input');
-    input.type = 'password';
-    input.placeholder = '输入你的API密钥';
-    input.value = config.apiKey || '';
-    input.style.cssText = inputStyle;
-    input.onchange = () => config.apiKey = input.value;
+  const temperature = document.createElement('input');
+  temperature.type = 'range';
+  temperature.min = '0';
+  temperature.max = '1';
+  temperature.step = '0.1';
+  temperature.value = String(config.temperature ?? currentConfig.temperature);
+  temperature.className = 'pixel-range';
 
-    // 显示/隐藏按钮
-    const toggleBtn = document.createElement('button');
-    toggleBtn.type = 'button';
-    toggleBtn.textContent = '👁';
-    toggleBtn.style.cssText = `
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 16px;
-    `;
-    toggleBtn.onclick = () => {
-      input.type = input.type === 'password' ? 'text' : 'password';
-    };
+  const tempValue = document.createElement('span');
+  tempValue.className = 'pixel-kv__value';
+  tempValue.textContent = temperature.value;
+  temperature.oninput = () => {
+    tempValue.textContent = temperature.value;
+  };
 
-    const wrapper = document.createElement('div');
-    wrapper.style.position = 'relative';
-    wrapper.appendChild(input);
-    wrapper.appendChild(toggleBtn);
-    return wrapper;
-  });
-  content.appendChild(apiKeyGroup);
+  surface.body.appendChild(createSection('Provider', provider));
+  surface.body.appendChild(createSection('API Key', apiKeyInput));
+  surface.body.appendChild(createSection('Model', modelInput));
+  surface.body.appendChild(createSection('Base URL', baseUrlInput, 'Optional'));
 
-  // Model
-  let modelInput: HTMLElement;
-  const modelGroup = createFormGroup('模型名称', () => {
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'gpt-4o-mini';
-    input.value = config.model || currentConfig.model;
-    input.style.cssText = inputStyle;
-    input.onchange = () => config.model = input.value;
-    modelInput = input;
-    return input;
-  });
-  content.appendChild(modelGroup);
+  const tempSection = document.createElement('section');
+  tempSection.className = 'pixel-page-section';
+  tempSection.innerHTML = `
+    <div class="pixel-page-section__header">
+      <div class="pixel-page-section__title">TEMPERATURE</div>
+      <div class="pixel-page-section__subtitle">CREATIVITY</div>
+    </div>
+  `;
+  const tempBody = document.createElement('div');
+  tempBody.className = 'pixel-page-section__body';
+  const row = document.createElement('div');
+  row.className = 'pixel-field__inline';
+  row.appendChild(temperature);
+  row.appendChild(tempValue);
+  tempBody.appendChild(row);
+  tempSection.appendChild(tempBody);
+  surface.body.appendChild(tempSection);
 
-  // Base URL (可选)
-  const urlGroup = createFormGroup('API地址（可选）', () => {
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = '使用默认地址';
-    input.value = config.baseUrl || '';
-    input.style.cssText = inputStyle;
-    input.onchange = () => config.baseUrl = input.value || undefined;
-    return input;
-  });
-  content.appendChild(urlGroup);
-
-  // Temperature
-  const tempGroup = createFormGroup('创造性 (Temperature)', () => {
-    const container = document.createElement('div');
-    container.style.display = 'flex';
-    container.style.alignItems = 'center';
-    container.style.gap = '12px';
-
-    const slider = document.createElement('input');
-    slider.type = 'range';
-    slider.min = '0';
-    slider.max = '1';
-    slider.step = '0.1';
-    slider.value = String(config.temperature ?? currentConfig.temperature);
-    slider.style.cssText = 'flex: 1;';
-
-    const value = document.createElement('span');
-    value.style.cssText = 'width: 40px; text-align: center; font-weight: 600;';
-    value.textContent = slider.value;
-
-    slider.oninput = () => {
-      value.textContent = slider.value;
-      config.temperature = parseFloat(slider.value);
-    };
-
-    container.appendChild(slider);
-    container.appendChild(value);
-    return container;
-  });
-  content.appendChild(tempGroup);
-
-  // 提示信息
   const tips = document.createElement('div');
-  tips.style.cssText = `
-    margin-top: var(--sp-4);
-    padding: var(--sp-3);
-    background: rgba(59, 166, 118, 0.1);
-    border-radius: var(--r-md);
-    font-size: var(--fs-xs);
-    color: var(--c-primary-light);
-    line-height: 1.6;
-  `;
+  tips.className = 'pixel-note-box pixel-note-box--accent';
   tips.innerHTML = `
-    <strong>💡 提示：</strong><br>
-    • API密钥仅保存在本地浏览器中<br>
-    • 选择"本地模式"可在无API时使用基础功能<br>
-    • DeepSeek提供较便宜的API价格
+    <div class="pixel-page-section__title" style="font-size:11px;">NOTES</div>
+    <div class="pixel-note" style="margin-top:8px;">
+      API key stays in local storage only. Local Mode works without remote API. DeepSeek is cheaper but model quality varies by task.
+    </div>
   `;
-  content.appendChild(tips);
+  surface.body.appendChild(tips);
 
-  panel.appendChild(content);
-
-  // 底部按钮
-  const footer = document.createElement('div');
-  footer.style.cssText = `
-    display: flex;
-    gap: var(--sp-3);
-    padding: var(--sp-4) var(--sp-6);
-    background: var(--bg-hover);
-    border-top: 1px solid var(--border-subtle);
-  `;
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.textContent = '取消';
-  cancelBtn.style.cssText = `
-    flex: 1;
-    padding: var(--sp-3);
-    background: var(--bg-surface);
-    border: 1px solid var(--border-default);
-    border-radius: var(--r-md);
-    font-size: var(--fs-sm);
-    color: var(--text-primary);
-    cursor: pointer;
-  `;
-  cancelBtn.onclick = () => {
-    overlay.remove();
-    panel.remove();
-    onClose?.();
+  const cancel = createPixelButton('Cancel', 'neutral');
+  cancel.onclick = () => surface.close();
+  const save = createPixelButton('Save', 'success');
+  save.onclick = () => {
+    saveConfig({
+      ...config,
+      provider: provider.value as LLMConfig['provider'],
+      apiKey: apiKeyInput.value || undefined,
+      model: modelInput.value,
+      baseUrl: baseUrlInput.value || undefined,
+      temperature: parseFloat(temperature.value),
+    });
+    createPixelToast('SAVED');
+    surface.close();
   };
 
-  const saveBtn = document.createElement('button');
-  saveBtn.textContent = '保存设置';
-  saveBtn.style.cssText = `
-    flex: 1;
-    padding: var(--sp-3);
-    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
-    border: none;
-    border-radius: var(--r-md);
-    color: white;
-    font-size: var(--fs-sm);
-    font-weight: 600;
-    cursor: pointer;
-  `;
-  saveBtn.onclick = () => {
-    saveConfig(config);
-    overlay.remove();
-    panel.remove();
-    onClose?.();
-
-    // 显示保存成功提示
-    showToast('设置已保存');
-  };
-
-  footer.appendChild(cancelBtn);
-  footer.appendChild(saveBtn);
-  panel.appendChild(footer);
-
-  // 添加遮罩
-  document.body.appendChild(overlay);
-  document.body.appendChild(panel);
-
-  return panel;
+  surface.footer.appendChild(cancel);
+  surface.footer.appendChild(save);
+  mountPixelSurface(surface);
+  return surface.panel;
 }
 
-const inputStyle = `
-  width: 100%;
-  padding: 12px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--r-md);
-  font-size: var(--fs-sm);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  outline: none;
-  transition: border-color 0.2s;
-  box-sizing: border-box;
-`;
-
-/**
- * 创建表单组
- */
-function createFormGroup(
-  label: string,
-  inputFactory: () => HTMLElement
-): HTMLElement {
-  const group = document.createElement('div');
-  group.style.marginBottom = 'var(--sp-5)';
-
-  const labelEl = document.createElement('label');
-  labelEl.style.cssText = `
-    display: block;
-    margin-bottom: 8px;
-    font-size: var(--fs-sm);
-    font-weight: var(--fw-semibold);
-    color: var(--text-primary);
+function createSection(label: string, control: HTMLElement, subtitle?: string): HTMLElement {
+  const section = document.createElement('section');
+  section.className = 'pixel-page-section';
+  section.innerHTML = `
+    <div class="pixel-page-section__header">
+      <div class="pixel-page-section__title">${label}</div>
+      ${subtitle ? `<div class="pixel-page-section__subtitle">${subtitle}</div>` : ''}
+    </div>
   `;
-  labelEl.textContent = label;
-
-  group.appendChild(labelEl);
-  group.appendChild(inputFactory());
-
-  return group;
+  const body = document.createElement('div');
+  body.className = 'pixel-page-section__body';
+  body.appendChild(control);
+  section.appendChild(body);
+  return section;
 }
 
-/**
- * 显示Toast提示
- */
-function showToast(message: string): void {
-  const toast = document.createElement('div');
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg-active);
-    color: var(--text-primary);
-    padding: var(--sp-3) var(--sp-6);
-    border-radius: var(--r-md);
-    font-size: var(--fs-sm);
-    z-index: 3000;
-    animation: fadeInOut 2s ease-in-out;
-  `;
-  toast.textContent = message;
-
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes fadeInOut {
-      0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
-      20% { opacity: 1; transform: translateX(-50%) translateY(0); }
-      80% { opacity: 1; transform: translateX(-50%) translateY(0); }
-      100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-    }
-  `;
-
-  document.body.appendChild(style);
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    toast.remove();
-    style.remove();
-  }, 2000);
-}
-
-/**
- * 渲染LLM设置按钮
- */
 export function renderLLMSettingsButton(): HTMLElement {
-  const btn = document.createElement('button');
-  btn.style.cssText = `
-    padding: 8px 16px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    border-radius: 8px;
-    color: white;
-    font-size: 13px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  `;
-  btn.innerHTML = '🤖 <span>LLM设置</span>';
+  const btn = createPixelButton('LLM', 'neutral');
   btn.onclick = () => renderLLMSettingsPanel();
-
   return btn;
 }
 
-/**
- * 初始化LLM配置（从本地存储加载）
- */
 export function initLLMConfig(): void {
   const config = loadConfig();
   if (Object.keys(config).length > 0) {

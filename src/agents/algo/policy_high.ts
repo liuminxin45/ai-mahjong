@@ -50,30 +50,30 @@ function fastDiscardDecision(
 ): Action {
   // 获取定缺花色
   const dingQue = (state as any).dingQueSelection?.[playerId] as 'W' | 'B' | 'T' | undefined;
-  
+
   type FastCand = {
     tile: Tile;
     sAfter: number;
     ukeire: number;
     isDingQue: boolean;
   };
-  
+
   const cands: FastCand[] = [];
-  
+
   // 先尝试从合法出牌中找
   for (const d of discards) {
     if (d.type !== 'DISCARD') continue;
     const idx = hand.findIndex(t => t.suit === d.tile.suit && t.rank === d.tile.rank);
     if (idx < 0) continue;
-    
+
     const hand13 = removeOne(hand, idx);
     const sAfter = shantenWithMelds(hand13, meldCount);
     const ukeire = ukeireTilesWithMelds(hand13, meldCount).total;
     const isDingQue = dingQue ? d.tile.suit === dingQue : false;
-    
+
     cands.push({ tile: d.tile, sAfter, ukeire, isDingQue });
   }
-  
+
   // 如果没有合法出牌，直接从手牌中选择一张
   if (cands.length === 0 && hand.length > 0) {
     // 优先打定缺牌
@@ -86,14 +86,14 @@ function fastDiscardDecision(
     // 否则打第一张
     return { type: 'DISCARD', tile: hand[0] };
   }
-  
+
   if (cands.length === 0) {
     // 实在没有牌可打，返回第一个合法动作
     const anyDiscard = discards.find(d => d.type === 'DISCARD');
     if (anyDiscard) return anyDiscard;
     return { type: 'PASS' };
   }
-  
+
   // 排序规则：
   // 1. 优先打定缺牌
   // 2. 向听数不变或降低
@@ -107,7 +107,7 @@ function fastDiscardDecision(
     // 有效牌多优先
     return b.ukeire - a.ukeire;
   });
-  
+
   return { type: 'DISCARD', tile: cands[0].tile };
 }
 
@@ -131,7 +131,7 @@ export function decideHigh(
     }
     return action;
   };
-  
+
   if (legal.length === 0) return { type: 'PASS' };
 
   const hu = legal.find((a) => a.type === 'HU');
@@ -169,10 +169,48 @@ export function decideHigh(
 
     const gang = legal.find((a) => a.type === 'GANG');
     if (gang && gang.type === 'GANG') {
-      const after = removeNTiles(hand, gang.tile, 3);
+      const gt = gang.gangType; // 'AN' | 'MING' | 'JIA' | 'BU'
+      // Different gang types remove different numbers of tiles from hand
+      const removeCnt = gt === 'AN' ? 4 : gt === 'JIA' ? 1 : 3; // MING/BU: 3
+      const meldDelta = gt === 'JIA' ? 0 : 1; // JIA upgrades existing peng, no new meld
+      const after = removeNTiles(hand, gang.tile, removeCnt);
       if (after) {
-        const s1 = shantenWithMelds(after, meldCount + 1);
-        if (s1 <= s0) return gang;
+        const s1 = shantenWithMelds(after, meldCount + meldDelta);
+
+        if (gt === 'AN') {
+          // 暗杠: Concealed, very safe — accept if shanten doesn't worsen
+          if (s1 <= s0) return gang;
+        } else {
+          // 明杠/加杠/补杠: Exposed, risky — use EV calculation
+          if (testConfig.trainingMode) {
+            if (s1 <= s0) return gang;
+          } else {
+            const gangEV = calcMeldEV(state, playerId, gang.tile, after, meldCount + meldDelta, true);
+            if (s1 <= s0 && gangEV.EV > 0) {
+              (globalThis as any).__aiDecision = {
+                stage: gangEV.stage.stage,
+                candidateActions: [{
+                  action: `GANG(${gt})`,
+                  Pwin: gangEV.Pwin.Pwin,
+                  Score: gangEV.Score.Score,
+                  Plose: gangEV.Plose.Plose,
+                  Loss: gangEV.Loss.Loss,
+                  EV: gangEV.EV,
+                  details: {
+                    xiangting: gangEV.Pwin.xiangting,
+                    effectiveWeighted: gangEV.Pwin.effectiveWeighted,
+                    Pimprove: gangEV.Pwin.Pimprove,
+                    maxRiskOpponent: gangEV.Plose.maxRiskOpponent,
+                  },
+                }],
+                selectedAction: `GANG(${gt})`,
+                selectedEV: gangEV.EV,
+                reasoning: `Stage ${gangEV.stage.stage}: ${gt}杠 ${s0}→${s1}, EV=${gangEV.EV.toFixed(0)}`,
+              };
+              return gang;
+            }
+          }
+        }
       }
     }
 
@@ -181,46 +219,18 @@ export function decideHigh(
       const after = removeNTiles(hand, peng.tile, 2);
       if (after) {
         const s1 = shantenWithMelds(after, meldCount + 1);
-        
-        // 训练模式：简化决策，更积极地碰牌
+
+        // 训练模式：简化决策
         if (testConfig.trainingMode) {
-          // 向听数降低或保持时都碰
-          if (s1 <= s0) {
-            return peng;
-          }
+          if (s1 <= s0) return peng;
           return safeReturn({ type: 'PASS' });
         }
-        
+
         const pengEV = calcMeldEV(state, playerId, peng.tile, after, meldCount + 1, false);
-        
+
         if (s1 < s0) {
-          (globalThis as any).__aiDecision = {
-            stage: pengEV.stage.stage,
-            candidateActions: [{
-              action: 'PENG',
-              Pwin: pengEV.Pwin.Pwin,
-              Score: pengEV.Score.Score,
-              Plose: pengEV.Plose.Plose,
-              Loss: pengEV.Loss.Loss,
-              EV: pengEV.EV,
-              details: {
-                xiangting: pengEV.Pwin.xiangting,
-                effectiveWeighted: pengEV.Pwin.effectiveWeighted,
-                Pimprove: pengEV.Pwin.Pimprove,
-                maxRiskOpponent: pengEV.Plose.maxRiskOpponent,
-              },
-            }],
-            selectedAction: 'PENG',
-            selectedEV: pengEV.EV,
-            reasoning: `Stage ${pengEV.stage.stage}: 碰牌降低向听 ${s0}→${s1}, EV=${pengEV.EV.toFixed(0)}`,
-          };
-          return peng;
-        }
-        
-        if (s1 === s0) {
-          const ukeire0 = ukeireTilesWithMelds(hand, meldCount).total;
-          const ukeire1 = ukeireTilesWithMelds(after, meldCount + 1).total;
-          if (ukeire1 >= ukeire0 * 0.8 && pengEV.EV > 0) {
+          // Shanten decreases — accept if EV is not terrible
+          if (pengEV.EV > -200) {
             (globalThis as any).__aiDecision = {
               stage: pengEV.stage.stage,
               candidateActions: [{
@@ -239,7 +249,36 @@ export function decideHigh(
               }],
               selectedAction: 'PENG',
               selectedEV: pengEV.EV,
-              reasoning: `Stage ${pengEV.stage.stage}: 碰牌保持向听，有效牌${((ukeire1/ukeire0)*100).toFixed(0)}%, EV=${pengEV.EV.toFixed(0)}`,
+              reasoning: `Stage ${pengEV.stage.stage}: 碰牌降低向听 ${s0}→${s1}, EV=${pengEV.EV.toFixed(0)}`,
+            };
+            return peng;
+          }
+        }
+
+        if (s1 === s0 && pengEV.EV > 0) {
+          // Shanten stays — accept only if EV positive
+          const ukeire0 = ukeireTilesWithMelds(hand, meldCount).total;
+          const ukeire1 = ukeireTilesWithMelds(after, meldCount + 1).total;
+          if (ukeire1 >= ukeire0 * 0.6) {
+            (globalThis as any).__aiDecision = {
+              stage: pengEV.stage.stage,
+              candidateActions: [{
+                action: 'PENG',
+                Pwin: pengEV.Pwin.Pwin,
+                Score: pengEV.Score.Score,
+                Plose: pengEV.Plose.Plose,
+                Loss: pengEV.Loss.Loss,
+                EV: pengEV.EV,
+                details: {
+                  xiangting: pengEV.Pwin.xiangting,
+                  effectiveWeighted: pengEV.Pwin.effectiveWeighted,
+                  Pimprove: pengEV.Pwin.Pimprove,
+                  maxRiskOpponent: pengEV.Plose.maxRiskOpponent,
+                },
+              }],
+              selectedAction: 'PENG',
+              selectedEV: pengEV.EV,
+              reasoning: `Stage ${pengEV.stage.stage}: 碰牌保持向听，有效牌${((ukeire1 / ukeire0) * 100).toFixed(0)}%, EV=${pengEV.EV.toFixed(0)}`,
             };
             return peng;
           }
@@ -255,7 +294,7 @@ export function decideHigh(
   const hand = state.hands[playerId];
   const meldCount = state.melds[playerId].length;
   const base = 13 - meldCount * 3;
-  
+
   // 如果手牌数量不对，尝试返回任何有效的出牌动作
   if (hand.length !== base + 1) {
     // 优先返回合法出牌
@@ -290,14 +329,14 @@ export function decideHigh(
   const cands: Cand[] = [];
 
   const style = ctx?.style.style ?? 'BALANCED';
-  
+
   const baseWeights = ctx?.style.styleWeights ?? (() => {
     const wallN = state.wall.length;
     return { efficiencyWeight: 1.0, dangerWeight: wallN <= 8 ? 2.4 : wallN <= 16 ? 1.8 : wallN <= 24 ? 1.3 : 0.8 };
   })();
 
   const metaParams = ctx?.metaParams ?? { efficiencyWeight: 1.0, dangerWeight: 1.0, threatWeight: 1.0 };
-  
+
   const efficiencyWeight = baseWeights.efficiencyWeight * metaParams.efficiencyWeight;
   const dangerWeight = baseWeights.dangerWeight * metaParams.dangerWeight;
 
@@ -396,14 +435,14 @@ export function decideHigh(
     const ev = calcDiscardEV(state, playerId, cand.tile, hand13, meldCount);
     return { tile: cand.tile, ev };
   });
-  
+
   // 按 EV 重新排序（血战到底 EV 可能与原始排序不同）
   candidateEVs.sort((a, b) => b.ev.EV - a.ev.EV);
-  
+
   const bestCandidate = candidateEVs[0];
   const bestEV = bestCandidate.ev;
   const tile = bestCandidate.tile;
-  
+
   // 格式化日志
   const logCandidates = candidateEVs.map(c => ({
     action: `DISCARD:${c.tile.suit}${c.tile.rank}`,
@@ -420,15 +459,15 @@ export function decideHigh(
       riskByOpponent: c.ev.Plose.riskByOpponent,
     },
   }));
-  
+
   (globalThis as any).__aiDecision = {
     stage: bestEV.stage.stage,
     shouldDefend: bestEV.stage.shouldDefend,
     candidateActions: logCandidates,
     selectedAction: `DISCARD:${tile.suit}${tile.rank}`,
     selectedEV: bestEV.EV,
-    reasoning: `Stage ${bestEV.stage.stage}${bestEV.stage.shouldDefend ? ' [防守]' : ''}: 向听${bestEV.Pwin.xiangting} | P(win)=${(bestEV.Pwin.Pwin*100).toFixed(1)}% Score=${bestEV.Score.Score.toFixed(0)} | P(lose)=${(bestEV.Plose.Plose*100).toFixed(1)}% Loss=${bestEV.Loss.Loss.toFixed(0)} | EV=${bestEV.EV.toFixed(0)}`,
+    reasoning: `Stage ${bestEV.stage.stage}${bestEV.stage.shouldDefend ? ' [防守]' : ''}: 向听${bestEV.Pwin.xiangting} | P(win)=${(bestEV.Pwin.Pwin * 100).toFixed(1)}% Score=${bestEV.Score.Score.toFixed(0)} | P(lose)=${(bestEV.Plose.Plose * 100).toFixed(1)}% Loss=${bestEV.Loss.Loss.toFixed(0)} | EV=${bestEV.EV.toFixed(0)}`,
   };
-  
+
   return { type: 'DISCARD', tile };
 }

@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "params": {
-    "xiangtingBase": 0.4550095164609053,
+    "xiangtingBase": 0.45730041152263373,
     "pimproveNStageA": 6,
     "pimproveNStageB": 3,
     "stageFactorB": 0.6864672496570644,
@@ -12,7 +12,7 @@
     "gangPenaltyBCMultiplier": 1.9999112654320987,
     "genbutsuRiskScale": 0.05,
     "dingQueRiskScale": 0.36763194444444447,
-    "meldSuitRiskScale": 1.4459393004115226,
+    "meldSuitRiskScale": 1.4270720164609054,
     "turnRiskFactor": 0.007991242283950617,
     "baseWinValue": 1352.5355795610426,
     "speedBonusK": 199.81610082304528,
@@ -20,18 +20,18 @@
     "stageDiscountB": 0.6526440329218106,
     "baseLoss": 1530.7831790123457,
     "stageMultiplierA": 1.7725518689986282,
-    "stageMultiplierB": 1.7142918381344308,
+    "stageMultiplierB": 1.833644975994513,
     "stageMultiplierC": 3,
     "oppNotHuMultiplier": 1.470536694101509,
     "oppMeldMultiplierK": 0.08532716049382716,
     "informationPenaltyPengA": 125.64360425240056,
-    "informationPenaltyPengB": 183.0179398148148,
+    "informationPenaltyPengB": 198.35590277777777,
     "informationPenaltyGangA": 90.09109224965707,
-    "informationPenaltyGangB": 201.00983796296293
+    "informationPenaltyGangB": 199.326774691358
   },
   "trainingState": {
     "bestParams": {
-      "xiangtingBase": 0.4550095164609053,
+      "xiangtingBase": 0.45730041152263373,
       "pimproveNStageA": 6,
       "pimproveNStageB": 3,
       "stageFactorB": 0.6864672496570644,
@@ -42,7 +42,7 @@
       "gangPenaltyBCMultiplier": 1.9999112654320987,
       "genbutsuRiskScale": 0.05,
       "dingQueRiskScale": 0.36763194444444447,
-      "meldSuitRiskScale": 1.4459393004115226,
+      "meldSuitRiskScale": 1.4270720164609054,
       "turnRiskFactor": 0.007991242283950617,
       "baseWinValue": 1352.5355795610426,
       "speedBonusK": 199.81610082304528,
@@ -50,42 +50,42 @@
       "stageDiscountB": 0.6526440329218106,
       "baseLoss": 1530.7831790123457,
       "stageMultiplierA": 1.7725518689986282,
-      "stageMultiplierB": 1.7142918381344308,
+      "stageMultiplierB": 1.833644975994513,
       "stageMultiplierC": 3,
       "oppNotHuMultiplier": 1.470536694101509,
       "oppMeldMultiplierK": 0.08532716049382716,
       "informationPenaltyPengA": 125.64360425240056,
-      "informationPenaltyPengB": 183.0179398148148,
+      "informationPenaltyPengB": 198.35590277777777,
       "informationPenaltyGangA": 90.09109224965707,
-      "informationPenaltyGangB": 201.00983796296293
+      "informationPenaltyGangB": 199.326774691358
     },
-    "bestFitness": 943,
-    "currentStep": 108,
-    "rngSeed": 1734800000000,
-    "acceptCount": 7,
-    "rejectCount": 101,
+    "bestFitness": -35.6,
+    "currentStep": 2,
+    "rngSeed": 42,
+    "acceptCount": 1,
+    "rejectCount": 1,
     "lastResult": {
-      "fitness": 428.6,
+      "fitness": -134.4,
       "accepted": false,
       "metrics": {
-        "playerId": "P3",
+        "playerId": "P0",
         "result": "BATCH",
-        "finalScore": 300,
-        "didWin": true,
-        "isFirstHu": true,
-        "winTurn": 61,
+        "finalScore": -11.6,
+        "didWin": false,
+        "isFirstHu": false,
+        "winTurn": 60,
         "dealInCount": 0.1,
-        "stageBDealIn": 0,
+        "stageBDealIn": 0.1,
         "stageCDealIn": 0,
         "avgEV": 0,
-        "totalTurns": 61.3,
-        "xiangting": -1,
-        "meldCount": 0,
+        "totalTurns": 58.9,
+        "xiangting": 7,
+        "meldCount": 2,
         "batchSize": 10,
-        "fitness": 428.6,
-        "winRate": 0.4
+        "fitness": -134.4,
+        "winRate": 0.1
       }
     }
   },
-  "updatedAt": "2025-12-21T20:05:43.838Z"
+  "updatedAt": "2026-04-12T11:03:36.070Z"
 }
