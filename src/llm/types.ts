@@ -15,6 +15,7 @@ export interface LLMConfig {
   model: string;
   baseUrl?: string;
   maxTokens: number;
+  contextWindow?: number;
   temperature: number;
   timeout: number;
   cacheEnabled: boolean;
@@ -22,13 +23,13 @@ export interface LLMConfig {
 }
 
 export const DEFAULT_LLM_CONFIG: LLMConfig = {
-  provider: 'deepseek',
-  apiKey: 'sk-24dbbd8a266a463a8706aae3f8f64372',
-  model: 'deepseek-chat',
-  baseUrl: 'https://api.deepseek.com/v1/chat/completions',
-  maxTokens: 2048,
-  temperature: 0.7,
-  timeout: 30000,
+  provider: 'custom',
+  model: 'kimi-for-coding',
+  baseUrl: 'https://api.kimi.com/coding/v1',
+  maxTokens: 32768,
+  contextWindow: 262144,
+  temperature: 0.4,
+  timeout: 60000,
   cacheEnabled: true,
   cacheTTL: 300000, // 5分钟
 };

@@ -3320,6 +3320,82 @@ h4 {
     gap: 8px;
 }
 
+.pixel-coach-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pixel-coach-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pixel-coach-control-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: end;
+}
+
+.pixel-coach-action-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.pixel-coach-advice-card {
+    display: grid;
+    gap: 8px;
+}
+
+.pixel-coach-action {
+    color: #f4f1d8;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: var(--fw-bold);
+    line-height: 1.4;
+}
+
+.pixel-coach-alt-list {
+    display: grid;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.pixel-coach-log {
+    min-height: 190px;
+    max-height: 260px;
+}
+
+.pixel-coach-input-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    width: 100%;
+}
+
+.pixel-coach-input-row--voice {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.pixel-coach-mic {
+    min-width: 54px;
+}
+
+.pixel-coach-mic[data-state='listening'] {
+    background: #d97a54;
+    color: #fff4dd;
+}
+
+.pixel-coach-mic[data-state='processing'] {
+    background: #d8c57e;
+}
+
+.pixel-coach-mic[data-state='error'] {
+    background: #d97a54;
+    color: #fff4dd;
+}
+
 .pixel-chat-launcher {
     position: fixed;
     left: 12px;
@@ -3398,6 +3474,12 @@ h4 {
     }
 
     .pixel-grid--two {
+        grid-template-columns: 1fr;
+    }
+
+    .pixel-coach-control-row,
+    .pixel-coach-input-row,
+    .pixel-coach-input-row--voice {
         grid-template-columns: 1fr;
     }
 }

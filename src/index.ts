@@ -10,11 +10,13 @@ import { storage } from './persistence/storage';
 import { HeuristicAnalyzer } from './analysis/HeuristicAnalyzer';
 import { createBrowserLLMAnalyzerFromStorage } from './analysis/LLMAnalyzer';
 import { placeholderRulePack } from './core/rules/packs/placeholder';
+import { initLLMConfig } from './llm/browserConfig';
 import type { UiCtx } from './ui/context';
 
 let currentCleanup: (() => void) | null = null;
 
 const analyzer = new HeuristicAnalyzer();
+initLLMConfig();
 const llmAnalyzer = createBrowserLLMAnalyzerFromStorage();
 
 const ctx: UiCtx = {
@@ -28,6 +30,10 @@ const ctx: UiCtx = {
     window.location.hash = hash;
   },
 };
+
+window.addEventListener('llm-config-changed', () => {
+  ctx.llmAnalyzer = createBrowserLLMAnalyzerFromStorage();
+});
 
 function mountRouter(root: HTMLElement): void {
   const render = () => {

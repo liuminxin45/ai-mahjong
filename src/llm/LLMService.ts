@@ -22,6 +22,51 @@ import { PromptBuilder } from './PromptBuilder';
 // 简单的内存缓存
 const cache = new Map<string, { data: any; timestamp: number }>();
 
+function isLocalBrowserDev(): boolean {
+  if (typeof window === 'undefined') return false;
+  const { hostname, protocol } = window.location;
+  return protocol.startsWith('http') && (hostname === 'localhost' || hostname === '127.0.0.1');
+}
+
+function mapToDevProxyUrl(provider: LLMConfig['provider'], baseUrl?: string): string | undefined {
+  if (!isLocalBrowserDev() || !baseUrl) return baseUrl;
+  if (baseUrl.startsWith('/')) return baseUrl;
+
+  try {
+    const parsed = new URL(baseUrl);
+    const origin = window.location.origin;
+
+    if (provider === 'custom' && parsed.hostname === 'api.kimi.com' && parsed.pathname.startsWith('/coding/v1')) {
+      return `${origin}/api/llm/kimi`;
+    }
+    if (provider === 'openai' && parsed.hostname === 'api.openai.com') {
+      return `${origin}/api/llm/openai`;
+    }
+    if (provider === 'deepseek' && parsed.hostname === 'api.deepseek.com') {
+      return `${origin}/api/llm/deepseek`;
+    }
+    if (provider === 'anthropic' && parsed.hostname === 'api.anthropic.com') {
+      return `${origin}/api/llm/anthropic`;
+    }
+  } catch {
+    return baseUrl;
+  }
+
+  return baseUrl;
+}
+
+function normalizeOpenAICompatibleUrl(url: string): string {
+  const trimmed = url.trim().replace(/\/+$/, '');
+  if (trimmed.endsWith('/chat/completions')) return trimmed;
+  return `${trimmed}/chat/completions`;
+}
+
+function normalizeAnthropicUrl(url: string): string {
+  const trimmed = url.trim().replace(/\/+$/, '');
+  if (trimmed.endsWith('/messages')) return trimmed;
+  return `${trimmed}/messages`;
+}
+
 /**
  * LLM服务类
  */
@@ -97,8 +142,8 @@ export class LLMService {
     level: GuidanceLevel = 'learning'
   ): Promise<CoachingAdvice> {
     const prompt = PromptBuilder.buildCoachingPrompt(state, playerId, legalActions, level);
-    const response = await this.query(prompt);
-    return this.parseJSON<CoachingAdvice>(response, this.getDefaultCoachingAdvice(legalActions));
+    const response = await this.query(prompt, { useCache: false });
+    return this.parseJSONStrict<CoachingAdvice>(response);
   }
   
   /**
@@ -115,12 +160,7 @@ export class LLMService {
   }> {
     const prompt = PromptBuilder.buildExchangePrompt(hand as any, level);
     const response = await this.query(prompt, { useCache: false });
-    return this.parseJSON(response, {
-      recommendedTiles: [],
-      selectedSuit: '条',
-      reasoning: '选择张数最少的花色',
-      afterExchangePlan: '换牌后根据手牌情况定缺',
-    });
+    return this.parseJSONStrict(response);
   }
   
   /**
@@ -138,13 +178,7 @@ export class LLMService {
   }> {
     const prompt = PromptBuilder.buildDingQuePrompt(hand as any, level);
     const response = await this.query(prompt, { useCache: false });
-    return this.parseJSON(response, {
-      recommendedSuit: '条',
-      confidence: 0.7,
-      reasoning: '选择张数最少、最容易打完的花色',
-      suitRanking: [],
-      playPlan: '优先打掉定缺花色的牌',
-    });
+    return this.parseJSONStrict(response);
   }
   
   /**
@@ -238,10 +272,8 @@ export class LLMService {
   private async callAPI(prompt: string): Promise<string> {
     const { provider, apiKey, model, baseUrl, maxTokens, temperature, timeout } = this.config;
     
-    // 如果没有API Key，返回模拟响应
     if (!apiKey) {
-      console.warn('[LLM] No API key configured, using mock response');
-      return this.getMockResponse(prompt);
+      throw new Error('LLM API key is not configured');
     }
     
     let url: string;
@@ -250,7 +282,10 @@ export class LLMService {
     
     switch (provider) {
       case 'openai':
-        url = baseUrl || 'https://api.openai.com/v1/chat/completions';
+        url = normalizeOpenAICompatibleUrl(
+          mapToDevProxyUrl(provider, baseUrl || 'https://api.openai.com/v1/chat/completions')
+          || 'https://api.openai.com/v1/chat/completions',
+        );
         headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
@@ -264,7 +299,10 @@ export class LLMService {
         break;
         
       case 'anthropic':
-        url = baseUrl || 'https://api.anthropic.com/v1/messages';
+        url = normalizeAnthropicUrl(
+          mapToDevProxyUrl(provider, baseUrl || 'https://api.anthropic.com/v1/messages')
+          || 'https://api.anthropic.com/v1/messages',
+        );
         headers = {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
@@ -278,7 +316,10 @@ export class LLMService {
         break;
         
       case 'deepseek':
-        url = baseUrl || 'https://api.deepseek.com/v1/chat/completions';
+        url = normalizeOpenAICompatibleUrl(
+          mapToDevProxyUrl(provider, baseUrl || 'https://api.deepseek.com/v1/chat/completions')
+          || 'https://api.deepseek.com/v1/chat/completions',
+        );
         headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
@@ -293,7 +334,7 @@ export class LLMService {
         
       case 'custom':
         if (!baseUrl) throw new Error('Custom provider requires baseUrl');
-        url = baseUrl;
+        url = normalizeOpenAICompatibleUrl(mapToDevProxyUrl(provider, baseUrl) || baseUrl);
         headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
@@ -307,7 +348,7 @@ export class LLMService {
         break;
         
       default:
-        return this.getMockResponse(prompt);
+        throw new Error(`Unsupported provider: ${provider}`);
     }
     
     try {
@@ -349,106 +390,8 @@ export class LLMService {
       } else {
         console.error('[LLM] API call failed:', error.message || error);
       }
-      return this.getMockResponse(prompt);
+      throw error;
     }
-  }
-  
-  private getMockResponse(prompt: string): string {
-    // 根据prompt类型返回模拟响应
-    console.log('[LLM] Using mock response for prompt type');
-    
-    // 换三张阶段
-    if (prompt.includes('换三张') || prompt.includes('EXCHANGE')) {
-      return `根据你的手牌分析：
-
-**建议换出的花色**: 选择张数最少或孤张最多的花色
-
-**换牌策略**:
-1. 优先换出孤张（没有相邻牌的单张）
-2. 避免拆掉对子、刻子或顺子
-3. 换出的花色很可能成为定缺花色
-
-**注意**: 如果某花色已有10张以上且牌型好，可考虑追清一色，换掉其他花色的牌。
-
-请根据你的具体手牌情况做出选择。`;
-    }
-    
-    // 定缺阶段
-    if (prompt.includes('定缺') || prompt.includes('DING_QUE') || prompt.includes('应该定哪')) {
-      return `**定缺建议**:
-
-选择原则（按优先级）:
-1. **张数最少**的花色 - 容易打完
-2. **孤张多**的花色 - 容易出手
-3. **没有刻子/顺子**的花色 - 不破坏牌型
-
-**避免定缺**:
-- 有刻子（3张相同）的花色
-- 有顺子的花色
-- 搭子多的花色
-
-**特殊情况**: 如果追求清一色，可以定掉其他花色，即使张数少。
-
-请查看你手牌中各花色的张数和牌型，选择最容易打完的那门。`;
-    }
-    
-    if (prompt.includes('出牌建议') || prompt.includes('麻将教练')) {
-      return JSON.stringify({
-        recommendedAction: '打3万',
-        confidence: 0.8,
-        reasoning: '这张牌是安全牌，不会放炮',
-        alternatives: [
-          { action: '打5条', pros: ['进攻性强'], cons: ['有放炮风险'] }
-        ],
-        riskAssessment: {
-          dealInRisk: 'low',
-          riskySuits: ['条'],
-          safeDiscards: ['3万', '9筒']
-        },
-        strategicHints: ['保持防守姿态', '观察对手动向']
-      });
-    }
-    
-    if (prompt.includes('复盘') || prompt.includes('分析这局')) {
-      return JSON.stringify({
-        keyMoments: [],
-        overallAssessment: {
-          strengths: ['防守意识不错'],
-          weaknesses: ['进攻时机把握不够'],
-          score: 70,
-          grade: 'B'
-        },
-        improvements: ['多关注对手的弃牌', '提高听牌效率']
-      });
-    }
-    
-    if (prompt.includes('画像') || prompt.includes('统计数据')) {
-      return JSON.stringify({
-        skillLevel: {
-          overall: 65,
-          rank: 'intermediate',
-          skills: {
-            handReading: 60,
-            efficiency: 70,
-            defense: 75,
-            riskManagement: 65,
-            timing: 60,
-            adaptation: 70
-          }
-        },
-        playStyle: {
-          primaryStyle: 'balanced',
-          metrics: { aggression: 0.5, caution: 0.6, flexibility: 0.7, consistency: 0.6 },
-          description: '平衡型玩家，攻守兼备',
-          strengths: ['防守稳健'],
-          weaknesses: ['进攻不够果断']
-        },
-        recommendations: ['练习听牌判断', '提高进攻意识']
-      });
-    }
-    
-    // 默认问答响应
-    return '这是一个好问题！在麻将中，最重要的是保持冷静，根据场上情况灵活调整策略。建议多观察对手的出牌规律，这样可以更好地判断危险牌和安全牌。';
   }
   
   private parseJSON<T>(response: string, defaultValue: T): T {
@@ -463,6 +406,14 @@ export class LLMService {
       console.warn('[LLM] Failed to parse JSON response:', e);
       return defaultValue;
     }
+  }
+
+  private parseJSONStrict<T>(response: string): T {
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('LLM response did not contain JSON');
+    }
+    return JSON.parse(jsonMatch[0]) as T;
   }
   
   private getDefaultCoachingAdvice(legalActions: Action[]): CoachingAdvice {

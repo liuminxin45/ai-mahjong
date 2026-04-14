@@ -1,3 +1,4 @@
+import { getEffectiveLLMConfig } from '../llm/browserConfig';
 import type { DiscardRecommendation } from './HeuristicAnalyzer';
 import type { MatchStat } from './statistics';
 import type { MatchReport } from './matchReport';
@@ -8,6 +9,12 @@ import type { PopulationPersona } from './populationPersona';
 import type { PopulationMistake } from './populationMistakes';
 import type { LearningStep } from './learningRoadmap';
 import type { TeachingOutcome } from './abTesting';
+
+function normalizeOpenAICompatibleEndpoint(endpoint: string): string {
+  const trimmed = endpoint.trim().replace(/\/+$/, '');
+  if (trimmed.endsWith('/chat/completions')) return trimmed;
+  return `${trimmed}/chat/completions`;
+}
 
 export interface LLMAnalyzer {
   explainDecision(input: {
@@ -57,6 +64,7 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
   constructor(cfg: OpenAICompatibleConfig) {
     this.cfg = {
       ...cfg,
+      endpoint: normalizeOpenAICompatibleEndpoint(cfg.endpoint),
       timeoutMs: cfg.timeoutMs ?? 15000,
     };
   }
@@ -576,9 +584,10 @@ function getToneInstruction(tone: string): string {
 }
 
 export function createBrowserLLMAnalyzerFromStorage(): LLMAnalyzer | null {
-  const endpoint = window.localStorage.getItem('LLM_ENDPOINT')?.trim();
-  const apiKey = window.localStorage.getItem('LLM_API_KEY')?.trim();
-  const model = window.localStorage.getItem('LLM_MODEL')?.trim();
+  const config = getEffectiveLLMConfig();
+  const endpoint = config.baseUrl?.trim();
+  const apiKey = config.apiKey?.trim();
+  const model = config.model?.trim();
 
   if (!endpoint || !apiKey || !model) return null;
 

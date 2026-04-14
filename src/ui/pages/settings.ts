@@ -2,6 +2,9 @@ import type { RuleId, UiMode } from '../../store/settingsStore';
 import type { UiCtx } from '../context';
 import { languageStore } from '../../store/languageStore';
 import { createPixelButton } from '../components/pixelFrame';
+import { renderLLMSettingsPanel } from '../components/LLMSettingsPanel';
+import { getEffectiveLLMConfig } from '../../llm/browserConfig';
+import { getAiText } from '../aiLocale';
 
 export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   root.innerHTML = '';
@@ -135,8 +138,10 @@ function renderSettingsSection(ctx: UiCtx): HTMLElement {
 
 function renderAISection(ctx: UiCtx): HTMLElement {
   const t = languageStore.t().settings;
+  const aiText = getAiText().settings;
   const section = createSection(t.p0AIMode, t.p0AIModeDesc);
   const body = section.querySelector('.pixel-page-section__body') as HTMLElement;
+  const llmConfig = getEffectiveLLMConfig();
 
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
@@ -148,6 +153,23 @@ function renderAISection(ctx: UiCtx): HTMLElement {
   };
 
   body.appendChild(createInlineField(t.p0AIMode, checkbox));
+
+  const llmEnabled = document.createElement('input');
+  llmEnabled.type = 'checkbox';
+  llmEnabled.className = 'pixel-checkbox';
+  llmEnabled.checked = ctx.settingsStore.llmEnabled;
+  llmEnabled.onchange = () => ctx.settingsStore.setLlmEnabled(llmEnabled.checked);
+  body.appendChild(createInlineField(aiText.llmTutor, llmEnabled));
+
+  body.appendChild(createInfoRow(aiText.provider, llmConfig.provider === 'custom' ? aiText.providerOpenAICompatible : (llmConfig.provider || aiText.providerOff).toUpperCase()));
+  body.appendChild(createInfoRow(aiText.model, llmConfig.model || aiText.providerOff));
+
+  const llmRow = document.createElement('div');
+  llmRow.className = 'pixel-btn-row';
+  const llmButton = createPixelButton(aiText.llmSettings, 'neutral');
+  llmButton.onclick = () => renderLLMSettingsPanel();
+  llmRow.appendChild(llmButton);
+  body.appendChild(llmRow);
   return section;
 }
 

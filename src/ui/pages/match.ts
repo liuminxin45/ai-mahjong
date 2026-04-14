@@ -2,6 +2,11 @@ import type { UiCtx } from '../context';
 import { renderDebugMode } from '../renderers/matchDebugRenderer';
 import { renderTableMode } from '../renderers/matchTableRenderer';
 import { renderEventLine } from '../components/eventLogView';
+import {
+  removeChatAssistantSurface,
+  renderChatAssistantButton,
+  syncCoachPanelContext,
+} from '../components/LLMChatAssistant';
 import { languageStore } from '../../store/languageStore';
 
 export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
@@ -21,6 +26,7 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
 
   const contentArea = document.createElement('div');
   contentArea.className = 'match-page__content';
+  let aiLauncher: HTMLElement | null = null;
 
   page.appendChild(toolbar);
   page.appendChild(contentArea);
@@ -40,6 +46,7 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
     toolbar.innerHTML = '';
 
     appendToolbarButton(t.common.back, () => ctx.navigate('#/'));
+    appendToolbarButton(t.home.settings, () => ctx.navigate('#/settings'));
     appendToolbarButton(t.game.copyLog, () => {
       const replay = ctx.orchestrator.exportReplay();
       const text = replay.events.map(ev => renderEventLine(ev)).join('\n');
@@ -68,6 +75,24 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
     } else {
       renderTableMode(contentArea, ctx);
     }
+
+    const coachContext = ctx.gameStore.state
+      ? {
+        gameState: ctx.gameStore.state,
+        legalActions: ctx.orchestrator.getLegalActions('P0'),
+      }
+      : {};
+
+    syncCoachPanelContext(coachContext);
+
+    aiLauncher?.remove();
+    aiLauncher = null;
+    if (ctx.settingsStore.llmEnabled && ctx.gameStore.state) {
+      aiLauncher = renderChatAssistantButton(coachContext);
+      page.appendChild(aiLauncher);
+    } else {
+      removeChatAssistantSurface();
+    }
   };
 
   render();
@@ -75,6 +100,8 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   const unsubSettings = ctx.settingsStore.subscribe(render);
 
   return () => {
+    aiLauncher?.remove();
+    removeChatAssistantSurface();
     unsub();
     unsubSettings();
   };
