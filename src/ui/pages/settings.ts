@@ -3,7 +3,7 @@ import type { UiCtx } from '../context';
 import { languageStore } from '../../store/languageStore';
 import { createPixelButton } from '../components/pixelFrame';
 import { renderLLMSettingsPanel } from '../components/LLMSettingsPanel';
-import { getEffectiveLLMConfig } from '../../llm/browserConfig';
+import { getActiveLLMProfile } from '../../llm/browserConfig';
 import { getAiText } from '../aiLocale';
 
 export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
@@ -141,7 +141,7 @@ function renderAISection(ctx: UiCtx): HTMLElement {
   const aiText = getAiText().settings;
   const section = createSection(t.p0AIMode, t.p0AIModeDesc);
   const body = section.querySelector('.pixel-page-section__body') as HTMLElement;
-  const llmConfig = getEffectiveLLMConfig();
+  const activeProfile = getActiveLLMProfile();
 
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
@@ -161,8 +161,8 @@ function renderAISection(ctx: UiCtx): HTMLElement {
   llmEnabled.onchange = () => ctx.settingsStore.setLlmEnabled(llmEnabled.checked);
   body.appendChild(createInlineField(aiText.llmTutor, llmEnabled));
 
-  body.appendChild(createInfoRow(aiText.provider, llmConfig.provider === 'custom' ? aiText.providerOpenAICompatible : (llmConfig.provider || aiText.providerOff).toUpperCase()));
-  body.appendChild(createInfoRow(aiText.model, llmConfig.model || aiText.providerOff));
+  body.appendChild(createInfoRow(aiText.provider, activeProfile ? activeProfile.kind === 'kimi_coding_anthropic' ? 'Kimi Coding / Anthropic' : aiText.providerOpenAICompatible : aiText.providerOff));
+  body.appendChild(createInfoRow(aiText.model, activeProfile?.model || aiText.providerOff));
 
   const llmRow = document.createElement('div');
   llmRow.className = 'pixel-btn-row';

@@ -36,8 +36,12 @@ function mapToDevProxyUrl(provider: LLMConfig['provider'], baseUrl?: string): st
     const parsed = new URL(baseUrl);
     const origin = window.location.origin;
 
-    if (provider === 'custom' && parsed.hostname === 'api.kimi.com' && parsed.pathname.startsWith('/coding/v1')) {
-      return `${origin}/api/llm/kimi`;
+    if (
+      (provider === 'custom' || provider === 'anthropic')
+      && parsed.hostname === 'api.kimi.com'
+      && parsed.pathname.startsWith('/coding/v1')
+    ) {
+      return `${origin}/api/llm/kimi/messages`;
     }
     if (provider === 'openai' && parsed.hostname === 'api.openai.com') {
       return `${origin}/api/llm/openai`;
@@ -65,6 +69,31 @@ function normalizeAnthropicUrl(url: string): string {
   const trimmed = url.trim().replace(/\/+$/, '');
   if (trimmed.endsWith('/messages')) return trimmed;
   return `${trimmed}/messages`;
+}
+
+function isManagedLLMUrl(url?: string): boolean {
+  if (!url) return false;
+
+  try {
+    const parsed = new URL(url, 'http://localhost');
+    return parsed.pathname.startsWith('/api/llm/');
+  } catch {
+    return false;
+  }
+}
+
+function isKimiCodingUrl(url?: string): boolean {
+  if (!url) return false;
+
+  try {
+    const parsed = new URL(url, 'http://localhost');
+    return (
+      (parsed.hostname === 'api.kimi.com' && parsed.pathname.startsWith('/coding/v1'))
+      || parsed.pathname.startsWith('/api/llm/kimi')
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -272,7 +301,7 @@ export class LLMService {
   private async callAPI(prompt: string): Promise<string> {
     const { provider, apiKey, model, baseUrl, maxTokens, temperature, timeout } = this.config;
     
-    if (!apiKey) {
+    if (!apiKey && !isManagedLLMUrl(baseUrl)) {
       throw new Error('LLM API key is not configured');
     }
     
@@ -334,17 +363,33 @@ export class LLMService {
         
       case 'custom':
         if (!baseUrl) throw new Error('Custom provider requires baseUrl');
-        url = normalizeOpenAICompatibleUrl(mapToDevProxyUrl(provider, baseUrl) || baseUrl);
-        headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        };
-        body = {
-          model,
-          messages: [{ role: 'user', content: prompt }],
-          max_tokens: maxTokens,
-          temperature,
-        };
+        if (isKimiCodingUrl(baseUrl)) {
+          url = normalizeAnthropicUrl(mapToDevProxyUrl(provider, baseUrl) || baseUrl);
+          headers = {
+            'Content-Type': 'application/json',
+          };
+          if (!isManagedLLMUrl(url)) {
+            headers['x-api-key'] = apiKey!;
+            headers['anthropic-version'] = '2023-06-01';
+          }
+          body = {
+            model,
+            max_tokens: maxTokens,
+            messages: [{ role: 'user', content: prompt }],
+          };
+        } else {
+          url = normalizeOpenAICompatibleUrl(mapToDevProxyUrl(provider, baseUrl) || baseUrl);
+          headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          };
+          body = {
+            model,
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: maxTokens,
+            temperature,
+          };
+        }
         break;
         
       default:
@@ -379,7 +424,7 @@ export class LLMService {
       console.log('[LLM] API response received successfully');
       
       // 解析不同提供商的响应格式
-      if (provider === 'anthropic') {
+      if (provider === 'anthropic' || (provider === 'custom' && isKimiCodingUrl(baseUrl))) {
         return data.content?.[0]?.text || '';
       } else {
         return data.choices?.[0]?.message?.content || '';

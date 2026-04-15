@@ -22,11 +22,31 @@ export interface LLMConfig {
   cacheTTL: number;
 }
 
+export type LLMProfileKind = 'kimi_coding_anthropic' | 'openai_compatible';
+
+export interface LLMProfile {
+  id: string;
+  name: string;
+  kind: LLMProfileKind;
+  apiKey?: string;
+  model: string;
+  baseUrl: string;
+  maxTokens: number;
+  contextWindow?: number;
+  temperature: number;
+  timeout: number;
+}
+
+export interface LLMProfileStore {
+  profiles: LLMProfile[];
+  activeProfileId?: string;
+}
+
 export const DEFAULT_LLM_CONFIG: LLMConfig = {
   provider: 'custom',
-  model: 'kimi-for-coding',
-  baseUrl: 'https://api.kimi.com/coding/v1',
-  maxTokens: 32768,
+  model: 'kimi-k2-thinking',
+  baseUrl: 'https://api.kimi.com/coding/v1/messages',
+  maxTokens: 1024,
   contextWindow: 262144,
   temperature: 0.4,
   timeout: 60000,

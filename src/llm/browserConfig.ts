@@ -1,90 +1,188 @@
-import type { LLMConfig } from './types';
 import { llmService } from './LLMService';
+import type { LLMConfig, LLMProfile, LLMProfileKind, LLMProfileStore } from './types';
 
 export const LLM_CONFIG_STORAGE_KEY = 'ai-mahjong:llm-config';
 
-const DEFAULT_BROWSER_LLM_PRESET: Partial<LLMConfig> = {
-  provider: 'custom',
-  model: 'kimi-for-coding',
-  baseUrl: 'https://api.kimi.com/coding/v1',
-  maxTokens: 32768,
-  contextWindow: 262144,
-  temperature: 0.4,
-  timeout: 60000,
-};
-
-function readEnvString(name: string): string | undefined {
-  const value = import.meta.env[name];
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+function createId(): string {
+  return `llm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function readEnvNumber(name: string): number | undefined {
-  const value = readEnvString(name);
-  if (!value) return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
+export function createDefaultProfile(kind: LLMProfileKind): LLMProfile {
+  if (kind === 'kimi_coding_anthropic') {
+    return {
+      id: createId(),
+      name: 'Kimi Coding',
+      kind,
+      apiKey: '',
+      model: 'kimi-k2-thinking',
+      baseUrl: 'https://api.kimi.com/coding/v1/messages',
+      maxTokens: 1024,
+      contextWindow: 262144,
+      temperature: 0.4,
+      timeout: 60000,
+    };
+  }
+
+  return {
+    id: createId(),
+    name: 'OpenAI Compatible',
+    kind,
+    apiKey: '',
+    model: 'gpt-4o-mini',
+    baseUrl: 'https://api.openai.com/v1/chat/completions',
+    maxTokens: 4096,
+    contextWindow: 128000,
+    temperature: 0.4,
+    timeout: 60000,
+  };
 }
 
-export function loadStoredLLMConfig(): Partial<LLMConfig> {
+function buildDefaultStore(): LLMProfileStore {
+  const defaultProfile = createDefaultProfile('kimi_coding_anthropic');
+  return {
+    profiles: [defaultProfile],
+    activeProfileId: defaultProfile.id,
+  };
+}
+
+function sanitizeProfile(profile: LLMProfile): LLMProfile {
+  return {
+    ...profile,
+    name: profile.name.trim() || 'Untitled Model',
+    apiKey: profile.apiKey?.trim() || '',
+    model: profile.model.trim(),
+    baseUrl: profile.baseUrl.trim(),
+    maxTokens: Number.isFinite(profile.maxTokens) ? profile.maxTokens : 1024,
+    contextWindow: Number.isFinite(profile.contextWindow) ? profile.contextWindow : undefined,
+    temperature: Number.isFinite(profile.temperature) ? profile.temperature : 0.4,
+    timeout: Number.isFinite(profile.timeout) ? profile.timeout : 60000,
+  };
+}
+
+function normalizeStore(store: Partial<LLMProfileStore> | undefined): LLMProfileStore {
+  const fallback = buildDefaultStore();
+  const rawProfiles = Array.isArray(store?.profiles) ? store!.profiles : fallback.profiles;
+  const profiles = rawProfiles
+    .filter((profile): profile is LLMProfile => !!profile && typeof profile.id === 'string')
+    .map((profile) => sanitizeProfile(profile));
+
+  if (profiles.length === 0) {
+    return fallback;
+  }
+
+  const activeProfileId = profiles.some((profile) => profile.id === store?.activeProfileId)
+    ? store?.activeProfileId
+    : profiles[0].id;
+
+  return {
+    profiles,
+    activeProfileId,
+  };
+}
+
+function mapProfileToLLMConfig(profile: LLMProfile): Partial<LLMConfig> {
+  if (profile.kind === 'kimi_coding_anthropic') {
+    return {
+      provider: 'anthropic',
+      apiKey: profile.apiKey,
+      model: profile.model,
+      baseUrl: profile.baseUrl,
+      maxTokens: profile.maxTokens,
+      contextWindow: profile.contextWindow,
+      temperature: profile.temperature,
+      timeout: profile.timeout,
+    };
+  }
+
+  return {
+    provider: 'custom',
+    apiKey: profile.apiKey,
+    model: profile.model,
+    baseUrl: profile.baseUrl,
+    maxTokens: profile.maxTokens,
+    contextWindow: profile.contextWindow,
+    temperature: profile.temperature,
+    timeout: profile.timeout,
+  };
+}
+
+function syncLegacyLLMStorageFromProfile(profile?: LLMProfile): void {
+  if (!profile) {
+    localStorage.removeItem('LLM_ENDPOINT');
+    localStorage.removeItem('LLM_API_KEY');
+    localStorage.removeItem('LLM_MODEL');
+    return;
+  }
+
+  localStorage.setItem('LLM_ENDPOINT', profile.baseUrl);
+  if (profile.apiKey) localStorage.setItem('LLM_API_KEY', profile.apiKey);
+  else localStorage.removeItem('LLM_API_KEY');
+  localStorage.setItem('LLM_MODEL', profile.model);
+}
+
+export function loadStoredLLMStore(): LLMProfileStore {
   try {
     const saved = localStorage.getItem(LLM_CONFIG_STORAGE_KEY);
-    return saved ? JSON.parse(saved) as Partial<LLMConfig> : {};
+    if (!saved) return buildDefaultStore();
+    return normalizeStore(JSON.parse(saved) as Partial<LLMProfileStore>);
   } catch {
-    return {};
+    return buildDefaultStore();
   }
 }
 
-export function readEnvLLMConfig(): Partial<LLMConfig> {
-  return {
-    provider: (readEnvString('VITE_LLM_PROVIDER') as LLMConfig['provider'] | undefined),
-    apiKey: readEnvString('VITE_LLM_API_KEY'),
-    model: readEnvString('VITE_LLM_MODEL'),
-    baseUrl: readEnvString('VITE_LLM_BASE_URL'),
-    maxTokens: readEnvNumber('VITE_LLM_MAX_TOKENS'),
-    contextWindow: readEnvNumber('VITE_LLM_CONTEXT_WINDOW'),
-    temperature: readEnvNumber('VITE_LLM_TEMPERATURE'),
-    timeout: readEnvNumber('VITE_LLM_TIMEOUT_MS'),
-  };
+export function getLLMProfiles(): LLMProfile[] {
+  return loadStoredLLMStore().profiles;
 }
 
-export function getDefaultBrowserLLMPreset(): Partial<LLMConfig> {
-  return { ...DEFAULT_BROWSER_LLM_PRESET };
+export function getActiveLLMProfile(): LLMProfile | undefined {
+  const store = loadStoredLLMStore();
+  return store.profiles.find((profile) => profile.id === store.activeProfileId);
+}
+
+export function getDefaultBrowserLLMPreset(kind: LLMProfileKind = 'kimi_coding_anthropic'): LLMProfile {
+  return createDefaultProfile(kind);
 }
 
 export function getEffectiveLLMConfig(): Partial<LLMConfig> {
-  return {
-    ...DEFAULT_BROWSER_LLM_PRESET,
-    ...readEnvLLMConfig(),
-    ...loadStoredLLMConfig(),
-  };
+  const active = getActiveLLMProfile();
+  return active ? mapProfileToLLMConfig(active) : {};
 }
 
-export function syncLegacyLLMStorage(config: Partial<LLMConfig>): void {
-  const endpoint = config.baseUrl?.trim();
-  const apiKey = config.apiKey?.trim();
-  const model = config.model?.trim();
+export function persistLLMStore(store: LLMProfileStore): LLMProfileStore {
+  const normalized = normalizeStore(store);
+  localStorage.setItem(LLM_CONFIG_STORAGE_KEY, JSON.stringify(normalized));
 
-  if (endpoint) localStorage.setItem('LLM_ENDPOINT', endpoint);
-  else localStorage.removeItem('LLM_ENDPOINT');
+  const active = normalized.profiles.find((profile) => profile.id === normalized.activeProfileId);
+  syncLegacyLLMStorageFromProfile(active);
+  llmService.updateConfig(active ? mapProfileToLLMConfig(active) : {});
+  window.dispatchEvent(new CustomEvent('llm-config-changed'));
 
-  if (apiKey) localStorage.setItem('LLM_API_KEY', apiKey);
-  else localStorage.removeItem('LLM_API_KEY');
-
-  if (model) localStorage.setItem('LLM_MODEL', model);
-  else localStorage.removeItem('LLM_MODEL');
+  return normalized;
 }
 
 export function persistLLMConfig(config: Partial<LLMConfig>): Partial<LLMConfig> {
-  localStorage.setItem(LLM_CONFIG_STORAGE_KEY, JSON.stringify(config));
-  syncLegacyLLMStorage(config);
-  llmService.updateConfig(config);
-  window.dispatchEvent(new CustomEvent('llm-config-changed'));
-  return config;
+  const store = loadStoredLLMStore();
+  const activeId = store.activeProfileId ?? store.profiles[0]?.id;
+  const profiles = store.profiles.map((profile) => {
+    if (profile.id !== activeId) return profile;
+    return sanitizeProfile({
+      ...profile,
+      apiKey: config.apiKey,
+      model: config.model ?? profile.model,
+      baseUrl: config.baseUrl ?? profile.baseUrl,
+      maxTokens: config.maxTokens ?? profile.maxTokens,
+      contextWindow: config.contextWindow ?? profile.contextWindow,
+      temperature: config.temperature ?? profile.temperature,
+      timeout: config.timeout ?? profile.timeout,
+    });
+  });
+  persistLLMStore({ profiles, activeProfileId: activeId });
+  return getEffectiveLLMConfig();
 }
 
 export function initLLMConfig(): Partial<LLMConfig> {
-  const config = getEffectiveLLMConfig();
-  syncLegacyLLMStorage(config);
-  llmService.updateConfig(config);
-  return config;
+  const active = getActiveLLMProfile();
+  syncLegacyLLMStorageFromProfile(active);
+  llmService.updateConfig(active ? mapProfileToLLMConfig(active) : {});
+  return active ? mapProfileToLLMConfig(active) : {};
 }

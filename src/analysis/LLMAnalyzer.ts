@@ -12,6 +12,7 @@ import type { TeachingOutcome } from './abTesting';
 
 function normalizeOpenAICompatibleEndpoint(endpoint: string): string {
   const trimmed = endpoint.trim().replace(/\/+$/, '');
+  if (trimmed.endsWith('/messages')) return trimmed;
   if (trimmed.endsWith('/chat/completions')) return trimmed;
   return `${trimmed}/chat/completions`;
 }
@@ -53,13 +54,13 @@ export interface LLMAnalyzer {
 
 export type OpenAICompatibleConfig = {
   endpoint: string;
-  apiKey: string;
+  apiKey?: string;
   model: string;
   timeoutMs?: number;
 };
 
 export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
-  private readonly cfg: Required<OpenAICompatibleConfig>;
+  private readonly cfg: OpenAICompatibleConfig & { timeoutMs: number };
 
   constructor(cfg: OpenAICompatibleConfig) {
     this.cfg = {
@@ -79,11 +80,7 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
     try {
       const res = await fetch(this.cfg.endpoint, {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${this.cfg.apiKey}`,
-          accept: 'text/event-stream',
-        },
+        headers: this.buildHeaders(true),
         body: JSON.stringify({
           model: this.cfg.model,
           messages: [
@@ -100,7 +97,7 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
       }
 
       const data = (await res.json()) as any;
-      const text = data?.choices?.[0]?.message?.content;
+      const text = data?.choices?.[0]?.message?.content ?? data?.content?.[0]?.text;
       if (typeof text !== 'string' || text.trim().length === 0) {
         throw new Error('LLM empty response');
       }
@@ -124,10 +121,7 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
     try {
       const res = await fetch(this.cfg.endpoint, {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${this.cfg.apiKey}`,
-        },
+        headers: this.buildHeaders(false),
         body: JSON.stringify({
           model: this.cfg.model,
           messages: [
@@ -242,7 +236,7 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
       }
 
       const data = (await res.json()) as any;
-      const text = data?.choices?.[0]?.message?.content;
+      const text = data?.choices?.[0]?.message?.content ?? data?.content?.[0]?.text;
       if (typeof text !== 'string' || text.trim().length === 0) {
         throw new Error('LLM empty response');
       }
@@ -281,10 +275,7 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
     try {
       const res = await fetch(this.cfg.endpoint, {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${this.cfg.apiKey}`,
-        },
+        headers: this.buildHeaders(false),
         body: JSON.stringify({
           model: this.cfg.model,
           messages: [
@@ -301,7 +292,7 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
       }
 
       const data = (await res.json()) as any;
-      const text = data?.choices?.[0]?.message?.content;
+      const text = data?.choices?.[0]?.message?.content ?? data?.content?.[0]?.text;
       if (typeof text !== 'string' || text.trim().length === 0) {
         throw new Error('LLM empty response');
       }
@@ -354,10 +345,7 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
     try {
       const res = await fetch(this.cfg.endpoint, {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${this.cfg.apiKey}`,
-        },
+        headers: this.buildHeaders(false),
         body: JSON.stringify({
           model: this.cfg.model,
           messages: [
@@ -374,7 +362,7 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
       }
 
       const data = (await res.json()) as any;
-      const text = data?.choices?.[0]?.message?.content;
+      const text = data?.choices?.[0]?.message?.content ?? data?.content?.[0]?.text;
       if (typeof text !== 'string' || text.trim().length === 0) {
         throw new Error('LLM empty response');
       }
@@ -428,10 +416,7 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
     try {
       const res = await fetch(this.cfg.endpoint, {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${this.cfg.apiKey}`,
-        },
+        headers: this.buildHeaders(false),
         body: JSON.stringify({
           model: this.cfg.model,
           messages: [
@@ -543,7 +528,7 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
       }
 
       const data = (await res.json()) as any;
-      const text = data?.choices?.[0]?.message?.content;
+      const text = data?.choices?.[0]?.message?.content ?? data?.content?.[0]?.text;
       if (typeof text !== 'string' || text.trim().length === 0) {
         throw new Error('LLM empty response');
       }
@@ -551,6 +536,22 @@ export class OpenAICompatibleLLMAnalyzer implements LLMAnalyzer {
     } finally {
       clearTimeout(t);
     }
+  }
+
+  private buildHeaders(includeAccept: boolean): Record<string, string> {
+    const headers: Record<string, string> = {
+      'content-type': 'application/json',
+    };
+
+    if (includeAccept) {
+      headers.accept = 'text/event-stream';
+    }
+
+    if (this.cfg.apiKey) {
+      headers.authorization = `Bearer ${this.cfg.apiKey}`;
+    }
+
+    return headers;
   }
 }
 
@@ -589,7 +590,7 @@ export function createBrowserLLMAnalyzerFromStorage(): LLMAnalyzer | null {
   const apiKey = config.apiKey?.trim();
   const model = config.model?.trim();
 
-  if (!endpoint || !apiKey || !model) return null;
+  if (!endpoint || !model) return null;
 
   return new OpenAICompatibleLLMAnalyzer({ endpoint, apiKey, model });
 }

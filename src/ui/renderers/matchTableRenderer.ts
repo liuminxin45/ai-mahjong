@@ -284,16 +284,20 @@ function renderReactionRow(ctx: UiCtx, state: any): HTMLElement {
   const actions: Action[] = [];
 
   if (state.lastDiscard && state.lastDiscard.from !== 'P0' && hasRealReactions) {
-    actions.push(
-      ...['HU', 'GANG', 'PENG', 'PASS']
-        .map((type) => reactions.find((action) => action.type === type as Action['type']))
-        .filter(Boolean) as Action[],
-    );
+    const hu = reactions.find((action) => action.type === 'HU');
+    const gangs = reactions.filter((action) => action.type === 'GANG');
+    const peng = reactions.find((action) => action.type === 'PENG');
+    const pass = reactions.find((action) => action.type === 'PASS');
+
+    if (hu) actions.push(hu);
+    actions.push(...gangs);
+    if (peng) actions.push(peng);
+    if (pass) actions.push(pass);
   }
 
   if (state.currentPlayer === 'P0' && !state.lastDiscard) {
-    const selfDrawHu = legal.find((action) => action.type === 'HU');
-    if (selfDrawHu) actions.push(selfDrawHu);
+    const selfActions = legal.filter((action) => action.type === 'HU' || action.type === 'GANG');
+    actions.push(...selfActions);
   }
 
   if (actions.length === 0) {
@@ -308,12 +312,30 @@ function renderReactionRow(ctx: UiCtx, state: any): HTMLElement {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `pixel-action-btn pixel-action-btn--${action.type.toLowerCase()}`;
-    btn.textContent = mapActionLabel(action.type, t);
+    btn.textContent = formatActionLabel(action, t);
     btn.onclick = () => ctx.orchestrator.dispatchHumanAction(action);
     row.appendChild(btn);
   }
 
   return row;
+}
+
+function formatActionLabel(action: Action, t: ReturnType<typeof languageStore.t>['game']): string {
+  if (action.type !== 'GANG') {
+    return mapActionLabel(action.type, t);
+  }
+
+  const tile = `${action.tile.suit}${action.tile.rank}`;
+  const gangPrefix =
+    action.gangType === 'AN'
+      ? '暗杠'
+      : action.gangType === 'JIA'
+        ? '补杠'
+        : action.gangType === 'MING'
+          ? '明杠'
+          : '杠';
+
+  return `${gangPrefix} ${tile}`;
 }
 
 function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {

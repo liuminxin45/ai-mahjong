@@ -48,6 +48,7 @@ type CoachTexts = {
   voiceError: string;
   voiceOff: string;
   levelNames: Record<'beginner' | 'learning' | 'practicing' | 'advanced', string>;
+  levelDescriptions: Record<'beginner' | 'learning' | 'practicing' | 'advanced', string>;
   quickQuestions: {
     exchange: string[];
     dingQue: string[];
@@ -64,6 +65,20 @@ type CoachTexts = {
 type LlmSettingsTexts = {
   title: string;
   subtitle: string;
+  profiles: string;
+  active: string;
+  addKimi: string;
+  addOpenAICompatible: string;
+  activate: string;
+  delete: string;
+  testConnection: string;
+  testing: string;
+  name: string;
+  kind: string;
+  noProfiles: string;
+  activeBadge: string;
+  apiKeyReady: string;
+  apiKeyMissing: string;
   provider: string;
   apiKey: string;
   model: string;
@@ -77,7 +92,11 @@ type LlmSettingsTexts = {
   cancel: string;
   save: string;
   savedToast: string;
+  deletedToast: string;
+  connectionOkToast: string;
+  connectionFailedToast: string;
   providerLabels: {
+    kimiCodingAnthropic: string;
     openaiCompatible: string;
     openai: string;
     anthropic: string;
@@ -160,10 +179,16 @@ const zh: AiTexts = {
     voiceError: '语音异常',
     voiceOff: '语音不可用',
     levelNames: {
-      beginner: '初学者',
-      learning: '学习中',
-      practicing: '练习中',
-      advanced: '高级',
+      beginner: '新手护航',
+      learning: '牌感养成',
+      practicing: '实战拆招',
+      advanced: '高手研讨',
+    },
+    levelDescriptions: {
+      beginner: '少绕弯，直接告诉你现在最稳该怎么打。',
+      learning: '不只给答案，还会顺手讲清为什么。',
+      practicing: '像陪练一样点关键，让你自己把牌路想明白。',
+      advanced: '默认你听得懂行话，分析会更深更硬核。',
     },
     quickQuestions: {
       exchange: ['换三张应该换哪3张？', '分析我的手牌', '换牌后如何定缺？'],
@@ -190,7 +215,21 @@ const zh: AiTexts = {
   },
   llmSettings: {
     title: 'LLM 设置',
-    subtitle: '提供商 / 模型 / 接口',
+    subtitle: '多模型 / 单一生效',
+    profiles: '模型列表',
+    active: '当前生效',
+    addKimi: '添加 Kimi Coding',
+    addOpenAICompatible: '添加 OpenAI Compatible',
+    activate: '设为生效',
+    delete: '删除',
+    testConnection: '测试连接',
+    testing: '测试中...',
+    name: '名称',
+    kind: '类型',
+    noProfiles: '暂无模型配置',
+    activeBadge: '生效中',
+    apiKeyReady: 'Key 已填写',
+    apiKeyMissing: 'Key 未填写',
     provider: '提供商',
     apiKey: 'API 密钥',
     model: '模型',
@@ -204,7 +243,11 @@ const zh: AiTexts = {
     cancel: '取消',
     save: '保存',
     savedToast: '已保存',
+    deletedToast: '已删除',
+    connectionOkToast: '连接成功',
+    connectionFailedToast: '连接失败',
     providerLabels: {
+      kimiCodingAnthropic: 'Kimi Coding / Anthropic 格式',
       openaiCompatible: 'OpenAI 兼容',
       openai: 'OpenAI',
       anthropic: 'Anthropic',
@@ -279,10 +322,16 @@ const en: AiTexts = {
     voiceError: 'Voice Error',
     voiceOff: 'Voice Off',
     levelNames: {
-      beginner: 'Beginner',
-      learning: 'Learning',
-      practicing: 'Practice',
-      advanced: 'Advanced',
+      beginner: 'Guided Start',
+      learning: 'Build Intuition',
+      practicing: 'Sparring Mode',
+      advanced: 'Pro Lab',
+    },
+    levelDescriptions: {
+      beginner: 'Short, direct, and steady. Just tell me the safest play.',
+      learning: 'Give the answer and explain the why behind it.',
+      practicing: 'Coach me with cues so I can reason the line out myself.',
+      advanced: 'Assume strong fundamentals and go deeper on edge and EV.',
     },
     quickQuestions: {
       exchange: ['Which 3 tiles should I exchange?', 'Analyze my hand', 'How should I choose the missing suit after exchange?'],
@@ -309,7 +358,21 @@ const en: AiTexts = {
   },
   llmSettings: {
     title: 'LLM Settings',
-    subtitle: 'Provider / Model / API',
+    subtitle: 'Multi-model / Single Active',
+    profiles: 'Profiles',
+    active: 'Active',
+    addKimi: 'Add Kimi Coding',
+    addOpenAICompatible: 'Add OpenAI Compatible',
+    activate: 'Set Active',
+    delete: 'Delete',
+    testConnection: 'Test Connection',
+    testing: 'Testing...',
+    name: 'Name',
+    kind: 'Type',
+    noProfiles: 'No model profiles yet',
+    activeBadge: 'Active',
+    apiKeyReady: 'Key ready',
+    apiKeyMissing: 'Key missing',
     provider: 'Provider',
     apiKey: 'API Key',
     model: 'Model',
@@ -323,7 +386,11 @@ const en: AiTexts = {
     cancel: 'Cancel',
     save: 'Save',
     savedToast: 'Saved',
+    deletedToast: 'Deleted',
+    connectionOkToast: 'Connection ok',
+    connectionFailedToast: 'Connection failed',
     providerLabels: {
+      kimiCodingAnthropic: 'Kimi Coding / Anthropic format',
       openaiCompatible: 'OpenAI Compatible',
       openai: 'OpenAI',
       anthropic: 'Anthropic',

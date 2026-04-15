@@ -1,290 +1,385 @@
-# Chengdu Rule Pack (Implementation Spec)
+# 成都麻将规则文档
 
-This document describes the **current behavior implemented in the codebase** for the Chengdu rules pack (`src/core/rules/packs/chengdu`). It is intended for verification.
+## 规则定位声明
 
-## 1. Scope / Tile Set
+本规则包是"成都/四川血战到底（换三张 + 定缺）"的**简化实现**。
 
-- **Tile suits**: `W` (Wan/万), `B` (Bamboo/条), `T` (Dot/筒).
-- **Ranks**: `1..9`.
-- No winds/dragons/flowers are implemented.
+以下为与常见线下/线上成都麻将的**已知差异**：
 
-## 2. Players / Turn Order
+- 无庄家机制：`P0` 固定先手，每人 13 张，无掷骰开门
+- 换三张方向固定为顺时针（常见规则为随机方向或掷骰决定）
+- 无"最后四张必胡"规则
+- 无"退税/退雨"规则（流局时不退还杠分）
+- 无"吃"动作（可碰可杠不可吃）
 
-- Players: `P0`, `P1`, `P2`, `P3`.
-- Turn order uses `nextPlayerId()` (clockwise).
-- The game is **Blood Battle (血战到底)** style: players can win and then stop taking turns; the round ends when **3 players have declared Hu** or the **wall is empty**.
+以下为已实现的主流成都规则：
 
-## 3. Phases (State Machine)
+- 血战到底（胡到三家或摸完）
+- 换三张 + 定缺
+- 碰/杠/定缺花色禁止碰杠
+- 一炮多响（同一弃牌多家可胡，各自与放炮者 1v1 结算）
+- 过水不能胡（跳过胡牌后本圈不能再胡，直到自己摸打后解除）
+- 流局查花猪 + 查叫
+- 自摸逐家收取（非均摊）
+- 暗杠雨钱仅向未胡玩家收取
 
-The `GameState.phase` is one of:
+适用代码：
 
-- `EXCHANGE` (换三张)
-- `DING_QUE` (定缺)
-- `PLAYING` (对局中)
-- `END` (结束)
+- `src/core/rules/packs/chengdu/index.ts`
+- `src/core/rules/packs/chengdu/patterns.ts`
+- `src/core/rules/packs/chengdu/exchange.ts`
+- `src/core/rules/packs/chengdu/validator.ts`
 
-### 3.1 Initial State
+说明原则：
 
-- `chengduRulePack.buildInitialState()` sets:
-  - `phase: 'EXCHANGE'`
-  - `currentPlayer: 'P0'`
-  - Each player is dealt 13 tiles
-  - `exchangeSelections`, `exchangeConfirmed`, `dingQueSelection` are initialized
-  - `roundScores` and `dealInStats` are initialized
+1. 本文档以当前代码实现为准，不以民间通用口述规则为准。
+2. 如果文档与代码不一致，应优先修正文档或代码，避免双重真相源。
+3. 文档中会明确区分"已实现规则"和"当前实现特性"。
 
-### 3.2 Phase: EXCHANGE (换三张)
+## 1. 基本设定
 
-- Each player must select **exactly 3 tiles of the same suit**.
-- Exchange direction is currently **CLOCKWISE**.
+### 1.1 牌张构成
 
-Legal actions during `EXCHANGE`:
+108 张数牌：
 
-- If player already confirmed: `PASS`
-- If player has selected 3 tiles: `EXCHANGE_CONFIRM`
-- Otherwise:
-  - For AI players (including `P0` when `settingsStore.p0IsAI` is true):
-    - The system auto-returns a single `EXCHANGE_SELECT` with AI-chosen tiles.
-  - For human `P0`:
-    - The system returns some `EXCHANGE_SELECT` options (simplified: first 3 tiles of each suit with >=3 count).
+1. 万子（W）：`1-9`，每张 4 枚，共 36 张
+2. 条子（B）：`1-9`，每张 4 枚，共 36 张
+3. 筒子（T）：`1-9`，每张 4 枚，共 36 张
 
-Applying actions:
+不使用风牌、箭牌、花牌。不支持吃牌动作。
 
-- `EXCHANGE_SELECT` stores the 3 selected tiles for the current player.
-- `EXCHANGE_CONFIRM` marks the current player confirmed and advances `currentPlayer`.
-- When all 4 players confirm:
-  - Exchange is executed clockwise:
-    - `P0 -> P1`, `P1 -> P2`, `P2 -> P3`, `P3 -> P0`
-  - Hands are updated and sorted.
-  - Phase transitions to `DING_QUE`.
+### 1.2 玩家与顺序
 
-### 3.3 Phase: DING_QUE (定缺)
+1. 一局固定 4 名玩家：`P0`、`P1`、`P2`、`P3`
+2. 无庄家机制，`P0` 固定先手
+3. 轮转顺序：`P0 → P1 → P2 → P3 → P0`（顺时针）
+4. 每人起手 13 张（无庄家 14 张机制）
 
-- Each player chooses one missing suit: `W` / `B` / `T`.
+### 1.3 规则包标识
 
-Legal actions during `DING_QUE`:
+`id: 'chengdu'`，`version: '0.1.0-skeleton'`
 
-- If already selected: `PASS`
-- Otherwise:
-  - AI players (including P0 in AI mode) auto-return a `DING_QUE` decision
-  - Human P0 gets three options: `DING_QUE { suit: 'W'|'B'|'T' }`
+## 2. 一局流程
 
-Applying actions:
+阶段状态机：`EXCHANGE` → `DING_QUE` → `PLAYING` → `END`
 
-- Each `DING_QUE` stores the player’s missing suit and advances `currentPlayer`.
-- When all 4 players have selected:
-  - Phase transitions to `PLAYING`
-  - `currentPlayer` resets to `P0`
+### 2.1 初始发牌
 
-### 3.4 Phase: PLAYING
+1. 108 张牌洗牌（支持种子随机）
+2. 每名玩家发 13 张手牌
+3. 进入 `EXCHANGE` 阶段
 
-- Normal draw/discard loop.
-- If a player has already declared Hu, `getLegalActions()` returns only `PASS`.
+### 2.2 换三张阶段
 
-### 3.5 Round End
+1. 每位玩家选择恰好 3 张**同花色**牌
+2. 所有玩家确认后统一执行交换
+3. 交换方向**固定顺时针**：`P0→P1`，`P1→P2`，`P2→P3`，`P3→P0`
+4. 当前实现不是随机方向，也不是对家交换
 
-`chengduRulePack.isRoundEnd(state)` returns true when:
+### 2.3 定缺阶段
 
-- `state.wall.length === 0`, or
-- `state.phase === 'END'`, or
-- `declaredHu` count >= 3
+1. 每位玩家从万（W）、条（B）、筒（T）中选择一门作为缺门
+2. 所有玩家完成后进入 `PLAYING`，`currentPlayer` 重置为 `P0`
 
-Settlement (`settleRound`) returns:
+### 2.4 对局循环规范
 
-- `scores`: `roundScores`
-- `dealIns`: `dealInStats`
+进入 `PLAYING` 后的完整回合流程（伪代码）：
 
-## 4. Discard Rules (定缺出牌限制)
+```
+LOOP:
+  如果牌墙为空或已胡 ≥ 3 人 → END
 
-Implemented in `src/core/rules/packs/chengdu/validator.ts`.
+  当前玩家 = currentPlayer（已胡者跳过）
+  从牌墙摸 1 张牌加入手牌
+  turn += 1
 
-After a player has chosen `dingQueSelection[player]`:
+  // 自摸判定
+  如果手牌满足胡牌条件（且缺一门完成、非过水限制中）：
+    生成 HU 动作供选择
 
-- If the hand still contains tiles of the missing suit:
-  - The player may only discard tiles of the missing suit.
-- Once the missing-suit tiles are cleared:
-  - Any discard is allowed.
+  // 杠判定（暗杠、加杠）
+  如果有 4 张同牌（非定缺）→ AN 杠可选
+  如果已有 PENG 且摸到第 4 张（非定缺）→ JIA 杠可选
 
-## 5. Winning Rules
+  // 刮风下雨胡判定
+  如果已有 PENG 且手中有同牌，移除后剩余满足胡型 → HU 可选
 
-### 5.1 Hand Pattern (胡牌结构)
+  玩家选择动作：
+    HU → 结算，标记已胡，血战继续或结束
+    GANG → 执行杠，结算雨钱，补牌，回到自摸判定
+    DISCARD → 打出一张牌，进入响应窗口
 
-Implemented in `patterns.ts`:
+  // 响应窗口（对弃牌）
+  其他未胡玩家并行决策，按优先级裁决：
+    HU > GANG > PENG > 无响应
 
-- A winning hand requires **14 tiles**.
-- Supported win shapes:
-  - Standard: **4 groups + 1 pair**
-    - Groups are `SHUN` (sequence) or `KE` (triplet)
-    - Pair is `JIANG`
-  - **Qi Dui Zi (七对子)**: 7 pairs
+  如果有人 HU：
+    一炮多响 → 每个胡牌者与放炮者 1v1 结算
+    标记过水（可胡但选 PASS 的玩家）
+    血战继续或结束
+  如果有人 GANG（明杠）：
+    执行明杠，结算雨钱，补牌，出牌权转给杠牌者
+  如果有人 PENG：
+    执行碰，出牌权转给碰牌者
+  否则：
+    下一家
+```
 
-### 5.2 Que Yi Men (缺一门)
+`turn` 的计数口径：每次当前玩家**开始行动前**递增。
 
-Implemented by `hasQueYiMen(hand, melds?, missingSuit?)`:
+### 2.5 结束条件
 
-- If `missingSuit` is provided (player has done DingQue):
-  - The hand + meld tiles must contain **zero tiles** of the missing suit.
-- If `missingSuit` is not provided:
-  - The hand + meld tiles must use **at most 2 suits** among `W/B/T`.
+满足以下任一条件时结束：
 
-### 5.3 How Hu is offered
+1. 牌墙为空（触发流局结算）
+2. 已胡玩家达到 3 人
+3. 阶段被设为 `END`
 
-In `chengdu/index.ts`:
+## 3. 定缺相关规则
 
-- **Self draw Hu (自摸)**:
-  - On the current player’s turn, if hand size indicates a drawn tile (`baseHandSize + 1`), the engine checks:
-    - `findWinPatterns(hand)` is valid
-    - `hasQueYiMen(hand, melds, dingQueSelection[player])` is true
-  - If yes: a `HU` action is offered: `{ type:'HU', tile: lastTileInHand, from: player }`
+### 3.1 定缺后的核心约束
 
-- **Ron Hu (点炮胡)**:
-  - After someone discards, other players may have legal `HU` if:
-    - `findWinPatterns(hand + discardedTile)` is valid
-    - `hasQueYiMen(hand + discardedTile, melds, dingQueSelection[player])` is true
+1. 手里仍有缺门花色牌时，**只能打缺门花色**
+2. 缺门花色全部打完后才能自由出牌
+3. 胡牌时手牌 + 副露中**不能含有定缺花色**
+4. **定缺花色不能碰**（碰后形成永久副露，导致无法满足缺一门）
+5. **定缺花色不能杠**（暗杠、明杠、加杠均禁止）
 
-- **Robbing a Kong (抢杠胡)**:
-  - When a player attempts `JIA` gang, the tile becomes `lastAddedGangTile` and other players get a window to `HU`.
+由 `validator.ts` 和 `getLegalActions()` 共同校验。
 
-## 6. Melds: PENG / GANG
+## 4. 胡牌规则
 
-### 6.1 PENG (碰)
+### 4.1 胡牌基本结构
 
-- Offered in response window when `inHand >= 2` on the discarded tile.
-- If chosen:
-  - Removes 2 tiles from hand
-  - Adds meld `{ type:'PENG', tile, from: discarder }`
-  - Sets `currentPlayer` to the peng player
-  - Additional restriction in applyAction: you cannot immediately discard the just-ponged tile (`lastPengTile`).
+1. 标准胡：4 组面子 + 1 对将（面子 = 顺子或刻子）
+2. 七对子：7 对（14 张牌恰好 7 对）
 
-### 6.2 GANG (杠)
+### 4.2 自摸胡
 
-Action type is:
+条件：手牌满足胡牌型 + 缺一门完成 + 非过水限制中
 
-- `{ type:'GANG', tile, from, gangType: 'AN'|'MING'|'JIA'|'BU' }`
+### 4.3 点炮胡
 
-Only these gang types are used in Chengdu pack:
+条件：手牌 + 弃牌满足胡牌型 + 缺一门完成 + 非过水限制中
 
-- **AN (暗杠)**: hand has 4 identical tiles on your own turn
-- **MING (明杠)**: in response to discard, you have 3 in hand and someone discards the 4th
-- **JIA (贴杠 / 加杠)**: you already have a `PENG` meld and draw the 4th tile
+### 4.4 抢杠胡
 
-#### 6.2.1 Missing Suit Restriction (定缺不能杠)
+1. 他人执行加杠时进入抢杠判定窗口
+2. 其他玩家若能用该牌胡牌可选 HU
+3. 视为加杠者点炮，抢杠胡不受过水限制
 
-**All gang types** are forbidden if the gang tile suit equals `dingQueSelection[player]`.
+### 4.5 一炮多响
 
-Implemented in:
+同一弃牌可被多家胡牌：
 
-- `getLegalActions()` filters out gang actions for missing suit tiles
-- `applyAction()` and `resolveReactions()` also guard against forced/invalid actions
+1. 每个胡牌者与放炮者**独立 1v1 结算**
+2. 放炮者对每家分别支付全额
+3. 多响后检查血战结束条件
 
-#### 6.2.2 Draw after GANG
+## 5. 碰与杠规则
 
-- AN gang: removes 4 tiles, draws 1 tile from wall
-- MING gang: removes 3 tiles (the 4th is the discard), draws 1 tile
-- JIA gang: upgrades existing `PENG` meld to `GANG` and removes 1 tile from hand
-  - This creates a robbing-kong window (`lastAddedGangTile`) before drawing replacement tile.
+### 5.1 碰牌
 
-## 7. Gang Special Win Flags
+触发条件：
 
-- `isAfterGang` and `lastGangPlayer` are tracked.
-- If a player self-draws a Hu right after their own gang replacement draw, it counts as `GANG_SHANG_KAI_HUA`.
+1. 他人弃牌且你手里有 2 张相同牌
+2. 该牌**不属于定缺花色**
 
-## 8. Yaku (番型) / Fan Values
+碰后处理：
 
-Implemented in `detectYaku()` in `patterns.ts`.
+1. 移除手中 2 张，生成 `PENG` 副露
+2. 出牌权转给碰牌者
+3. **碰后不能立即打出刚碰的那张牌**
 
-Possible yaku types and currently assigned fan:
+### 5.2 杠牌
 
-- `PING_HU` 平胡: 1
-- `DUI_DUI_HU` 对对胡: 2
-- `QING_YI_SE` 清一色: 2
-- `QI_DUI_ZI` 七对子: 2
-- `LONG_QI_DUI` 龙七对: 3
-- `GANG_SHANG_KAI_HUA` 杠上开花: 2
-- `QIANG_GANG_HU` 抢杠胡: 2
-- `HAI_DI_LAO_YUE` 海底捞月: 2
-- `TIAN_HU` 天胡: 4
-- `DI_HU` 地胡: 4
-- `ZI_MO` 自摸: 1
-- `JIN_GOU_DIAO` 金钩钓: 2
+#### 5.2.1 暗杠
 
-Notes:
+- 条件：自己回合，手中 4 张同牌，非定缺花色
+- 效果：移除 4 张，补 1 张，标记 `isAfterGang`
 
-- Some yaku types exist in the union but are not currently detected/used (e.g. `HUN_YI_SE`, `QUAN_DAI_YAO`, `TIAN_HU` are partially present in types but not fully implemented as full Chengdu rules).
+#### 5.2.2 明杠
 
-## 8.1 Tian Hu / Di Hu (Implementation)
+- 条件：他人弃牌，手中 3 张同牌，非定缺花色
+- 效果：移除 3 张 + 弃牌形成杠，补 1 张
 
-This codebase defines:
+#### 5.2.3 加杠
 
-- **Tian Hu (天胡, 4 fan)**: `P0` wins by **self-draw** on the **first turn of the round** (`state.turn === 0`).
-  - Settlement uses the normal self-draw settlement: all other active players pay.
+- 条件：自己回合，已有 PENG，摸到第 4 张，非定缺花色
+- 效果：升级 PENG 为 GANG，进入抢杠胡窗口，无人抢则补牌
 
-- **Di Hu (地胡, 4 fan)**: a non-`P0` player wins by **ron** on the **first discard of the round** (`state.turn === 1`) and the discarder is `P0`.
-  - Settlement uses the normal ron settlement: the discarder pays.
+## 6. 刮风下雨（实现特性）
 
-## 9. Scoring (计分)
+> **术语说明**：传统"刮风下雨"通常指杠牌的即时雨钱结算。本实现中 `GUAFENG_XIAYU` 是一种**特殊胡牌判定**，与传统含义不同。
 
-### 9.1 Hu Score Calculation
+判定逻辑：
 
-Implemented in `calculateScore(yakuList, genCount)` in `patterns.ts`.
+1. 玩家已有某牌的 PENG 副露
+2. 手中又持有与该 PENG 相同的牌
+3. 将该牌从手中移除后，剩余手牌满足胡牌型
+4. 则额外产生一个 HU 动作，番型记为 `GUAFENG_XIAYU`（2 番）
 
-- **Base (底分)**: 5
-- **Total fan**: `sum(yaku.fan) + genCount`
-  - `genCount` is currently passed as the **number of GANG melds** for that player, i.e. **each gang adds +1 fan**.
+这是一种"用第四张牌换胡"的特殊路径，本质上是一种可选的加杠替代。
 
-Formula:
+## 7. 杠分与雨钱
 
-- If `totalFan <= 0` -> score = 0
-- Else: `score = 5 * 2^(totalFan - 1)`
+杠牌产生即时"雨钱"结算（不影响最终胡牌番型，但影响实时分数）：
 
-### 9.2 Self Draw Settlement (自摸结算)
+### 7.1 暗杠雨钱
 
-- Winner gains `score`
-- Each not-yet-won opponent shares paying the `score` equally (integer division, remainder goes to last payer)
+- 向**所有未胡玩家**各收 10 分（血战到底：已胡玩家不参与）
+- 示例：3 个未胡对手时 `+30`，2 个未胡时 `+20`
 
-### 9.3 Ron Settlement (点炮结算)
+### 7.2 明杠雨钱
 
-- Winner gains `score`
-- Discarder loses `score`
-- Deal-in stats are recorded for the discarder:
-  - Stage `A` / `B` / `C` depends on whether other winners already exist.
+- 向点杠者收 10 分
+- 杠牌者 `+10`，点杠者 `-10`
 
-### 9.4 Gang “Rain Money” (刮风下雨)
+### 7.3 加杠雨钱
 
-Immediate score transfer on gang (separate from Hu scoring).
+- 向最初提供碰牌的玩家收 5 分
+- 杠牌者 `+5`，原碰牌来源者 `-5`
 
-Implemented in `applyGangRainMoney()`.
+## 8. 过水不能胡
 
-- **AN (暗杠)**: collect 10 from each other player
-  - `+30` to gang player, `-10` to each opponent
-- **MING (明杠)**: collect 10 from the discarder
-  - `+10` to gang player, `-10` to discarder
-- **JIA (贴杠)**: collect 5 from the original PENG provider
-  - `+5` to gang player, `-5` to the `from` player stored in the PENG meld
+当玩家在弃牌响应窗口中**可以胡牌但选择 PASS（跳过）**时：
 
-## 10. Reaction Resolution Priority
+1. 该玩家进入"过水"状态
+2. 在过水状态中，该玩家不能对后续弃牌响应 HU
+3. 当该玩家**完成自己的摸牌 + 出牌回合后**，过水限制解除
+4. 自摸胡不受过水限制
+5. 过水状态由 `passedHuPlayers` 字段跟踪
 
-When there is a response window (after discard / robbing-kong window), the engine validates reactions by checking each reaction is present in `getLegalActions()`.
+## 9. 血战到底
 
-Priority:
+### 9.1 核心行为
 
-- HU takes precedence over GANG/PENG.
-- For robbing-kong window, HU can interrupt the gang.
+1. 一家胡牌后对局继续
+2. 已胡玩家退出轮转，合法动作只剩 PASS
+3. 剩余未胡玩家继续摸打
+4. 直到 3 家胡牌或牌墙摸完
 
-## 11. UI Language Default
+### 9.2 已胡玩家免除后续费用
 
-- Default UI language is English:
-  - `src/store/languageStore.ts`: `currentLanguage` default is `'en'`
-  - User preference can override via `localStorage['language']`.
+1. 已胡玩家不参与后续暗杠雨钱支付
+2. 自摸结算只由未胡玩家承担
 
----
+## 10. 番型
 
-# Appendix: Code References
+### 10.1 番型列表
 
-- Rule pack entry:
-  - `src/core/rules/packs/chengdu/index.ts`
-- Hand patterns / yaku / scoring / que-yi-men:
-  - `src/core/rules/packs/chengdu/patterns.ts`
-- Exchange:
-  - `src/core/rules/packs/chengdu/exchange.ts`
-- DingQue discard validator:
-  - `src/core/rules/packs/chengdu/validator.ts`
+| 番型 | 代码标识 | 番数 | 说明 |
+|------|----------|------|------|
+| 平胡 | `PING_HU` | 1 | 基础胡牌，无更高番型替代时生效 |
+| 自摸 | `ZI_MO` | 1 | 自己摸到胡牌（可与其他番叠加） |
+| 对对胡 | `DUI_DUI_HU` | 2 | 4 刻子 + 1 将（无顺子） |
+| 清一色 | `QING_YI_SE` | 2 | 手牌全部同一花色 |
+| 七对子 | `QI_DUI_ZI` | 2 | 7 对结构 |
+| 龙七对 | `LONG_QI_DUI` | 3 | 七对中含 4 张同牌（替代七对子，不叠加） |
+| 全带幺 | `QUAN_DAI_YAO` | 2 | 每组面子/将都含 1 或 9 |
+| 金钩钓 | `JIN_GOU_DIAO` | 2 | 胡牌张出现在将牌组中 |
+| 杠上开花 | `GANG_SHANG_KAI_HUA` | 2 | 杠后补牌自摸胡 |
+| 抢杠胡 | `QIANG_GANG_HU` | 2 | 他人加杠时胡牌 |
+| 海底捞月 | `HAI_DI_LAO_YUE` | 2 | 牌墙最后阶段胡牌 |
+| 刮风下雨 | `GUAFENG_XIAYU` | 2 | PENG 同牌移除后可胡（实现特性） |
+| 天胡 | `TIAN_HU` | 4 | P0 在 turn=0 自摸胡 |
+| 地胡 | `DI_HU` | 4 | 非 P0 在 turn=1 对 P0 首张弃牌点炮胡 |
+
+### 10.2 番型互斥/叠加规则
+
+1. **龙七对替代七对子**：检测到龙七对时只记龙七对（3 番），不叠加七对子
+2. **平胡为兜底**：仅在无其他番型时生效（有对对胡/清一色/七对等时不出现）
+3. **可叠加的番型**：清一色 + 对对胡可叠加、自摸可与任何番叠加、杠上开花可与七对叠加
+4. **七对子路径**：七对/龙七对走独立检测分支，不与面子类番型（对对胡、全带幺）叠加
+
+## 11. 计分规则
+
+### 11.1 基础公式
+
+```
+底分 = 5
+总番数 = Σ(番型番数) + 杠数（每个 GANG 副露 +1 番）
+最终分数 = 5 × 2^(总番数 - 1)
+```
+
+示例：平胡(1) + 自摸(1) = 2 番 → `5 × 2^1 = 10` 分
+
+### 11.2 自摸结算（逐家收取）
+
+1. 每个未胡玩家**各付 score 分**（不是均摊）
+2. 胡牌者获得 `score × 未胡人数`
+3. 示例：score=10，3 个未胡 → 胡者 +30，每个未胡者 -10
+
+### 11.3 点炮结算
+
+1. 胡牌者获得 `score`
+2. 放炮者失去 `score`
+3. 其他玩家不承担
+
+### 11.4 放炮统计
+
+记录 `dealInStats`：`count`、`stageB`、`stageC`，用于训练分析。
+
+## 12. 流局结算（查花猪 + 查叫）
+
+当牌墙摸完导致结束（非 3 人胡牌结束）时，对未胡玩家进行额外惩罚结算：
+
+### 12.1 查花猪
+
+**花猪**：未胡且手牌/副露中仍有定缺花色的玩家。
+
+- 花猪向每个**非花猪的未胡玩家**赔付
+- 赔付金额 = 非花猪玩家的最大听牌得分（未听牌则赔底分 5）
+- 花猪惩罚优先于查叫（花猪赔完后不再参与查叫）
+
+### 12.2 查叫（查大叫）
+
+在非花猪的未胡玩家中：
+
+- **未听牌者**向**听牌者**赔付
+- 赔付金额 = 听牌者的最大可能胡牌得分
+- 最大得分按听牌者所有待牌中的最高自摸得分计算
+
+### 12.3 退税/退雨
+
+当前实现**不退还**杠分。流局时已结算的雨钱保持不变。
+
+## 13. 响应优先级
+
+弃牌或加杠后的响应优先级：
+
+1. `HU`（可多家同时响应 = 一炮多响）
+2. `GANG`（明杠）
+3. `PENG`
+4. 无响应 → 下一家
+
+## 14. 结算输出
+
+调用 `settleRound(state)` 返回：
+
+1. `scores`：本局累计分数变化（含雨钱、胡牌得分、流局罚分）
+2. `dealIns`：放炮统计
+
+## 15. 未实现规则清单
+
+以下常见成都麻将规则**当前未实现**，在此明确标注：
+
+1. **最后四张必胡**：牌墙最后 4 张时有胡必须胡
+2. **退税/退雨**：流局时花猪/未听牌者退还杠分
+3. **庄家机制**：掷骰开门、庄家 14 张先出
+4. **换三张随机方向**：当前固定顺时针
+5. **清对、将对、清七对**：更细分的番型
+
+## 16. 真相源说明
+
+维护优先级：
+
+1. **第一真相源**：`src/core/rules/packs/chengdu/` 下的实现代码
+2. **第二真相源**：本文件 `RULES_CHENGDU.md`
+3. **AI 规则摘要**：`src/llm/RuleContext.ts`
+
+修改规则实现后，应同步更新：
+
+1. `RULES_CHENGDU.md`
+2. `src/llm/RuleContext.ts`
+3. 对应测试文件

@@ -7,11 +7,11 @@ export type LlmConfig = {
 };
 
 export function readLlmConfig(): LlmConfig {
-  const provider = import.meta.env.VITE_LLM_PROVIDER || 'openai';
-  const baseUrl = import.meta.env.VITE_LLM_BASE_URL || 'https://api.openai.com/v1';
-  const apiKey = import.meta.env.VITE_LLM_API_KEY || '';
-  const model = import.meta.env.VITE_LLM_MODEL || 'gpt-4o-mini';
-  const timeoutMs = parseInt(import.meta.env.VITE_LLM_TIMEOUT_MS || '12000', 10);
+  const provider = 'custom';
+  const baseUrl = '/api/llm/kimi/messages';
+  const apiKey = '';
+  const model = 'kimi-k2-thinking';
+  const timeoutMs = 12000;
 
   return {
     provider,

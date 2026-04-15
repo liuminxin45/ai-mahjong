@@ -2,6 +2,7 @@ import { llmService } from '../../llm';
 import type { GuidanceLevel, QAMessage } from '../../llm/types';
 import type { Action } from '../../core/model/action';
 import type { GameState } from '../../core/model/state';
+import type { Tile } from '../../core/model/tile';
 import { languageStore } from '../../store/languageStore';
 import { getAiText } from '../aiLocale';
 import {
@@ -16,11 +17,13 @@ import {
   createPixelLoadingState,
   createPixelToast,
   mountPixelSurface,
+  type PixelSurface,
 } from './pixelFrame';
 
 export type CoachPanelContext = {
   gameState?: GameState;
   legalActions?: Action[];
+  dispatchAction?: (action: Action) => void;
 };
 
 let chatHistory: QAMessage[] = [];
@@ -33,6 +36,7 @@ type CoachAdviceView = {
   confidence?: number | null;
   hints: string[];
   alternatives: Array<{ label: string; detail: string }>;
+  autoActions?: Action[];
 };
 
 let currentAdvice: CoachAdviceView | null = null;
@@ -48,6 +52,15 @@ let speechError: string | null = null;
 
 const CHAT_PANEL_ID_CONST = 'llm-chat-assistant-panel';
 const CHAT_OVERLAY_ID_CONST = 'llm-chat-assistant-overlay';
+
+type CoachPanelRefs = {
+  surface: PixelSurface;
+  chatSection?: HTMLElement;
+  errorSlot?: HTMLElement;
+  inputRow?: HTMLElement;
+};
+
+let mountedCoachPanel: CoachPanelRefs | null = null;
 
 export function renderLLMChatAssistant(
   context: CoachPanelContext = latestContext,
@@ -115,157 +128,75 @@ export function removeChatAssistantSurface(): void {
 
 function mountCoachPanel(scrollMode: 'bottom' | 'preserve'): HTMLElement {
   const previousScrollTop = getCurrentMessageScrollTop();
+  const previousDrawerScrollTop = getCurrentDrawerScrollTop();
+  const previousInputState = getCurrentInputState();
   const text = getAiText().coach;
-  removeMountedSurface();
+  if (!mountedCoachPanel) {
+    const surface = createPixelDrawerSurface({
+      title: text.title,
+      subtitle: text.subtitle,
+      width: 'min(94vw, 420px)',
+      onClose: () => {
+        destroySpeechController();
+        panelCloseHandler?.();
+        setLauncherOpen(false);
+        mountedCoachPanel = null;
+      },
+    });
 
-  const surface = createPixelDrawerSurface({
-    title: text.title,
-    subtitle: text.subtitle,
-    width: 'min(94vw, 420px)',
-    onClose: () => {
-      destroySpeechController();
-      panelCloseHandler?.();
-      setLauncherOpen(false);
-    },
-  });
-
-  surface.overlay.id = CHAT_OVERLAY_ID_CONST;
-  surface.panel.id = CHAT_PANEL_ID_CONST;
+    surface.overlay.id = CHAT_OVERLAY_ID_CONST;
+    surface.panel.id = CHAT_PANEL_ID_CONST;
+    mountPixelSurface(surface);
+    mountedCoachPanel = { surface };
+  }
 
   const speechSupported = configureSpeechController();
   const llmReady = hasConfiguredLlm();
   const state = latestContext.gameState;
   const legalActions = latestContext.legalActions ?? [];
+  const chatSection = renderChatSection(state, legalActions, llmReady);
+  const inputRow = renderInputRow(llmReady, speechSupported);
+  const panel = mountedCoachPanel;
+  if (!panel) {
+    throw new Error('Coach panel failed to initialize');
+  }
 
-  surface.body.appendChild(renderAdviceSection(state, legalActions, llmReady));
-  surface.body.appendChild(renderChatSection(state, llmReady));
+  if (panel.chatSection) panel.chatSection.replaceWith(chatSection);
+  else panel.surface.body.appendChild(chatSection);
+  panel.chatSection = chatSection;
 
-  const errorSlot = document.createElement('div');
-  errorSlot.className = 'pixel-coach-error-slot';
-  surface.body.appendChild(errorSlot);
+  if (!panel.errorSlot) {
+    const errorSlot = document.createElement('div');
+    errorSlot.className = 'pixel-coach-error-slot';
+    panel.surface.body.appendChild(errorSlot);
+    panel.errorSlot = errorSlot;
+  }
 
-  surface.footer.appendChild(renderInputRow(llmReady, speechSupported));
-  mountPixelSurface(surface);
+  if (panel.inputRow) panel.inputRow.replaceWith(inputRow);
+  else panel.surface.footer.appendChild(inputRow);
+  panel.inputRow = inputRow;
+
   syncSpeechUi();
   syncInputControls();
+  restorePanelScroll(scrollMode, previousDrawerScrollTop);
   restoreMessageScroll(scrollMode, previousScrollTop);
-  return surface.panel;
-}
-
-function renderAdviceSection(
-  state: GameState | undefined,
-  legalActions: Action[],
-  llmReady: boolean,
-): HTMLElement {
-  const text = getAiText().coach;
-  const section = createSection(text.adviceTitle, text.adviceSubtitle);
-  const body = section.querySelector('.pixel-page-section__body') as HTMLElement;
-
-  const controls = document.createElement('div');
-  controls.className = 'pixel-coach-control-row';
-
-  const levelField = document.createElement('div');
-  levelField.className = 'pixel-field';
-  const levelLabel = document.createElement('div');
-  levelLabel.className = 'pixel-field__label';
-  levelLabel.textContent = text.guidance;
-  const select = document.createElement('select');
-  select.className = 'pixel-select';
-  for (const level of ['beginner', 'learning', 'practicing', 'advanced'] as GuidanceLevel[]) {
-    const option = document.createElement('option');
-    option.value = level;
-    option.textContent = text.levelNames[level];
-    option.selected = level === guidanceLevel;
-    select.appendChild(option);
-  }
-  select.onchange = () => {
-    guidanceLevel = select.value as GuidanceLevel;
-    currentAdvice = null;
-    mountCoachPanel('preserve');
-  };
-  levelField.appendChild(levelLabel);
-  levelField.appendChild(select);
-  controls.appendChild(levelField);
-
-  body.appendChild(controls);
-
-  const statusRow = document.createElement('div');
-  statusRow.className = 'pixel-coach-chip-row';
-  const speechChip = createChip(getSpeechStatusLabel(), speechState === 'error' ? 'bad' : speechState === 'listening' ? 'good' : 'neutral');
-  speechChip.classList.add('pixel-coach-speech-status-chip');
-  statusRow.appendChild(speechChip);
-  if (!llmReady) {
-    statusRow.appendChild(createChip(text.llmKeyRequired, 'warn'));
-  }
-  body.appendChild(statusRow);
-
-  if (!llmReady) {
-    const note = document.createElement('div');
-    note.className = 'pixel-note-box pixel-note-box--danger';
-    note.innerHTML = `
-      <div class="pixel-page-section__title" style="font-size:11px;">${text.configTitle}</div>
-      <div class="pixel-note" style="margin-top:8px;">${text.configHint}</div>
-    `;
-    body.appendChild(note);
-    body.appendChild(renderAdviceActionRow(llmReady, state, legalActions));
-    return section;
-  }
-
-  if (!state) {
-    body.appendChild(createPixelLoadingState(text.adviceTitle, text.waitingAdvice));
-    body.appendChild(renderAdviceActionRow(llmReady, state, legalActions));
-    return section;
-  }
-
-  if (!canRequestAdvice(state, legalActions)) {
-    const note = document.createElement('div');
-    note.className = 'pixel-note-box';
-    note.innerHTML = `
-      <div class="pixel-page-section__title" style="font-size:11px;">${text.adviceUnavailableTitle}</div>
-      <div class="pixel-note" style="margin-top:8px;">${text.adviceUnavailableHint}</div>
-    `;
-    body.appendChild(note);
-    body.appendChild(renderAdviceActionRow(llmReady, state, legalActions));
-    return section;
-  }
-
-  if (isAdviceLoading) {
-    body.appendChild(createPixelLoadingState(text.adviceTitle, text.analyzing));
-    body.appendChild(renderAdviceActionRow(llmReady, state, legalActions));
-    return section;
-  }
-
-  if (!currentAdvice) {
-    const note = document.createElement('div');
-    note.className = 'pixel-note-box pixel-note-box--accent';
-    note.innerHTML = `
-      <div class="pixel-page-section__title" style="font-size:11px;">${text.adviceReadyTitle}</div>
-      <div class="pixel-note" style="margin-top:8px;">${text.adviceReadyHint}</div>
-    `;
-    body.appendChild(note);
-    body.appendChild(renderAdviceActionRow(llmReady, state, legalActions));
-    return section;
-  }
-
-  body.appendChild(renderAdviceCard(currentAdvice));
-  body.appendChild(renderAdviceActionRow(llmReady, state, legalActions));
-  return section;
+  restoreInputState(previousInputState);
+  return panel.surface.panel;
 }
 
 function renderAdviceActionRow(
   llmReady: boolean,
   state: GameState | undefined,
   legalActions: Action[],
-): HTMLElement {
+): HTMLButtonElement {
   const text = getAiText().coach;
-  const row = document.createElement('div');
-  row.className = 'pixel-coach-action-row';
-
-  const refresh = createPixelButton(isAdviceLoading ? text.analyzing : text.getAdvice, 'success');
+  const refresh = document.createElement('button');
+  refresh.type = 'button';
+  refresh.className = 'pixel-quick-btn pixel-quick-btn--action';
+  refresh.textContent = isAdviceLoading ? text.analyzing : text.getAdvice;
   refresh.disabled = isAdviceLoading || !llmReady || !state || !canRequestAdvice(state, legalActions);
   refresh.onclick = () => void requestAdvice();
-  row.appendChild(refresh);
-  return row;
+  return refresh;
 }
 
 function renderAdviceCard(advice: CoachAdviceView): HTMLElement {
@@ -306,30 +237,105 @@ function renderAdviceCard(advice: CoachAdviceView): HTMLElement {
   return card;
 }
 
-function renderChatSection(state: GameState | undefined, llmReady: boolean): HTMLElement {
+function renderChatSection(
+  state: GameState | undefined,
+  legalActions: Action[],
+  llmReady: boolean,
+): HTMLElement {
   const text = getAiText().coach;
+  const hasChatContent = chatHistory.length > 0 || isTyping;
+  const hasAdviceContent = isAdviceLoading || currentAdvice !== null || !llmReady || !state || !canRequestAdvice(state, legalActions);
   const section = createSection(text.askTitle, text.askSubtitle);
+  if (!hasChatContent && !hasAdviceContent) {
+    section.classList.add('pixel-coach-section--compact');
+  }
   const body = section.querySelector('.pixel-page-section__body') as HTMLElement;
 
-  const messagesArea = document.createElement('div');
-  messagesArea.className = 'pixel-log pixel-log--short pixel-message-list pixel-coach-log';
+  const controls = document.createElement('div');
+  controls.className = 'pixel-coach-control-row';
 
-  if (chatHistory.length === 0) {
-    messagesArea.appendChild(createPixelLoadingState(text.readyCode, text.readyHint));
+  const levelField = document.createElement('div');
+  levelField.className = 'pixel-field';
+  const levelLabel = document.createElement('div');
+  levelLabel.className = 'pixel-field__label';
+  levelLabel.textContent = text.guidance;
+  const levelDescription = document.createElement('div');
+  levelDescription.className = 'pixel-field__desc pixel-coach-level-desc';
+  levelDescription.textContent = text.levelDescriptions[guidanceLevel];
+  const select = document.createElement('select');
+  select.className = 'pixel-select';
+  for (const level of ['beginner', 'learning', 'practicing', 'advanced'] as GuidanceLevel[]) {
+    const option = document.createElement('option');
+    option.value = level;
+    option.textContent = text.levelNames[level];
+    option.selected = level === guidanceLevel;
+    select.appendChild(option);
+  }
+  select.onchange = () => {
+    guidanceLevel = select.value as GuidanceLevel;
+    levelDescription.textContent = text.levelDescriptions[guidanceLevel];
+    currentAdvice = null;
+    mountCoachPanel('preserve');
+  };
+  levelField.appendChild(levelLabel);
+  levelField.appendChild(select);
+  levelField.appendChild(levelDescription);
+  controls.appendChild(levelField);
+  body.appendChild(controls);
+
+  const statusRow = document.createElement('div');
+  statusRow.className = 'pixel-coach-chip-row';
+  if (!llmReady) {
+    statusRow.appendChild(createChip(text.llmKeyRequired, 'warn'));
+  }
+  if (statusRow.childElementCount > 0) {
+    body.appendChild(statusRow);
+  }
+
+  if (!llmReady) {
+    const note = document.createElement('div');
+    note.className = 'pixel-note-box pixel-note-box--danger';
+    note.innerHTML = `
+      <div class="pixel-page-section__title" style="font-size:11px;">${text.configTitle}</div>
+      <div class="pixel-note" style="margin-top:8px;">${text.configHint}</div>
+    `;
+    body.appendChild(note);
+  } else if (!state) {
+    body.appendChild(createPixelLoadingState(text.adviceTitle, text.waitingAdvice));
+  } else if (!canRequestAdvice(state, legalActions)) {
+    const note = document.createElement('div');
+    note.className = 'pixel-note-box';
+    note.innerHTML = `
+      <div class="pixel-page-section__title" style="font-size:11px;">${text.adviceUnavailableTitle}</div>
+      <div class="pixel-note" style="margin-top:8px;">${text.adviceUnavailableHint}</div>
+    `;
+    body.appendChild(note);
+  } else if (isAdviceLoading) {
+    body.appendChild(createPixelLoadingState(text.adviceTitle, text.analyzing));
   } else {
-    for (const message of chatHistory) {
-      messagesArea.appendChild(renderMessage(message));
+    if (currentAdvice) {
+      body.appendChild(renderAdviceCard(currentAdvice));
     }
   }
 
-  if (isTyping) {
-    messagesArea.appendChild(createTypingMessage());
-  }
+  if (hasChatContent) {
+    const messagesArea = document.createElement('div');
+    messagesArea.className = 'pixel-log pixel-log--short pixel-message-list pixel-coach-log';
 
-  body.appendChild(messagesArea);
+    for (const message of chatHistory) {
+      messagesArea.appendChild(renderMessage(message));
+    }
+
+    if (isTyping) {
+      messagesArea.appendChild(createTypingMessage());
+    }
+
+    body.appendChild(messagesArea);
+  }
 
   const quickRow = document.createElement('div');
   quickRow.className = 'pixel-quick-row';
+  quickRow.appendChild(renderAdviceActionRow(llmReady, state, legalActions));
   for (const question of getQuickQuestions(state?.phase)) {
     const quick = document.createElement('button');
     quick.type = 'button';
@@ -419,6 +425,15 @@ async function requestAdvice(): Promise<void> {
     if (requestId !== adviceRequestId) return;
     if (requestKey !== getCoachContextKey(latestContext)) return;
     currentAdvice = advice;
+    if (state.phase === 'EXCHANGE' && advice.autoActions && advice.autoActions.length > 0) {
+      const [selectAction, confirmAction] = advice.autoActions;
+      latestContext.dispatchAction?.(selectAction);
+      if (confirmAction) {
+        window.setTimeout(() => {
+          latestContext.dispatchAction?.(confirmAction);
+        }, 100);
+      }
+    }
   } catch (error) {
     console.error('[Coach] Failed to get advice:', error);
     createPixelToast(text.adviceErrorToast);
@@ -491,9 +506,12 @@ function renderMessage(msg: QAMessage): HTMLElement {
   wrap.className = msg.role === 'user' ? 'pixel-message pixel-message--user' : 'pixel-message pixel-message--assistant';
 
   const bubble = document.createElement('div');
-  bubble.className = 'pixel-message__bubble pixel-markdown';
-  if (msg.role === 'user') bubble.textContent = msg.content;
-  else bubble.innerHTML = parseMarkdown(msg.content);
+  bubble.className = 'pixel-message__bubble';
+  if (msg.role === 'user') {
+    bubble.textContent = msg.content;
+  } else {
+    bubble.appendChild(renderAssistantText(msg.content));
+  }
 
   wrap.appendChild(bubble);
   return wrap;
@@ -599,29 +617,74 @@ function createChip(label: string, tone: 'neutral' | 'good' | 'warn' | 'bad'): H
   return chip;
 }
 
-function parseMarkdown(text: string): string {
-  let html = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/__(.+?)__/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(/_([^_]+)_/g, '<em>$1</em>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-    .replace(/\n/g, '<br>');
+function renderAssistantText(text: string): HTMLElement {
+  const container = document.createElement('div');
+  container.className = 'pixel-rich-text';
 
-  html = html.replace(/(?:^|<br>)[-•]\s+(.+?)(?=<br>|$)/g, '<li>$1</li>');
-  html = html.replace(/(?:^|<br>)(\d+)\.\s+(.+?)(?=<br>|$)/g, '<li>$2</li>');
-  return html;
+  const normalized = text.replace(/\r\n/g, '\n').trim();
+  if (!normalized) return container;
+
+  const blocks = normalized.split(/\n{2,}/).filter((block) => block.trim().length > 0);
+  for (const block of blocks) {
+    const lines = block.split('\n').map((line) => line.trim()).filter((line) => line.length > 0);
+    if (lines.length === 0) continue;
+
+    if (lines.every((line) => /^\d+[\.\)、]\s+/.test(line))) {
+      const list = document.createElement('ol');
+      list.className = 'pixel-rich-text__list';
+      const firstIndex = Number(lines[0].match(/^(\d+)/)?.[1] || '1');
+      list.start = Number.isFinite(firstIndex) ? firstIndex : 1;
+
+      for (const line of lines) {
+        const item = document.createElement('li');
+        appendInlineText(item, line.replace(/^\d+[\.\)、]\s+/, ''));
+        list.appendChild(item);
+      }
+      container.appendChild(list);
+      continue;
+    }
+
+    const paragraph = document.createElement('p');
+    paragraph.className = 'pixel-rich-text__paragraph';
+    lines.forEach((line, index) => {
+      if (index > 0) {
+        paragraph.appendChild(document.createElement('br'));
+      }
+      appendInlineText(paragraph, line);
+    });
+    container.appendChild(paragraph);
+  }
+
+  return container;
+}
+
+function appendInlineText(container: HTMLElement, text: string): void {
+  const pattern = /(\*\*.+?\*\*|__.+?__)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    const [token] = match;
+    if (match.index > lastIndex) {
+      container.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+    }
+
+    const strong = document.createElement('strong');
+    strong.textContent = token.slice(2, -2);
+    container.appendChild(strong);
+    lastIndex = match.index + token.length;
+  }
+
+  if (lastIndex < text.length) {
+    container.appendChild(document.createTextNode(text.slice(lastIndex)));
+  }
 }
 
 function getQuickQuestions(phase: string | undefined): string[] {
   const text = getAiText().coach.quickQuestions;
-  if (phase === 'EXCHANGE') return text.exchange;
-  if (phase === 'DING_QUE') return text.dingQue;
-  return text.playing;
+  if (phase === 'EXCHANGE') return [text.exchange[1]];
+  if (phase === 'DING_QUE') return [text.dingQue[1]];
+  return [text.playing[0]];
 }
 
 function formatPhase(phase: string | undefined): string {
@@ -663,6 +726,13 @@ function formatRiskLabel(risk: 'low' | 'medium' | 'high'): string {
 async function buildAdviceForCurrentPhase(state: GameState, legalActions: Action[]): Promise<CoachAdviceView> {
   if (state.phase === 'EXCHANGE') {
     const exchange = await llmService.getExchangeAdvice(state.hands.P0 as Array<{ suit: string; rank: number }>, guidanceLevel);
+    const recommendedTiles = resolveRecommendedTiles(state.hands.P0, exchange.recommendedTiles);
+    const autoActions: Action[] = [];
+    if (recommendedTiles.length === 3) {
+      autoActions.push({ type: 'EXCHANGE_SELECT', tiles: recommendedTiles });
+      autoActions.push({ type: 'EXCHANGE_CONFIRM' });
+    }
+
     return {
       headline: exchange.recommendedTiles.length > 0
         ? exchange.recommendedTiles.join(' / ')
@@ -673,6 +743,7 @@ async function buildAdviceForCurrentPhase(state: GameState, legalActions: Action
       confidence: null,
       hints: [exchange.afterExchangePlan],
       alternatives: [],
+      autoActions,
     };
   }
 
@@ -709,6 +780,33 @@ async function buildAdviceForCurrentPhase(state: GameState, legalActions: Action
       label: formatRecommendedAction(item.action as Action | string),
       detail: item.pros[0] || item.cons[0] || getAiText().coach.recommended,
     })),
+  };
+}
+
+function resolveRecommendedTiles(hand: Tile[], recommendedTiles: string[]): Tile[] {
+  const remaining = [...hand];
+  const selected: Tile[] = [];
+
+  for (const rawTile of recommendedTiles) {
+    const parsed = parseTileString(rawTile);
+    if (!parsed) continue;
+    const matchIndex = remaining.findIndex((tile) => tile.suit === parsed.suit && tile.rank === parsed.rank);
+    if (matchIndex === -1) continue;
+    selected.push(remaining[matchIndex]);
+    remaining.splice(matchIndex, 1);
+  }
+
+  return selected;
+}
+
+function parseTileString(value: string): Tile | null {
+  const normalized = value.trim().toUpperCase();
+  const match = normalized.match(/^([WBT])([1-9])$/);
+  if (!match) return null;
+
+  return {
+    suit: match[1] as Tile['suit'],
+    rank: Number(match[2]) as Tile['rank'],
   };
 }
 
@@ -772,6 +870,35 @@ function getCurrentMessageScrollTop(): number | null {
   return area ? area.scrollTop : null;
 }
 
+function getCurrentInputState(): { focused: boolean; selectionStart: number | null; selectionEnd: number | null } {
+  const input = document.querySelector('.pixel-coach-input') as HTMLInputElement | null;
+  if (!input) {
+    return { focused: false, selectionStart: null, selectionEnd: null };
+  }
+
+  return {
+    focused: document.activeElement === input,
+    selectionStart: input.selectionStart,
+    selectionEnd: input.selectionEnd,
+  };
+}
+
+function getCurrentDrawerScrollTop(): number | null {
+  const area = document.querySelector(`#${CHAT_PANEL_ID_CONST} .pixel-surface__body--drawer`) as HTMLElement | null;
+  return area ? area.scrollTop : null;
+}
+
+function restorePanelScroll(scrollMode: 'bottom' | 'preserve', previousScrollTop: number | null): void {
+  const area = document.querySelector(`#${CHAT_PANEL_ID_CONST} .pixel-surface__body--drawer`) as HTMLElement | null;
+  if (!area) return;
+  setTimeout(() => {
+    if (!area.isConnected) return;
+    if (scrollMode === 'preserve' && previousScrollTop !== null) {
+      area.scrollTop = previousScrollTop;
+    }
+  }, 0);
+}
+
 function restoreMessageScroll(scrollMode: 'bottom' | 'preserve', previousScrollTop: number | null): void {
   const area = document.querySelector('.pixel-coach-log') as HTMLElement | null;
   if (!area) return;
@@ -783,6 +910,19 @@ function restoreMessageScroll(scrollMode: 'bottom' | 'preserve', previousScrollT
     }
     if (previousScrollTop !== null) {
       area.scrollTop = previousScrollTop;
+    }
+  }, 0);
+}
+
+function restoreInputState(state: { focused: boolean; selectionStart: number | null; selectionEnd: number | null }): void {
+  if (!state.focused) return;
+  const input = document.querySelector('.pixel-coach-input') as HTMLInputElement | null;
+  if (!input) return;
+  setTimeout(() => {
+    if (!input.isConnected) return;
+    input.focus();
+    if (state.selectionStart !== null && state.selectionEnd !== null) {
+      input.setSelectionRange(state.selectionStart, state.selectionEnd);
     }
   }, 0);
 }
@@ -840,6 +980,7 @@ function syncInputControls(): void {
 function removeMountedSurface(): void {
   document.getElementById(CHAT_OVERLAY_ID_CONST)?.remove();
   document.getElementById(CHAT_PANEL_ID_CONST)?.remove();
+  mountedCoachPanel = null;
 }
 
 function setLauncherOpen(open: boolean): void {

@@ -63,6 +63,73 @@ describe('chengduRulePack', () => {
   });
 
   describe('gang mechanics', () => {
+    it('should offer an gang when player has four identical tiles in hand', () => {
+      const s0 = chengduRulePack.buildInitialState();
+      const tile: Tile = { suit: 'W', rank: 1 };
+
+      const s1: GameState = {
+        ...s0,
+        phase: 'PLAYING',
+        currentPlayer: 'P0',
+        hands: {
+          ...s0.hands,
+          P0: [
+            tile, tile, tile, tile,
+            { suit: 'W', rank: 2 }, { suit: 'W', rank: 3 }, { suit: 'W', rank: 4 },
+            { suit: 'B', rank: 1 }, { suit: 'B', rank: 2 }, { suit: 'B', rank: 3 },
+            { suit: 'T', rank: 1 }, { suit: 'T', rank: 2 }, { suit: 'T', rank: 3 }, { suit: 'T', rank: 4 },
+          ],
+        },
+      };
+
+      const legal = chengduRulePack.getLegalActions(s1, 'P0');
+      expect(
+        legal.some(
+          (action) =>
+            action.type === 'GANG' &&
+            action.gangType === 'AN' &&
+            action.tile.suit === tile.suit &&
+            action.tile.rank === tile.rank,
+        ),
+      ).toBe(true);
+    });
+
+    it('should offer jia gang when player has a matching peng and draws the fourth tile', () => {
+      const s0 = chengduRulePack.buildInitialState();
+      const tile: Tile = { suit: 'W', rank: 5 };
+
+      const s1: GameState = {
+        ...s0,
+        phase: 'PLAYING',
+        currentPlayer: 'P0',
+        hands: {
+          ...s0.hands,
+          P0: [
+            tile,
+            { suit: 'W', rank: 1 }, { suit: 'W', rank: 2 }, { suit: 'W', rank: 3 },
+            { suit: 'W', rank: 4 }, { suit: 'W', rank: 6 }, { suit: 'W', rank: 7 },
+            { suit: 'B', rank: 1 }, { suit: 'B', rank: 2 }, { suit: 'B', rank: 3 },
+            { suit: 'T', rank: 1 },
+          ],
+        },
+        melds: {
+          ...s0.melds,
+          P0: [{ type: 'PENG', tile, from: 'P1' }],
+        },
+      };
+
+      const legal = chengduRulePack.getLegalActions(s1, 'P0');
+      expect(
+        legal.some(
+          (action) =>
+            action.type === 'GANG' &&
+            action.gangType === 'JIA' &&
+            action.tile.suit === tile.suit &&
+            action.tile.rank === tile.rank,
+        ),
+      ).toBe(true);
+    });
+
     it('should draw a tile after an gang (AN)', () => {
       const s0 = chengduRulePack.buildInitialState();
       const tile: Tile = { suit: 'W', rank: 1 };

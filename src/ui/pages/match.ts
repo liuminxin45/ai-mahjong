@@ -1,4 +1,5 @@
 import type { UiCtx } from '../context';
+import type { Action } from '../../core/model/action';
 import { renderDebugMode } from '../renderers/matchDebugRenderer';
 import { renderTableMode } from '../renderers/matchTableRenderer';
 import { renderEventLine } from '../components/eventLogView';
@@ -59,11 +60,6 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
         ta.remove();
       });
     });
-    appendToolbarButton(ctx.settingsStore.uiMode === 'DEBUG' ? t.settings.uiModeTable : t.settings.uiModeDebug, () => {
-      ctx.settingsStore.setUiMode(ctx.settingsStore.uiMode === 'DEBUG' ? 'TABLE' : 'DEBUG');
-    });
-
-    appendToolbarButton(t.common.close, () => ctx.orchestrator.stop(), true);
   };
 
   const render = () => {
@@ -80,6 +76,7 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
       ? {
         gameState: ctx.gameStore.state,
         legalActions: ctx.orchestrator.getLegalActions('P0'),
+        dispatchAction: (action: Action) => ctx.orchestrator.dispatchHumanAction(action),
       }
       : {};
 
