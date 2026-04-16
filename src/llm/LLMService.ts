@@ -22,14 +22,20 @@ import { PromptBuilder } from './PromptBuilder';
 // 简单的内存缓存
 const cache = new Map<string, { data: any; timestamp: number }>();
 
-function isLocalBrowserDev(): boolean {
+function hasBrowserHttpOrigin(): boolean {
   if (typeof window === 'undefined') return false;
-  const { hostname, protocol } = window.location;
-  return protocol.startsWith('http') && (hostname === 'localhost' || hostname === '127.0.0.1');
+  const { origin, protocol } = window.location;
+  return protocol.startsWith('http') && typeof origin === 'string' && origin.length > 0;
 }
 
-function mapToDevProxyUrl(provider: LLMConfig['provider'], baseUrl?: string): string | undefined {
-  if (!isLocalBrowserDev() || !baseUrl) return baseUrl;
+function isLocalBrowserDev(): boolean {
+  if (!hasBrowserHttpOrigin()) return false;
+  const { hostname } = window.location;
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
+function mapToBrowserProxyUrl(provider: LLMConfig['provider'], baseUrl?: string): string | undefined {
+  if (!hasBrowserHttpOrigin() || !baseUrl) return baseUrl;
   if (baseUrl.startsWith('/')) return baseUrl;
 
   try {
@@ -43,6 +49,9 @@ function mapToDevProxyUrl(provider: LLMConfig['provider'], baseUrl?: string): st
     ) {
       return `${origin}/api/llm/kimi/messages`;
     }
+
+    if (!isLocalBrowserDev()) return baseUrl;
+
     if (provider === 'openai' && parsed.hostname === 'api.openai.com') {
       return `${origin}/api/llm/openai`;
     }
@@ -312,7 +321,7 @@ export class LLMService {
     switch (provider) {
       case 'openai':
         url = normalizeOpenAICompatibleUrl(
-          mapToDevProxyUrl(provider, baseUrl || 'https://api.openai.com/v1/chat/completions')
+          mapToBrowserProxyUrl(provider, baseUrl || 'https://api.openai.com/v1/chat/completions')
           || 'https://api.openai.com/v1/chat/completions',
         );
         headers = {
@@ -329,7 +338,7 @@ export class LLMService {
         
       case 'anthropic':
         url = normalizeAnthropicUrl(
-          mapToDevProxyUrl(provider, baseUrl || 'https://api.anthropic.com/v1/messages')
+          mapToBrowserProxyUrl(provider, baseUrl || 'https://api.anthropic.com/v1/messages')
           || 'https://api.anthropic.com/v1/messages',
         );
         headers = {
@@ -346,7 +355,7 @@ export class LLMService {
         
       case 'deepseek':
         url = normalizeOpenAICompatibleUrl(
-          mapToDevProxyUrl(provider, baseUrl || 'https://api.deepseek.com/v1/chat/completions')
+          mapToBrowserProxyUrl(provider, baseUrl || 'https://api.deepseek.com/v1/chat/completions')
           || 'https://api.deepseek.com/v1/chat/completions',
         );
         headers = {
@@ -364,7 +373,7 @@ export class LLMService {
       case 'custom':
         if (!baseUrl) throw new Error('Custom provider requires baseUrl');
         if (isKimiCodingUrl(baseUrl)) {
-          url = normalizeAnthropicUrl(mapToDevProxyUrl(provider, baseUrl) || baseUrl);
+          url = normalizeAnthropicUrl(mapToBrowserProxyUrl(provider, baseUrl) || baseUrl);
           headers = {
             'Content-Type': 'application/json',
           };
@@ -378,7 +387,7 @@ export class LLMService {
             messages: [{ role: 'user', content: prompt }],
           };
         } else {
-          url = normalizeOpenAICompatibleUrl(mapToDevProxyUrl(provider, baseUrl) || baseUrl);
+          url = normalizeOpenAICompatibleUrl(mapToBrowserProxyUrl(provider, baseUrl) || baseUrl);
           headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`,

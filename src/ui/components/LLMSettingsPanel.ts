@@ -25,13 +25,19 @@ function normalizeAnthropicUrl(url: string): string {
   return `${trimmed}/messages`;
 }
 
-function isLocalBrowserDev(): boolean {
-  const { hostname, protocol } = window.location;
-  return protocol.startsWith('http') && (hostname === 'localhost' || hostname === '127.0.0.1');
+function hasBrowserHttpOrigin(): boolean {
+  const { origin, protocol } = window.location;
+  return protocol.startsWith('http') && typeof origin === 'string' && origin.length > 0;
 }
 
-function mapProfileUrlForLocalDev(profile: LLMProfile, url: string): string {
-  if (!isLocalBrowserDev()) return url;
+function isLocalBrowserDev(): boolean {
+  if (!hasBrowserHttpOrigin()) return false;
+  const { hostname } = window.location;
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
+function mapProfileUrlForBrowserProxy(profile: LLMProfile, url: string): string {
+  if (!hasBrowserHttpOrigin()) return url;
   if (url.startsWith('/')) return url;
 
   try {
@@ -42,7 +48,11 @@ function mapProfileUrlForLocalDev(profile: LLMProfile, url: string): string {
       return `${origin}/api/llm/kimi/messages`;
     }
 
-    if (profile.kind === 'openai_compatible' && parsed.hostname === 'api.openai.com') {
+    if (
+      isLocalBrowserDev()
+      && profile.kind === 'openai_compatible'
+      && parsed.hostname === 'api.openai.com'
+    ) {
       return `${origin}/api/llm/openai/chat/completions`;
     }
   } catch {
@@ -63,7 +73,7 @@ async function testProfileConnection(profile: LLMProfile): Promise<void> {
 
   if (profile.kind === 'kimi_coding_anthropic') {
     url = normalizeAnthropicUrl(url);
-    url = mapProfileUrlForLocalDev(profile, url);
+    url = mapProfileUrlForBrowserProxy(profile, url);
     headers = {
       'content-type': 'application/json',
       'x-api-key': profile.apiKey.trim(),
@@ -76,7 +86,7 @@ async function testProfileConnection(profile: LLMProfile): Promise<void> {
     });
   } else {
     url = normalizeOpenAICompatibleUrl(url);
-    url = mapProfileUrlForLocalDev(profile, url);
+    url = mapProfileUrlForBrowserProxy(profile, url);
     headers = {
       'content-type': 'application/json',
       authorization: `Bearer ${profile.apiKey.trim()}`,

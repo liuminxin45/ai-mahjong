@@ -15,7 +15,7 @@ export function createDefaultProfile(kind: LLMProfileKind): LLMProfile {
       kind,
       apiKey: '',
       model: 'kimi-k2-thinking',
-      baseUrl: 'https://api.kimi.com/coding/v1/messages',
+      baseUrl: '/api/llm/kimi/messages',
       maxTokens: 1024,
       contextWindow: 262144,
       temperature: 0.4,
