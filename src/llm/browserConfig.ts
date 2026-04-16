@@ -46,16 +46,29 @@ function buildDefaultStore(): LLMProfileStore {
 }
 
 function sanitizeProfile(profile: LLMProfile): LLMProfile {
+  const kind: LLMProfileKind = profile.kind === 'openai_compatible'
+    ? 'openai_compatible'
+    : 'kimi_coding_anthropic';
+  const preset = createDefaultProfile(kind);
+
   return {
+    ...preset,
     ...profile,
-    name: profile.name.trim() || 'Untitled Model',
+    kind,
+    name: profile.name?.trim() || preset.name,
     apiKey: profile.apiKey?.trim() || '',
-    model: profile.model.trim(),
-    baseUrl: profile.baseUrl.trim(),
-    maxTokens: Number.isFinite(profile.maxTokens) ? profile.maxTokens : 1024,
-    contextWindow: Number.isFinite(profile.contextWindow) ? profile.contextWindow : undefined,
-    temperature: Number.isFinite(profile.temperature) ? profile.temperature : 0.4,
-    timeout: Number.isFinite(profile.timeout) ? profile.timeout : 60000,
+    model: profile.model?.trim() || preset.model,
+    baseUrl: profile.baseUrl?.trim() || preset.baseUrl,
+    maxTokens: Number.isFinite(profile.maxTokens) && profile.maxTokens > 0
+      ? profile.maxTokens
+      : preset.maxTokens,
+    contextWindow: Number.isFinite(profile.contextWindow) && (profile.contextWindow ?? 0) > 0
+      ? profile.contextWindow
+      : preset.contextWindow,
+    temperature: Number.isFinite(profile.temperature) ? profile.temperature : preset.temperature,
+    timeout: Number.isFinite(profile.timeout) && profile.timeout > 0
+      ? profile.timeout
+      : preset.timeout,
   };
 }
 

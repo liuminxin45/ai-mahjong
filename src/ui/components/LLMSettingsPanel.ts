@@ -236,6 +236,15 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
     profile.temperature = parseFloat(temperature.value);
   }
 
+  function persistDraft(showToast = false): void {
+    syncProfileFromForm();
+    if (!store.activeProfileId && store.profiles[0]) {
+      store.activeProfileId = store.profiles[0].id;
+    }
+    store = persistLLMStore(store);
+    if (showToast) createPixelToast(text.savedToast);
+  }
+
   function renderProfileList(): void {
     profileSection.innerHTML = `
       <div class="pixel-page-section__header">
@@ -262,7 +271,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
         info.style.flex = '1';
         info.style.cursor = 'pointer';
         info.onclick = () => {
-          syncProfileFromForm();
+          persistDraft();
           selectedProfileId = profile.id;
           syncFormFromProfile(profile);
           renderProfileList();
@@ -338,21 +347,23 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
 
     const addKimi = createPixelButton(text.addKimi, 'neutral');
     addKimi.onclick = () => {
-      syncProfileFromForm();
+      persistDraft();
       const profile = createDefaultProfile('kimi_coding_anthropic');
       store.profiles.push(profile);
       selectedProfileId = profile.id;
       syncFormFromProfile(profile);
+      persistDraft();
       renderProfileList();
     };
 
     const addOpenAI = createPixelButton(text.addOpenAICompatible, 'neutral');
     addOpenAI.onclick = () => {
-      syncProfileFromForm();
+      persistDraft();
       const profile = createDefaultProfile('openai_compatible');
       store.profiles.push(profile);
       selectedProfileId = profile.id;
       syncFormFromProfile(profile);
+      persistDraft();
       renderProfileList();
     };
 
@@ -421,11 +432,21 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
     const next = applyKindDefaults(profile, kindInput.value as LLMProfileKind);
     Object.assign(profile, next);
     syncFormFromProfile(profile);
+    persistDraft();
     renderProfileList();
   };
 
+  nameInput.oninput = () => persistDraft();
+  apiKeyInput.oninput = () => persistDraft();
+  modelInput.oninput = () => persistDraft();
+  baseUrlInput.oninput = () => persistDraft();
+  maxTokensInput.oninput = () => persistDraft();
+  contextWindowInput.oninput = () => persistDraft();
+  timeoutInput.oninput = () => persistDraft();
+
   temperature.oninput = () => {
     tempValue.textContent = temperature.value;
+    persistDraft();
   };
 
   testConnectionButton.onclick = async () => {
@@ -466,12 +487,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
 
   const save = createPixelButton(text.save, 'success');
   save.onclick = () => {
-    syncProfileFromForm();
-    if (!store.activeProfileId && store.profiles[0]) {
-      store.activeProfileId = store.profiles[0].id;
-    }
-    persistLLMStore(store);
-    createPixelToast(text.savedToast);
+    persistDraft(true);
     surface.close();
   };
 

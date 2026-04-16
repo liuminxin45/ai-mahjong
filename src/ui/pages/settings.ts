@@ -125,7 +125,7 @@ function renderSettingsSection(ctx: UiCtx): HTMLElement {
   timeoutMsInput.min = '1000';
   timeoutMsInput.max = '120000';
   timeoutMsInput.step = '1000';
-  timeoutMsInput.onchange = () => {
+  timeoutMsInput.oninput = () => {
     const val = parseInt(timeoutMsInput.value, 10);
     if (!Number.isNaN(val) && val >= 1000) {
       ctx.settingsStore.setTimeoutMs(val);
@@ -181,19 +181,29 @@ function renderTrainingSection(ctx: UiCtx): HTMLElement {
   const trainingGamesInput = document.createElement('input');
   trainingGamesInput.type = 'number';
   trainingGamesInput.className = 'pixel-input';
-  trainingGamesInput.value = '100';
+  trainingGamesInput.value = String(ctx.settingsStore.trainingGames);
   trainingGamesInput.min = '1';
   trainingGamesInput.max = '10000';
+  trainingGamesInput.oninput = () => {
+    const val = parseInt(trainingGamesInput.value, 10);
+    if (!Number.isNaN(val) && val >= 1) {
+      ctx.settingsStore.setTrainingGames(val);
+    }
+  };
   body.appendChild(createField(t.trainingGames, trainingGamesInput));
 
   const blockingCheckbox = document.createElement('input');
   blockingCheckbox.type = 'checkbox';
   blockingCheckbox.className = 'pixel-checkbox';
+  blockingCheckbox.checked = ctx.settingsStore.trainingBlocking;
+  blockingCheckbox.onchange = () => ctx.settingsStore.setTrainingBlocking(blockingCheckbox.checked);
   body.appendChild(createInlineField(t.trainingBlocking, blockingCheckbox));
 
   const verboseCheckbox = document.createElement('input');
   verboseCheckbox.type = 'checkbox';
   verboseCheckbox.className = 'pixel-checkbox';
+  verboseCheckbox.checked = ctx.settingsStore.trainingVerbose;
+  verboseCheckbox.onchange = () => ctx.settingsStore.setTrainingVerbose(verboseCheckbox.checked);
   body.appendChild(createInlineField(t.trainingVerbose, verboseCheckbox));
 
   const progress = document.createElement('div');
@@ -254,15 +264,15 @@ function renderTrainingSection(ctx: UiCtx): HTMLElement {
       ctx.orchestrator,
       {
         totalGames: games,
-        blocking: blockingCheckbox.checked,
+        blocking: ctx.settingsStore.trainingBlocking,
         mode: 'baseline',
         batchSize: 1,
         ruleId: 'chengdu',
         trainPlayerId: 'P0',
-        verbose: verboseCheckbox.checked,
+        verbose: ctx.settingsStore.trainingVerbose,
       },
       (log) => {
-        if (verboseCheckbox.checked) console.log('[Training]', log);
+        if (ctx.settingsStore.trainingVerbose) console.log('[Training]', log);
       },
     );
 
