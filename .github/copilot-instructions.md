@@ -65,3 +65,24 @@ Link to existing docs instead of duplicating details:
 - `EXCHANGE_INTEGRATION_GUIDE.md`: exchange-phase integration details
 - `CHENGDU_MISSING_FEATURES.md`: roadmap and missing features
 - `DEPLOY.md`: deployment steps
+
+## Strategy Knowledge Base
+
+策略知识库位于 `docs/strategy/`，按决策阶段拆分为独立模块。
+需要参考策略理论时，先读 `docs/strategy/_index.yaml` 确定相关模块，
+再按需读取具体模块文件。**不要一次性读取所有模块。**
+
+模块列表:
+- `exchange.md`: 换三张决策
+- `dingque.md`: 定缺决策
+- `discard_quemen.md`: 缺门清理出牌
+- `discard_offense.md`: 中盘进攻出牌
+- `discard_baoting.md`: 保听策略
+- `listen.md`: 听牌选择与EV比较
+- `gang.md`: 杠决策
+- `defense.md`: 防守切换
+- `endgame.md`: 尾局与查叫/花猪
+- `probability.md`: 核心概率公式（共享）
+
+代码集成: `src/llm/StrategyContext.ts` 实现按阶段路由加载，
+`PromptBuilder.ts` 通过 `getStrategyContext()` 注入到 LLM prompt 中。

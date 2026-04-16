@@ -29,3 +29,6 @@ yarn-error.log*
 # Testing
 coverage/
 .nyc_output/
+
+# AI eval output
+ai-eval-*.json

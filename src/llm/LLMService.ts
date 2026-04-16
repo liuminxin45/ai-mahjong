@@ -6,10 +6,10 @@
 import type { GameState } from '../core/model/state';
 import type { PlayerId } from '../core/model/types';
 import type { Action } from '../core/model/action';
-import type { 
-  LLMConfig, 
-  CoachingAdvice, 
-  GameReview, 
+import type {
+  LLMConfig,
+  CoachingAdvice,
+  GameReview,
   UserProfile,
   Commentary,
   OpponentPrediction,
@@ -110,31 +110,31 @@ function isKimiCodingUrl(url?: string): boolean {
  */
 export class LLMService {
   private config: LLMConfig;
-  
+
   constructor(config: Partial<LLMConfig> = {}) {
     this.config = { ...DEFAULT_LLM_CONFIG, ...config };
   }
-  
+
   /**
    * 更新配置
    */
   updateConfig(config: Partial<LLMConfig>): void {
     this.config = { ...this.config, ...config };
   }
-  
+
   /**
    * 获取当前配置
    */
   getConfig(): LLMConfig {
     return { ...this.config };
   }
-  
+
   /**
    * 核心查询方法
    */
   async query(prompt: string, options: { useCache?: boolean } = {}): Promise<string> {
     const { useCache = this.config.cacheEnabled } = options;
-    
+
     // 检查缓存
     if (useCache) {
       const cacheKey = this.getCacheKey(prompt);
@@ -144,24 +144,24 @@ export class LLMService {
         return cached.data;
       }
     }
-    
+
     // 调用API
     const response = await this.callAPI(prompt);
-    
+
     // 存入缓存
     if (useCache) {
       const cacheKey = this.getCacheKey(prompt);
       cache.set(cacheKey, { data: response, timestamp: Date.now() });
     }
-    
+
     return response;
   }
-  
+
   /**
    * 流式查询（用于长响应）
    */
   async streamQuery(
-    prompt: string, 
+    prompt: string,
     onChunk: (chunk: string) => void
   ): Promise<string> {
     // 简化实现：非流式返回
@@ -169,7 +169,7 @@ export class LLMService {
     onChunk(response);
     return response;
   }
-  
+
   /**
    * 获取出牌建议
    */
@@ -183,7 +183,7 @@ export class LLMService {
     const response = await this.query(prompt, { useCache: false });
     return this.parseJSONStrict<CoachingAdvice>(response);
   }
-  
+
   /**
    * 获取换三张建议
    */
@@ -200,7 +200,7 @@ export class LLMService {
     const response = await this.query(prompt, { useCache: false });
     return this.parseJSONStrict(response);
   }
-  
+
   /**
    * 获取定缺建议
    */
@@ -218,7 +218,7 @@ export class LLMService {
     const response = await this.query(prompt, { useCache: false });
     return this.parseJSONStrict(response);
   }
-  
+
   /**
    * 生成对局复盘
    */
@@ -230,7 +230,7 @@ export class LLMService {
     const response = await this.query(prompt, { useCache: false });
     return this.parseJSON<GameReview>(response, this.getDefaultReview(gameRecord));
   }
-  
+
   /**
    * 分析用户画像
    */
@@ -246,7 +246,7 @@ export class LLMService {
     const response = await this.query(prompt);
     return this.parseJSON<Partial<UserProfile>>(response, {});
   }
-  
+
   /**
    * 问答助手
    */
@@ -257,7 +257,7 @@ export class LLMService {
     const prompt = PromptBuilder.buildQAPrompt(question, context);
     return await this.query(prompt, { useCache: false });
   }
-  
+
   /**
    * 生成解说
    */
@@ -274,7 +274,7 @@ export class LLMService {
       timestamp: Date.now(),
     });
   }
-  
+
   /**
    * 预测对手
    */
@@ -286,16 +286,16 @@ export class LLMService {
     const response = await this.query(prompt);
     return this.parseJSON<OpponentPrediction>(response, this.getDefaultOpponentPrediction(targetPlayer));
   }
-  
+
   /**
    * 清除缓存
    */
   clearCache(): void {
     cache.clear();
   }
-  
+
   // ============ 私有方法 ============
-  
+
   private getCacheKey(prompt: string): string {
     // 简单的hash
     let hash = 0;
@@ -306,18 +306,18 @@ export class LLMService {
     }
     return `llm_${hash}`;
   }
-  
+
   private async callAPI(prompt: string): Promise<string> {
     const { provider, apiKey, model, baseUrl, maxTokens, temperature, timeout } = this.config;
-    
+
     if (!apiKey && !isManagedLLMUrl(baseUrl)) {
       throw new Error('LLM API key is not configured');
     }
-    
+
     let url: string;
     let headers: Record<string, string>;
     let body: any;
-    
+
     switch (provider) {
       case 'openai':
         url = normalizeOpenAICompatibleUrl(
@@ -335,7 +335,7 @@ export class LLMService {
           temperature,
         };
         break;
-        
+
       case 'anthropic':
         url = normalizeAnthropicUrl(
           mapToBrowserProxyUrl(provider, baseUrl || 'https://api.anthropic.com/v1/messages')
@@ -352,7 +352,7 @@ export class LLMService {
           messages: [{ role: 'user', content: prompt }],
         };
         break;
-        
+
       case 'deepseek':
         url = normalizeOpenAICompatibleUrl(
           mapToBrowserProxyUrl(provider, baseUrl || 'https://api.deepseek.com/v1/chat/completions')
@@ -369,7 +369,7 @@ export class LLMService {
           temperature,
         };
         break;
-        
+
       case 'custom':
         if (!baseUrl) throw new Error('Custom provider requires baseUrl');
         if (isKimiCodingUrl(baseUrl)) {
@@ -400,38 +400,38 @@ export class LLMService {
           };
         }
         break;
-        
+
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
-    
+
     try {
       console.log('[LLM] Calling API:', { provider, model, url: url.substring(0, 50) + '...' });
-      
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         console.log('[LLM] Request timeout after', timeout, 'ms');
         controller.abort();
       }, timeout);
-      
+
       const response = await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[LLM] API error response:', response.status, errorText);
         throw new Error(`API error: ${response.status} - ${errorText}`);
       }
-      
+
       const data = await response.json();
       console.log('[LLM] API response received successfully');
-      
+
       // 解析不同提供商的响应格式
       if (provider === 'anthropic' || (provider === 'custom' && isKimiCodingUrl(baseUrl))) {
         return data.content?.[0]?.text || '';
@@ -447,7 +447,7 @@ export class LLMService {
       throw error;
     }
   }
-  
+
   private parseJSON<T>(response: string, defaultValue: T): T {
     try {
       // 尝试提取JSON
@@ -469,7 +469,7 @@ export class LLMService {
     }
     return JSON.parse(jsonMatch[0]) as T;
   }
-  
+
   private getDefaultCoachingAdvice(legalActions: Action[]): CoachingAdvice {
     const discardAction = legalActions.find(a => a.type === 'DISCARD');
     return {
@@ -485,7 +485,7 @@ export class LLMService {
       strategicHints: ['保持冷静', '观察对手'],
     };
   }
-  
+
   private getDefaultReview(gameRecord: any): GameReview {
     return {
       gameId: gameRecord.gameId || 'unknown',
@@ -508,7 +508,7 @@ export class LLMService {
       improvements: ['继续练习基本功'],
     };
   }
-  
+
   private getDefaultOpponentPrediction(playerId: PlayerId): OpponentPrediction {
     return {
       playerId,

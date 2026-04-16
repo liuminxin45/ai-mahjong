@@ -141,7 +141,7 @@ export interface UserProfile {
   nickname: string;
   createdAt: Date;
   lastActive: Date;
-  
+
   skillLevel: {
     overall: number; // 0-100
     rank: 'beginner' | 'intermediate' | 'advanced' | 'expert';
@@ -154,7 +154,7 @@ export interface UserProfile {
       adaptation: number;
     };
   };
-  
+
   playStyle: {
     primaryStyle: 'aggressive' | 'defensive' | 'balanced' | 'opportunistic';
     metrics: {
@@ -167,14 +167,14 @@ export interface UserProfile {
     strengths: string[];
     weaknesses: string[];
   };
-  
+
   patterns: {
     preferredMelds: string[];
     riskyTurns: number[];
     commonMistakes: string[];
     improvementAreas: string[];
   };
-  
+
   learningProgress: {
     completedLessons: string[];
     masteredConcepts: string[];
@@ -191,7 +191,7 @@ export interface GameRecord {
   duration: number;
   result: 'win' | 'lose' | 'draw';
   score: number;
-  
+
   replay: {
     initialState: GameState;
     events: Array<{
@@ -202,14 +202,14 @@ export interface GameRecord {
     }>;
     finalState: GameState;
   };
-  
+
   stats: {
     winTurn: number | null;
     dealInCount: number;
     meldCount: number;
     finalShanten: number;
   };
-  
+
   summary?: string;
   keyMoments?: KeyMoment[];
 }

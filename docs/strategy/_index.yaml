@@ -1,0 +1,64 @@
+# 四川麻将血战策略知识库 - 路由索引
+# 用法: 根据当前游戏阶段和决策类型，加载对应模块
+# 概率公式模块(probability.md)仅在需要解释计算过程或教学时联合加载
+
+modules:
+  exchange:
+    phase: EXCHANGE
+    trigger: 选择换出的3张牌
+    summary: 选花色(最弱门)→选牌(低牌效孤张优先)→目标(制造两门不均衡)
+    file: exchange.md
+
+  dingque:
+    phase: DING_QUE
+    trigger: 选择缺门花色
+    summary: 评分公式=2×连张+3×两面搭+2×对子+1×中张-2×孤张幺九；选最低分门
+    file: dingque.md
+
+  discard_quemen:
+    phase: PLAYING
+    trigger: 手中仍有缺门牌需要清理
+    summary: 硬约束-有缺门必先打；从孤张幺九→边张→中张；避免暴露做牌方向
+    file: discard_quemen.md
+
+  discard_offense:
+    phase: PLAYING
+    trigger: 缺门已清完,进攻做牌出牌
+    summary: 优先降向听→同向听选高进张→保复合形/四连→避免有效牌重复
+    file: discard_offense.md
+
+  discard_baoting:
+    phase: PLAYING
+    trigger: 查叫/退税压力下的保听策略
+    summary: 流局不听=巨大负EV；牺牲番型也要先成听；保听优先于追番
+    file: discard_baoting.md
+
+  listen:
+    phase: PLAYING
+    trigger: 听牌选择/换听/比较听口
+    summary: EV=P(胡)×Score-Risk-P(流局)×Penalty；两面>双碰>嵌张>边张>单钓
+    file: listen.md
+
+  gang:
+    phase: PLAYING
+    trigger: 碰/杠决策
+    summary: 杠EV=即时杠钱-抢杠风险-退税风险-信息暴露；不稳听时先听再杠
+    file: gang.md
+
+  defense:
+    phase: PLAYING
+    trigger: 防守切换判断
+    summary: 触发条件(对手快听/明副露多/牌墙见底)；安全序=缺门牌>熟张>幺九>中张
+    file: defense.md
+
+  endgame:
+    phase: PLAYING
+    trigger: 尾局(牌墙<20)或流局临近
+    summary: 查叫/花猪惩罚是巨大负EV；保听优先于追番；最后四张有胡必胡
+    file: endgame.md
+
+  probability:
+    phase: "*"
+    trigger: 需要概率计算解释或教学时联合加载
+    summary: 向听/进张/成胡概率(超几何)/EV公式/危险度评分
+    file: probability.md

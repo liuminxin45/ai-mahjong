@@ -152,14 +152,14 @@ export const CHENGDU_RULES = `
  * 获取规则上下文
  */
 export function getRuleContext(): string {
-  return CHENGDU_RULES;
+   return CHENGDU_RULES;
 }
 
 /**
  * 获取简短规则摘要（用于实时指导）
  */
 export function getRuleSummary(): string {
-  return `
+   return `
 **成都麻将（血战到底）关键规则:**
 - 换三张（固定顺时针）→ 定缺 → 出牌
 - 定缺: 必须选一门花色，先打完才能胡，定缺花色不能碰杠
@@ -176,32 +176,32 @@ export function getRuleSummary(): string {
  * 获取番型说明
  */
 export function getYakuExplanation(yakuType: string): string {
-  const explanations: Record<string, string> = {
-    PING_HU: '平胡 (1番): 基础胡牌型，4组面子+1对将，无更高番型时兜底',
-    ZI_MO: '自摸 (1番): 自己摸到胡牌，每个未胡玩家各付全额（逐家收取）',
-    DUI_DUI_HU: '对对胡 (2番): 4个刻子+1对将，没有顺子',
-    QING_YI_SE: '清一色 (2番): 手牌全部是同一花色（万、条或筒）',
-    QI_DUI_ZI: '七对子 (2番): 7对结构',
-    LONG_QI_DUI: '龙七对 (3番): 七对中含4张同牌，替代七对子不叠加',
-    QUAN_DAI_YAO: '全带幺 (2番): 每组面子和将都带有1或9',
-    JIN_GOU_DIAO: '金钩钓 (2番): 胡牌张出现在将牌组中',
-    GANG_SHANG_KAI_HUA: '杠上开花 (2番): 杠牌后补的那张牌刚好胡',
-    QIANG_GANG_HU: '抢杠胡 (2番): 在别人加杠时，抢先用那张牌胡牌',
-    HAI_DI_LAO_YUE: '海底捞月 (2番): 牌墙最后阶段胡牌',
-    GUAFENG_XIAYU: '刮风下雨 (2番): 已碰的牌手中还有一张，移除后剩余牌可胡',
-    TIAN_HU: '天胡 (4番): P0在首回合自摸胡',
-    DI_HU: '地胡 (4番): 非P0对P0首张弃牌点炮胡',
-  };
-  return explanations[yakuType] || `${yakuType}: 未知番型`;
+   const explanations: Record<string, string> = {
+      PING_HU: '平胡 (1番): 基础胡牌型，4组面子+1对将，无更高番型时兜底',
+      ZI_MO: '自摸 (1番): 自己摸到胡牌，每个未胡玩家各付全额（逐家收取）',
+      DUI_DUI_HU: '对对胡 (2番): 4个刻子+1对将，没有顺子',
+      QING_YI_SE: '清一色 (2番): 手牌全部是同一花色（万、条或筒）',
+      QI_DUI_ZI: '七对子 (2番): 7对结构',
+      LONG_QI_DUI: '龙七对 (3番): 七对中含4张同牌，替代七对子不叠加',
+      QUAN_DAI_YAO: '全带幺 (2番): 每组面子和将都带有1或9',
+      JIN_GOU_DIAO: '金钩钓 (2番): 胡牌张出现在将牌组中',
+      GANG_SHANG_KAI_HUA: '杠上开花 (2番): 杠牌后补的那张牌刚好胡',
+      QIANG_GANG_HU: '抢杠胡 (2番): 在别人加杠时，抢先用那张牌胡牌',
+      HAI_DI_LAO_YUE: '海底捞月 (2番): 牌墙最后阶段胡牌',
+      GUAFENG_XIAYU: '刮风下雨 (2番): 已碰的牌手中还有一张，移除后剩余牌可胡',
+      TIAN_HU: '天胡 (4番): P0在首回合自摸胡',
+      DI_HU: '地胡 (4番): 非P0对P0首张弃牌点炮胡',
+   };
+   return explanations[yakuType] || `${yakuType}: 未知番型`;
 }
 
 /**
  * 根据游戏阶段获取相关规则提示
  */
 export function getPhaseRules(phase: string): string {
-  switch (phase) {
-    case 'EXCHANGE':
-      return `
+   switch (phase) {
+      case 'EXCHANGE':
+         return `
 **换三张阶段规则:**
 - 必须选择3张**同花色**的牌进行交换
 - 交换方向**固定顺时针**（P0→P1, P1→P2, P2→P3, P3→P0）
@@ -210,11 +210,14 @@ export function getPhaseRules(phase: string): string {
 **换三张策略要点:**
 1. **一般原则（优先换出价值低的牌）:**
    - 孤张（没有相邻牌的单张）> 边张（1、9） > 中张（3-7）
-   - 通常避免换出对子、刻子、顺子的组成部分
+   - 对保留门：避免换出对子、刻子、顺子的组成部分
+   - 对换出门（将来的缺门）：剩余牌全是废牌，对子/搭子没有保留价值
 2. **选择花色:**
    - 通常选择牌数最少或孤张最多的花色换出
    - 换出的花色往往成为定缺花色
-3. **牌型价值参考（非绝对）:**
+   - **定缺 = 必须全部打掉、不能碰、不能杠、不能做将！**
+   - 因此：换出门剩余越少越好，不要在缺门中"保留对子"
+3. **牌型价值参考（仅对保留门有效）:**
    - 刻子（3张相同）= 高价值，通常保留
    - 对子（2张相同）= 较高价值
    - 顺子/搭子 = 中等价值
@@ -228,8 +231,8 @@ export function getPhaseRules(phase: string): string {
    - 考虑换牌后各花色的张数和牌型发展潜力
    - 注意：清一色在本规则中为2番（非3番）
 `;
-    case 'DING_QUE':
-      return `
+      case 'DING_QUE':
+         return `
 **定缺阶段规则:**
 - 必须选择一种花色（万/条/筒）作为"缺门"
 - 定缺后，**必须先打完该花色所有牌**才能胡牌
@@ -257,8 +260,8 @@ export function getPhaseRules(phase: string): string {
    - 权衡：快速打完 vs 追求高番型
    - 记住定缺花色不能碰杠，所以有刻子的花色不适合定缺
 `;
-    case 'PLAYING':
-      return `
+      case 'PLAYING':
+         return `
 **出牌阶段规则:**
 - **定缺优先**: 必须先打完定缺花色的所有牌
 - 定缺花色打完后才能胡牌
@@ -273,8 +276,8 @@ export function getPhaseRules(phase: string): string {
 3. 防守阶段: 打熟张，避免点炮
 4. 注意过水: 如果暂时不想胡，后续本圈无法再胡弃牌
 `;
-    case 'END':
-      return `
+      case 'END':
+         return `
 **结算规则:**
 - 计分公式: 底分5 × 2^(总番-1)，每杠+1番
 - 自摸（逐家收取）: 每个未胡玩家各付全额score分
@@ -284,7 +287,7 @@ export function getPhaseRules(phase: string): string {
 - 流局查叫: 未听牌者向听牌者赔付
 - 血战奖惩: 最后胡的可能获得更高收益
 `;
-    default:
-      return '';
-  }
+      default:
+         return '';
+   }
 }

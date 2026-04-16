@@ -9,6 +9,7 @@ import type { Action } from '../core/model/action';
 import type { Tile } from '../core/model/tile';
 import type { GuidanceLevel, CommentaryStyle } from './types';
 import { getRuleSummary, getPhaseRules } from './RuleContext';
+import { getStrategyContext, inferSituation } from './StrategyContext';
 
 /**
  * 格式化手牌为字符串
@@ -18,7 +19,7 @@ function formatHand(tiles: Tile[]): string {
   for (const tile of tiles) {
     grouped[tile.suit].push(tile.rank);
   }
-  
+
   let result = '';
   for (const [suit, ranks] of Object.entries(grouped)) {
     if (ranks.length > 0) {
@@ -38,6 +39,33 @@ function formatMelds(melds: Array<{ type: string; tile: Tile }>): string {
     const suitName = m.tile.suit === 'W' ? '万' : m.tile.suit === 'B' ? '条' : '筒';
     return `${m.type === 'PENG' ? '碰' : '杠'}${m.tile.rank}${suitName}`;
   }).join(', ');
+}
+
+/**
+ * 枚举某花色所有不重复的3张换出组合
+ */
+function enumerateExchangeOptions(tiles: Tile[]): Array<{ exchange: number[]; remaining: number[] }> {
+  const seen = new Set<string>();
+  const results: Array<{ exchange: number[]; remaining: number[] }> = [];
+
+  for (let i = 0; i < tiles.length; i++) {
+    for (let j = i + 1; j < tiles.length; j++) {
+      for (let k = j + 1; k < tiles.length; k++) {
+        const exchange = [tiles[i].rank, tiles[j].rank, tiles[k].rank].sort((a, b) => a - b);
+        const key = exchange.join(',');
+        if (!seen.has(key)) {
+          seen.add(key);
+          const remaining = tiles
+            .filter((_, idx) => idx !== i && idx !== j && idx !== k)
+            .map(t => t.rank)
+            .sort((a, b) => a - b);
+          results.push({ exchange, remaining });
+        }
+      }
+    }
+  }
+
+  return results;
 }
 
 /**
@@ -65,7 +93,7 @@ export class PromptBuilder {
     const melds = state.melds[playerId];
     const discards = state.discards[playerId];
     const dingQue = (state as any).dingQueSelection?.[playerId];
-    
+
     const levelInstructions: Record<GuidanceLevel, string> = {
       beginner: '请用最简单的语言解释，直接告诉玩家应该打哪张牌。',
       learning: '请给出推荐的出牌，并解释原因。列出2-3个备选方案。',
@@ -81,14 +109,21 @@ export class PromptBuilder {
 
     // 获取各玩家定缺信息
     const dingQueInfo = (state as any).dingQueSelection;
-    const opponentDingQue = dingQueInfo ? 
+    const opponentDingQue = dingQueInfo ?
       `P1缺${dingQueInfo.P1 || '?'}, P2缺${dingQueInfo.P2 || '?'}, P3缺${dingQueInfo.P3 || '?'}` : '';
+
+    // 自动推断决策场景，加载对应策略模块
+    const situation = inferSituation(state as any, playerId);
+    const strategy = getStrategyContext(state.phase, situation, level === 'advanced');
 
     return `你是一位精通成都麻将（血战到底）的专业教练，正在指导一位${level === 'beginner' ? '初学者' : level === 'learning' ? '学习中的' : level === 'practicing' ? '练习中的' : '高级'}玩家。
 
 ${getRuleSummary()}
 
 ${getPhaseRules(state.phase)}
+
+## 策略参考
+${strategy}
 
 【当前局面】
 - 阶段: ${state.phase}
@@ -117,12 +152,12 @@ ${opponentDingQue ? `【对手定缺】: ${opponentDingQue}` : ''}
 
 【可选动作】
 ${legalActions.map(a => {
-  if (a.type === 'DISCARD' && a.tile) {
-    const suitName = a.tile.suit === 'W' ? '万' : a.tile.suit === 'B' ? '条' : '筒';
-    return `打 ${a.tile.rank}${suitName}`;
-  }
-  return a.type;
-}).join('\n')}
+      if (a.type === 'DISCARD' && a.tile) {
+        const suitName = a.tile.suit === 'W' ? '万' : a.tile.suit === 'B' ? '条' : '筒';
+        return `打 ${a.tile.rank}${suitName}`;
+      }
+      return a.type;
+    }).join('\n')}
 
 【任务】
 ${levelInstructions[level]}
@@ -160,7 +195,7 @@ ${levelInstructions[level]}
       B: { tiles: [], analysis: [] },
       T: { tiles: [], analysis: [] },
     };
-    
+
     for (const tile of hand) {
       suitGroups[tile.suit].tiles.push(tile);
     }
@@ -170,33 +205,57 @@ ${levelInstructions[level]}
       const tiles = group.tiles;
       const suitName = suit === 'W' ? '万' : suit === 'B' ? '条' : '筒';
       group.analysis.push(`${suitName}: ${tiles.length}张`);
-      
+
       // 统计对子、刻子
       const rankCounts: Record<number, number> = {};
       for (const t of tiles) {
         rankCounts[t.rank] = (rankCounts[t.rank] || 0) + 1;
       }
-      
+
       const pairs = Object.entries(rankCounts).filter(([_, c]) => c === 2);
       const triplets = Object.entries(rankCounts).filter(([_, c]) => c >= 3);
-      
+
       if (triplets.length > 0) {
         group.analysis.push(`  刻子: ${triplets.map(([r]) => r + suitName).join(', ')}`);
       }
       if (pairs.length > 0) {
         group.analysis.push(`  对子: ${pairs.map(([r]) => r + suitName).join(', ')}`);
       }
-      
+
       // 检查顺子和搭子
       const ranks = Object.keys(rankCounts).map(Number).sort((a, b) => a - b);
       const sequences: string[] = [];
+      const sequenceRanks = new Set<number>();
       for (let i = 0; i < ranks.length - 2; i++) {
         if (ranks[i + 1] === ranks[i] + 1 && ranks[i + 2] === ranks[i] + 2) {
-          sequences.push(`${ranks[i]}${ranks[i+1]}${ranks[i+2]}${suitName}`);
+          sequences.push(`${ranks[i]}${ranks[i + 1]}${ranks[i + 2]}${suitName}`);
+          sequenceRanks.add(ranks[i]);
+          sequenceRanks.add(ranks[i] + 1);
+          sequenceRanks.add(ranks[i] + 2);
         }
       }
       if (sequences.length > 0) {
         group.analysis.push(`  顺子: ${sequences.join(', ')}`);
+      }
+
+      // 检测对子/刻子与顺子共用牌
+      if (sequences.length > 0) {
+        const overlapWarnings: string[] = [];
+        for (const [rankStr, count] of [...pairs, ...triplets]) {
+          const rank = Number(rankStr);
+          if (sequenceRanks.has(rank)) {
+            if (count === 2) {
+              // 对子(2张)参与顺子 → 保顺子只剩1张(无对子)，拆顺子可保对子
+              overlapWarnings.push(`${rank}${suitName}(${count}张)同时被顺子占用1张，保留顺子则无法成对；拆掉顺子才能保住对子`);
+            } else {
+              // 刻子(3张)参与顺子 → 影响较小
+              overlapWarnings.push(`${rank}${suitName}(${count}张)同时参与顺子，但因有${count}张影响较小`);
+            }
+          }
+        }
+        if (overlapWarnings.length > 0) {
+          group.analysis.push(`  ⚠️ 共用牌冲突: ${overlapWarnings.join('；')}`);
+        }
       }
     }
 
@@ -207,9 +266,39 @@ ${levelInstructions[level]}
       advanced: '请给出详细的牌型分析，包括各花色的发展潜力和换牌后的定缺考虑。',
     };
 
+    const strategy = getStrategyContext('EXCHANGE');
+
+    // 枚举各花色的换牌方案（仅 ≥3 张的花色可以换出）
+    const exchangeOptionsLines: string[] = [];
+    const eligibleSuits: string[] = [];
+    const ineligibleSuits: string[] = [];
+    for (const [suit, group] of Object.entries(suitGroups)) {
+      const sn = suit === 'W' ? '万' : suit === 'B' ? '条' : '筒';
+      if (group.tiles.length < 3) {
+        ineligibleSuits.push(`${sn}(${group.tiles.length}张，不足3张，不能换出)`);
+        continue;
+      }
+      eligibleSuits.push(sn);
+      const options = enumerateExchangeOptions(group.tiles);
+      const limited = options.slice(0, 10);
+      const lines = limited.map((opt, i) => {
+        const remainStr = opt.remaining.length > 0
+          ? opt.remaining.join('') + sn
+          : '(清空)';
+        return `  方案${i + 1}: 换出 ${opt.exchange.join('')}${sn} → 剩余 ${remainStr}`;
+      });
+      if (options.length > 10) {
+        lines.push(`  ...还有${options.length - 10}种组合`);
+      }
+      exchangeOptionsLines.push(`${sn} (${group.tiles.length}张):\n${lines.join('\n')}`);
+    }
+
     return `你是一位精通成都麻将（血战到底）的专业教练，现在是**换三张阶段**。
 
 ${getPhaseRules('EXCHANGE')}
+
+## 策略参考
+${strategy}
 
 【我的手牌】
 ${formatHand(hand)}
@@ -222,25 +311,41 @@ ${Object.values(suitGroups).map(g => g.analysis.join('\n')).join('\n')}
 - 条: ${suitGroups.B.tiles.length}张  
 - 筒: ${suitGroups.T.tiles.length}张
 
+【各花色可选换牌方案】
+${ineligibleSuits.length > 0 ? `⛔ 不可换出: ${ineligibleSuits.join('、')}\n` : ''}✅ 只能从以下花色中选择换出: ${eligibleSuits.join('、')}
+
+${exchangeOptionsLines.join('\n\n')}
+
 【任务】
 ${levelHints[level]}
 
-**注意**: 
-1. 必须选择**同一花色**的3张牌
-2. 换出的牌很可能成为定缺花色
-3. 保护好对子、刻子、顺子
+**⛔ 绝对禁止（违反任何一条即为错误答案）**:
+1. 推荐的3张牌必须是**完全相同的花色**，绝对不能混合不同花色
+2. 只能从上面标记为"✅ 可换出"的花色中选择
+3. 不足3张的花色**无法换出**，连1张都不能从这个花色选
+
+**分析步骤**:
+1. 确认可换出的花色（≥3张的花色）
+2. 从可换出花色中，选择换出后对保留门结构最有利的方案
+3. 换出门剩余牌越少越好（反正后续大概率要定缺这个花色，全是废牌）
+4. 保留门的结构质量才有意义（对子、搭子、顺子越多越好）
+5. 注意：同一张牌可能同时被统计为对子和顺子成员，拆顺子可能连带破坏对子
+
+**关于定缺**: 换三张后你会收到3张未知花色的牌，所以现在不要预判定缺。只需专注于：从哪个花色换出哪3张。
 
 请以JSON格式返回：
 {
   "recommendedTiles": ["X万/条/筒", "X万/条/筒", "X万/条/筒"],
-  "selectedSuit": "万/条/筒",
-  "reasoning": "选择这个花色的原因",
+  "selectedSuit": "万/条/筒（换出花色，必须是同一花色）",
+  "reasoning": "为什么选这个花色、选这3张牌",
+  "alternatives": [
+    {"tiles": ["X万/条/筒", "X万/条/筒", "X万/条/筒"], "reasoning": "方案对比说明"}
+  ],
   "tileAnalysis": {
     "万": {"count": 数量, "value": "高/中/低", "reason": "原因"},
     "条": {"count": 数量, "value": "高/中/低", "reason": "原因"},
     "筒": {"count": 数量, "value": "高/中/低", "reason": "原因"}
-  },
-  "afterExchangePlan": "换牌后的定缺建议"
+  }
 }`;
   }
 
@@ -265,22 +370,22 @@ ${levelHints[level]}
     for (const suit of ['W', 'B', 'T'] as const) {
       const tiles = hand.filter(t => t.suit === suit);
       const suitName = suit === 'W' ? '万' : suit === 'B' ? '条' : '筒';
-      
+
       // 统计
       const rankCounts: Record<number, number> = {};
       for (const t of tiles) {
         rankCounts[t.rank] = (rankCounts[t.rank] || 0) + 1;
       }
-      
+
       const ranks = Object.keys(rankCounts).map(Number).sort((a, b) => a - b);
-      
+
       // 对子和刻子
       let pairs = 0, triplets = 0;
       for (const count of Object.values(rankCounts)) {
         if (count >= 3) triplets++;
         else if (count === 2) pairs++;
       }
-      
+
       // 顺子
       let sequences = 0;
       for (let i = 0; i < ranks.length - 2; i++) {
@@ -288,7 +393,7 @@ ${levelHints[level]}
           sequences++;
         }
       }
-      
+
       // 孤张和边张
       let isolated = 0, edgeTiles = 0;
       for (const [rankStr, count] of Object.entries(rankCounts)) {
@@ -299,7 +404,7 @@ ${levelHints[level]}
         }
         if (rank === 1 || rank === 9) edgeTiles += count;
       }
-      
+
       suitAnalysis[suit] = {
         count: tiles.length,
         tiles: tiles.map(t => t.rank + suitName).join(' '),
@@ -318,9 +423,14 @@ ${levelHints[level]}
       advanced: '请详细分析各花色的打完难度、牌型发展潜力，给出最优定缺策略。',
     };
 
+    const strategy = getStrategyContext('DING_QUE');
+
     return `你是一位精通成都麻将（血战到底）的专业教练，现在是**定缺阶段**。
 
 ${getPhaseRules('DING_QUE')}
+
+## 策略参考
+${strategy}
 
 【我的手牌】
 ${formatHand(hand)}
@@ -483,12 +593,12 @@ ${i + 1}. 第${d.turn}轮
   ): string {
     let contextInfo = '';
     let phaseInfo = '';
-    
+
     if (context?.gameState) {
       const state = context.gameState;
       const phase = state.phase;
       const chengduState = state as any;
-      
+
       // 根据阶段提供不同的上下文
       if (phase === 'EXCHANGE') {
         phaseInfo = `
@@ -506,9 +616,14 @@ ${getPhaseRules('EXCHANGE')}
 ${formatHand(hand)}
 
 【花色统计】
-- 万: ${suitCounts.W}张
-- 条: ${suitCounts.B}张
-- 筒: ${suitCounts.T}张
+- 万: ${suitCounts.W}张${suitCounts.W < 3 ? '（不足3张，不能换出）' : ''}
+- 条: ${suitCounts.B}张${suitCounts.B < 3 ? '（不足3张，不能换出）' : ''}
+- 筒: ${suitCounts.T}张${suitCounts.T < 3 ? '（不足3张，不能换出）' : ''}
+
+**⛔ 换三张规则提醒**:
+- 必须选3张**同花色**的牌换出，绝对不能混合不同花色
+- 不足3张的花色无法换出
+- 换三张后会收到3张未知花色的牌，所以不要预判定缺，专注换出选择
 `;
       } else if (phase === 'DING_QUE') {
         phaseInfo = `
@@ -542,7 +657,7 @@ ${dingQue ? `- 你的定缺: ${dingQue === 'W' ? '万' : dingQue === 'B' ? '条'
 `;
       }
     }
-    
+
     if (context?.history && context.history.length > 0) {
       contextInfo += `
 【对话历史】
@@ -550,11 +665,18 @@ ${context.history.slice(-6).join('\n')}
 `;
     }
 
+    // 根据阶段加载策略参考
+    const qaPhase = context?.gameState?.phase || 'PLAYING';
+    const qaStrategy = getStrategyContext(qaPhase);
+
     return `你是一位精通成都麻将（血战到底）的专业助手，帮助玩家解答麻将相关问题。
 
 【游戏规则参考】
 ${getRuleSummary()}
 ${phaseInfo}
+
+## 策略参考
+${qaStrategy}
 ${contextInfo}
 【用户问题】
 ${question}
@@ -587,7 +709,7 @@ ${question}
       educational: '使用教学风格，解释每个动作背后的原因和策略。',
     };
 
-    const tileStr = event.tile 
+    const tileStr = event.tile
       ? `${event.tile.rank}${event.tile.suit === 'W' ? '万' : event.tile.suit === 'B' ? '条' : '筒'}`
       : '';
 

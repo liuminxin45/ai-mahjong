@@ -7,3 +7,5 @@ export { LLMService, llmService } from './LLMService';
 export { PromptBuilder } from './PromptBuilder';
 export { HistoryStorage, historyStorage } from './HistoryStorage';
 export * from './RuleContext';
+export { getStrategyContext, inferSituation, getAllModules } from './StrategyContext';
+export type { StrategySituation } from './StrategyContext';
