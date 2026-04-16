@@ -473,7 +473,7 @@ async function sendMessage(content: string): Promise<void> {
   mountCoachPanel('bottom');
 
   try {
-    const historyContext = chatHistory.slice(-6).map((message) => `${message.role === 'user' ? '用户' : '助手'}: ${message.content}`);
+    const historyContext = chatHistory.slice(-10).map((message) => `${message.role === 'user' ? '用户' : '助手'}: ${message.content}`);
     const response = await llmService.answerQuestion(content, {
       gameState: latestContext.gameState,
       history: historyContext,
@@ -484,6 +484,11 @@ async function sendMessage(content: string): Promise<void> {
       content: response,
       timestamp: new Date(),
     });
+
+    // 滑动窗口：只保留最近5轮对话（10条消息）
+    if (chatHistory.length > 10) {
+      chatHistory = chatHistory.slice(-10);
+    }
   } catch (error) {
     console.error('[Coach] Chat error:', error);
     chatHistory.push({

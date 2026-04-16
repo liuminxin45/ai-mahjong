@@ -660,8 +660,8 @@ ${dingQue ? `- 你的定缺: ${dingQue === 'W' ? '万' : dingQue === 'B' ? '条'
 
     if (context?.history && context.history.length > 0) {
       contextInfo += `
-【对话历史】
-${context.history.slice(-6).join('\n')}
+【对话历史（最近5轮）】
+${context.history.slice(-10).join('\n')}
 `;
     }
 

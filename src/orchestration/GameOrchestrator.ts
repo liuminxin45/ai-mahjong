@@ -25,6 +25,7 @@ import { createOpponentModel } from '../agents/algo/opponentModel';
 import { gameLogger } from '../utils/gameLogger';
 import { setAIParams } from '../agents/algo/aiParams';
 import { testConfig } from '../config/testConfig';
+import { clearChatHistory } from '../ui/components/LLMChatAssistant';
 
 // 条件日志函数 - 训练模式下禁用
 const log = (...args: any[]) => {
@@ -137,9 +138,12 @@ export class GameOrchestrator {
   startNewMatch(ruleId?: RuleId): void {
     this.stop();
     this.running = true;
-    
+
     // 重置人类代理，避免"already waiting"错误
     this.human.reset();
+
+    // 新对局清空 AI 导师聊天记忆
+    clearChatHistory();
 
     startMatchStat();
     this.opponentModel.init(['P0', 'P1', 'P2', 'P3']);
@@ -147,11 +151,11 @@ export class GameOrchestrator {
     // 加载训练后的 AI 参数
     try {
       const paramsFile = loadParams();
-      
+
       // 使用 bestParams 而不是 params（bestParams 是训练过程中找到的最佳参数）
       const paramsToUse = paramsFile.trainingState.bestParams || paramsFile.params;
       setAIParams(paramsToUse);
-      
+
       log('[GameOrchestrator] ✅ Loaded trained AI parameters');
       log('[GameOrchestrator] 📊 Best fitness:', paramsFile.trainingState.bestFitness);
       log('[GameOrchestrator] 📊 Training steps:', paramsFile.trainingState.currentStep);
@@ -167,7 +171,7 @@ export class GameOrchestrator {
     } catch (err) {
       warn('[GameOrchestrator] ⚠️ Failed to load AI parameters, using defaults:', err);
     }
-    
+
     // 在线学习叠加：在训练参数基础上应用在线学习的调整
     if (loadOnlineLearnedParams()) {
       log('[GameOrchestrator] 🧠 Applied online-learned adjustments on top of base params');
@@ -218,26 +222,26 @@ export class GameOrchestrator {
     // 如果是出牌动作且有校验器，先进行校验
     if (action.type === 'DISCARD' && this.discardValidator && this.state) {
       const validation = this.discardValidator.validateDiscard(this.state, 'P0', action.tile);
-      
+
       if (!validation.valid) {
         warn('[Validator] ❌ Invalid discard:', validation.reason);
-        
+
         // 在 UI 上显示错误提示
         if (!testConfig.trainingMode) {
           safeAlert(`Cannot discard this tile!\n\n${validation.reason}`);
         }
-        
+
         // 如果有建议的牌，显示给玩家
         if (validation.suggestedTiles && validation.suggestedTiles.length > 0) {
           log('[Validator] 💡 Suggested tiles:', validation.suggestedTiles);
         }
-        
+
         return; // 阻止非法出牌
       }
-      
+
       log('[Validator] ✅ Valid discard');
     }
-    
+
     this.human.dispatch(action);
   }
 
@@ -270,7 +274,7 @@ export class GameOrchestrator {
   private async loop(): Promise<void> {
     let consecutivePassCount = 0;
     let lastStateHash = '';
-    
+
     while (this.running) {
       const state = this.state;
       if (!state) break;
@@ -288,7 +292,7 @@ export class GameOrchestrator {
           console.error('Has lastDiscard:', !!state.lastDiscard);
           console.error('Consecutive passes:', consecutivePassCount);
           console.error('='.repeat(80));
-          
+
           // 强制清除 lastDiscard 并继续
           if (state.lastDiscard) {
             warn('[LOOP FIX] Forcing lastDiscard clear and advancing game');
@@ -300,7 +304,7 @@ export class GameOrchestrator {
             await timers.yield();
             continue;
           }
-          
+
           // 没有lastDiscard时，强制推进游戏到下一个玩家
           warn('[LOOP FIX] No lastDiscard, forcing game to next player');
           const nextP = nextPlayerId(state.currentPlayer);
@@ -330,35 +334,38 @@ export class GameOrchestrator {
       if (this.rulePack.isRoundEnd(state)) {
         // 结算分数 - 调用规则包的 settleRound 方法获取最终分数
         const roundResult = this.rulePack.settleRound(state);
-        
+
         const res: 'HU' | 'LOSE' | 'DRAW' = state.declaredHu.P0
           ? 'HU'
           : (['P1', 'P2', 'P3'] as PlayerId[]).some((pid) => state.declaredHu[pid])
             ? 'LOSE'
             : 'DRAW';
         finishMatchStat(res);
-        
+
         // 将最终分数应用到游戏状态中
-        const ended: GameState = { 
-          ...state, 
+        const ended: GameState = {
+          ...state,
           phase: 'END',
           // 添加结算后的分数到状态中
- ...(roundResult.scores && { roundScores: roundResult.scores })
+          ...(roundResult.scores && { roundScores: roundResult.scores })
         };
         this.state = ended;
         this.gs.applyState(ended);
         this.pushEventAndUpdateModel({ type: 'END', turn: ended.turn, ts: now() });
         this.gs.setEnded(ended);
-        
+
+        // 自动保存回放数据
+        this.exportReplay();
+
         // 记录游戏结束
         gameLogger.endGame(ended, res);
-        
+
         // 在线学习：记录游戏结果
         if (!this.ss.p0IsAI) {
           // 仅在人类对局时启用在线学习
           const gameResults: GameResult[] = [];
           const players: PlayerId[] = ['P0', 'P1', 'P2', 'P3'];
-          
+
           // 计算排名
           const rankings = players
             .map(pid => ({
@@ -371,7 +378,7 @@ export class GameOrchestrator {
               if (!a.isWinner && b.isWinner) return 1;
               return b.score - a.score;
             });
-          
+
           rankings.forEach((r, idx) => {
             gameResults.push({
               playerId: r.pid,
@@ -381,15 +388,15 @@ export class GameOrchestrator {
               turn: ended.turn,
             });
           });
-          
+
           recordGameResult(gameResults);
-          
+
           // 保存游戏记录到历史
           this.saveGameToHistory(ended, res).catch(err => {
             console.error('[GameOrchestrator] Failed to save game history:', err);
           });
         }
-        
+
         break;
       }
 
@@ -461,7 +468,7 @@ export class GameOrchestrator {
       // 对所有玩家的出牌动作进行校验
       if (action.type === 'DISCARD' && this.discardValidator) {
         const validation = this.discardValidator.validateDiscard(state, actor, action.tile);
-        
+
         if (!validation.valid) {
           // 记录详细的错误信息
           const errorDetails = {
@@ -474,29 +481,29 @@ export class GameOrchestrator {
             phase: state.phase,
             turn: state.turn,
           };
-          
+
           error('='.repeat(80));
           error('[VALIDATION ERROR] Invalid discard detected!');
           error('Player:', errorDetails.player);
           error('Reason:', errorDetails.reason);
           error('='.repeat(80));
-          
+
           // 记录到游戏日志
           gameLogger.logStateChange(state, `VALIDATION ERROR: ${actor} attempted invalid discard ${errorDetails.attemptedTile} - ${validation.reason}`);
-          
+
           // 停止游戏
           this.stop();
-          
+
           // 在 UI 上显示错误（非训练模式）
           if (!testConfig.trainingMode) {
             const errorMessage = `❌ VALIDATION ERROR\n\nPlayer: ${actor}\nAttempted: ${errorDetails.attemptedTile}\n\nReason: ${validation.reason}\n\nLegal discards: ${errorDetails.legalDiscards}\n\nGame stopped. Check console for details.`;
             safeAlert(errorMessage);
           }
-          
+
           // 抛出异常
           throw new Error(`Validation failed: ${actor} attempted to discard ${errorDetails.attemptedTile}. ${validation.reason}. Legal discards: ${errorDetails.legalDiscards}`);
         }
-        
+
         log(`[Validator] ✅ ${actor} discard validated`);
       }
 
@@ -603,21 +610,21 @@ export class GameOrchestrator {
 
     if (hand.length === base + 1) {
       let candidates = [...hand];
-      
+
       // If we just ponged a tile, remove it from discard candidates
       const lastMeld = state.melds[actor]?.[state.melds[actor].length - 1];
       if (lastMeld?.type === 'PENG') {
-        candidates = candidates.filter(tile => 
+        candidates = candidates.filter(tile =>
           !(tile.suit === lastMeld.tile.suit && tile.rank === lastMeld.tile.rank)
         );
       }
-      
+
       if (this.discardValidator) {
         const legalTiles = this.discardValidator.getLegalDiscards(state, actor);
         if (legalTiles.length > 0) {
           // Filter out the ponged tile from legal tiles as well
           if (lastMeld?.type === 'PENG') {
-            candidates = legalTiles.filter(tile => 
+            candidates = legalTiles.filter(tile =>
               !(tile.suit === lastMeld.tile.suit && tile.rank === lastMeld.tile.rank)
             );
             // If we filtered out all legal tiles, fall back to the original legal tiles
@@ -629,7 +636,7 @@ export class GameOrchestrator {
           }
         }
       }
-      
+
       const tile = candidates[0];
       if (!tile) {
         console.error('[DeadlockGuard] No tiles available to discard during recovery');
@@ -659,13 +666,13 @@ export class GameOrchestrator {
       style: makeAgentStyleContext(state, actor),
       opponentSnapshot: this.opponentModel.getSnapshot(state, actor),
     };
-    
+
     // 检查 P0 是否为 AI 模式
     if (actor === 'P0' && !this.ss.p0IsAI) {
       // 换三张和定缺阶段不使用超时机制，避免卡住
       const isSpecialPhase = state.phase === 'EXCHANGE' || state.phase === 'DING_QUE';
       const timeout = isSpecialPhase ? Infinity : (this.ss.timeoutEnabled ? this.ss.timeoutMs : Infinity);
-      
+
       const res = await this.human.awaitAction(legal, timeout);
       if (res) return res;
       return this.pickAlgoAction(state, actor, legal, 'high', ctx);
@@ -685,7 +692,7 @@ export class GameOrchestrator {
         await timers.sleep(2000);
       }
     }
-    
+
     return await this.agents[actor].decide(state, actor, legal, ctx);
   }
 
@@ -696,29 +703,29 @@ export class GameOrchestrator {
     try {
       const chengduState = finalState as any;
       const p0Score = chengduState.roundScores?.P0 || 0;
-      
+
       // 计算游戏时长（秒）
       const duration = Math.floor((Date.now() - this.gameStartTime) / 1000);
-      
+
       // 从 gameStore 获取事件
       const events = this.gs.events;
-      
+
       // 计算统计数据
       const dealInCount = events.filter(
         (e: GameEvent) => e.type === 'HU' && (e as any).from === 'P0' && e.playerId !== 'P0'
       ).length;
-      
+
       const meldCount = finalState.melds.P0.length;
-      
+
       // 计算最终向听数
-      const finalShanten = finalState.declaredHu.P0 
-        ? 0 
+      const finalShanten = finalState.declaredHu.P0
+        ? 0
         : shantenWithMelds(finalState.hands.P0, meldCount);
-      
+
       // 找到胡牌回合（如果胡牌）
       const winEvent = events.find((e: GameEvent) => e.type === 'HU' && e.playerId === 'P0');
       const winTurn = winEvent?.turn || null;
-      
+
       const gameRecord: GameRecord = {
         gameId: this.currentGameId,
         timestamp: new Date(this.gameStartTime),
@@ -742,7 +749,7 @@ export class GameOrchestrator {
           finalShanten,
         },
       };
-      
+
       await historyStorage.saveGame(gameRecord);
       console.log('[GameOrchestrator] Game saved to history:', this.currentGameId);
     } catch (error: any) {

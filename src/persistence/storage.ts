@@ -1,16 +1,32 @@
 import type { ReplayFile } from './replay';
 
-class MemoryStorage {
-  // TODO: replace with persistent storage (localStorage/IndexedDB/file) when needed.
-  private latest: ReplayFile | null = null;
+const STORAGE_KEY = 'ai-mahjong:latest-replay';
+
+class PersistentStorage {
+  private cache: ReplayFile | null = null;
 
   saveLatest(replay: ReplayFile): void {
-    this.latest = replay;
+    this.cache = replay;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(replay));
+    } catch {
+      // localStorage full or unavailable — keep in-memory fallback
+    }
   }
 
   loadLatest(): ReplayFile | null {
-    return this.latest;
+    if (this.cache) return this.cache;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        this.cache = JSON.parse(raw) as ReplayFile;
+        return this.cache;
+      }
+    } catch {
+      // parse error — ignore
+    }
+    return null;
   }
 }
 
-export const storage = new MemoryStorage();
+export const storage = new PersistentStorage();
