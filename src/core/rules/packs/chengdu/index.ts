@@ -241,6 +241,86 @@ function validateHandSize(hand: Tile[], meldCount: number, expectedExtra: number
   return true;
 }
 
+function hasTilesInHand(hand: Tile[], tiles: Tile[]): boolean {
+  return removeTilesFromHand(hand, tiles) !== null;
+}
+
+function resolveExchangeSelections(
+  state: ChengduState,
+  currentPlayerSelection?: Tile[],
+): Record<PlayerId, Tile[]> | null {
+  const selections = {} as Record<PlayerId, Tile[]>;
+
+  for (const playerId of PLAYERS) {
+    const isAiPlayer = playerId !== 'P0' || settingsStore.p0IsAI;
+    const savedSelection = state.exchangeSelections?.[playerId];
+    const hasSavedSelection = Array.isArray(savedSelection) && savedSelection.length === 3;
+    const selection =
+      playerId === state.currentPlayer && currentPlayerSelection
+        ? currentPlayerSelection
+        : hasSavedSelection
+          ? savedSelection
+          : isAiPlayer
+            ? selectExchangeTiles(state.hands[playerId])
+            : undefined;
+
+    if (!selection || !validateExchangeTiles(selection)) {
+      warn(`[EXCHANGE] Failed: ${playerId} selection is invalid`, selection);
+      return null;
+    }
+
+    if (!hasTilesInHand(state.hands[playerId], selection)) {
+      warn(`[EXCHANGE] Failed: ${playerId} selection cannot be removed from hand`, selection);
+      return null;
+    }
+
+    selections[playerId] = selection;
+  }
+
+  return selections;
+}
+
+function performAtomicExchange(
+  state: ChengduState,
+  currentPlayerSelection?: Tile[],
+): ChengduState {
+  const selections = resolveExchangeSelections(state, currentPlayerSelection);
+  if (!selections) {
+    return state;
+  }
+
+  log('[EXCHANGE] 🔄 Executing clockwise exchange');
+
+  const exchanged = performExchange(selections, 'CLOCKWISE');
+  const newHands = { ...state.hands };
+
+  for (const playerId of PLAYERS) {
+    const remaining = removeTilesFromHand(state.hands[playerId], selections[playerId]);
+    if (!remaining) {
+      warn(`[EXCHANGE] Failed: ${playerId} selection could not be removed during commit`, selections[playerId]);
+      return state;
+    }
+
+    const received = exchanged[playerId];
+    log(`[EXCHANGE] ${playerId} sending:`, selections[playerId].map(t => `${t.suit}${t.rank}`).join(', '));
+    log(`[EXCHANGE] ${playerId} receiving:`, received.map(t => `${t.suit}${t.rank}`).join(', '));
+    newHands[playerId] = sortTiles([...remaining, ...received]);
+    log(`[EXCHANGE] ${playerId} hand after:`, newHands[playerId].map(t => `${t.suit}${t.rank}`).join(' '));
+  }
+
+  log('[EXCHANGE] ✅ Exchange complete, transitioning to DING_QUE phase');
+
+  return {
+    ...state,
+    hands: newHands,
+    phase: 'DING_QUE',
+    currentPlayer: 'P0',
+    exchangeSelections: selections,
+    exchangeConfirmed: undefined,
+    dingQueSelection: { P0: undefined, P1: undefined, P2: undefined, P3: undefined },
+  } as ChengduState;
+}
+
 function nextActivePlayer(state: GameState, from: PlayerId): PlayerId {
   let p = nextPlayerId(from);
   for (let i = 0; i < 4; i++) {
@@ -376,15 +456,8 @@ export const chengduRulePack: RulePack = {
 
     // 换三张阶段
     if (state.phase === 'EXCHANGE') {
-      const selections = chengduState.exchangeSelections?.[player] || [];
-      const confirmed = chengduState.exchangeConfirmed?.[player] || false;
-
-      if (confirmed) {
+      if (player !== state.currentPlayer) {
         return [{ type: 'PASS' }];
-      }
-
-      if (selections.length === 3) {
-        return [{ type: 'EXCHANGE_CONFIRM' }];
       }
 
       // AI 玩家（包括 P0 AI 模式）智能选择换三张的牌
@@ -620,77 +693,28 @@ export const chengduRulePack: RulePack = {
         return state;
       }
 
-      log(`[EXCHANGE_SELECT] ✅ ${player} tiles saved successfully`);
+      if (!hasTilesInHand(state.hands[player], tiles)) {
+        warn('[EXCHANGE_SELECT] Failed: Selected tiles are not all present in hand', tiles);
+        return state;
+      }
 
-      // 保存选择后，不切换玩家，等待当前玩家确认
-      return {
-        ...state,
-        exchangeSelections: {
-          ...chengduState.exchangeSelections,
-          [player]: tiles,
-        },
-      } as ChengduState;
+      log(`[EXCHANGE_SELECT] ✅ ${player} tiles saved successfully`);
+      return performAtomicExchange(
+        {
+          ...state,
+          exchangeSelections: {
+            ...chengduState.exchangeSelections,
+            [player]: tiles,
+          },
+        } as ChengduState,
+        tiles,
+      );
     }
 
     // 换三张确认
     if (action.type === 'EXCHANGE_CONFIRM' && state.phase === 'EXCHANGE') {
-      const player = state.currentPlayer;
-
-      log(`[EXCHANGE_CONFIRM] ${player} confirming exchange`);
-      log(`[EXCHANGE_CONFIRM] ${player} selected:`, chengduState.exchangeSelections?.[player]?.map(t => `${t.suit}${t.rank}`).join(', '));
-
-      const newState = {
-        ...state,
-        exchangeConfirmed: {
-          ...chengduState.exchangeConfirmed,
-          [player]: true,
-        },
-        // 切换到下一个玩家
-        currentPlayer: nextPlayerId(player),
-      } as ChengduState;
-
-      const allConfirmed = Object.values(newState.exchangeConfirmed!).every(c => c);
-      log(`[EXCHANGE_CONFIRM] Confirmed: P0=${newState.exchangeConfirmed!.P0}, P1=${newState.exchangeConfirmed!.P1}, P2=${newState.exchangeConfirmed!.P2}, P3=${newState.exchangeConfirmed!.P3}`);
-      log(`[EXCHANGE_CONFIRM] All confirmed? ${allConfirmed}`);
-
-      if (allConfirmed) {
-        log('[EXCHANGE] 🔄 All players confirmed, performing exchange (CLOCKWISE)');
-
-        const exchanged = performExchange(
-          newState.exchangeSelections!,
-          'CLOCKWISE'
-        );
-
-        const newHands = { ...newState.hands };
-        for (const [pid, tiles] of Object.entries(exchanged)) {
-          const playerId = pid as PlayerId;
-          log(`[EXCHANGE] ${playerId} sending:`, newState.exchangeSelections![playerId].map(t => `${t.suit}${t.rank}`).join(', '));
-          log(`[EXCHANGE] ${playerId} receiving:`, tiles.map(t => `${t.suit}${t.rank}`).join(', '));
-
-          const remaining = removeTilesFromHand(
-            newHands[playerId],
-            newState.exchangeSelections![playerId]
-          );
-          if (remaining) {
-            // 换三张后自动排序手牌
-            newHands[playerId] = sortTiles([...remaining, ...tiles]);
-            log(`[EXCHANGE] ${playerId} hand after:`, newHands[playerId].map(t => `${t.suit}${t.rank}`).join(' '));
-          }
-        }
-
-        log('[EXCHANGE] ✅ Exchange complete, transitioning to DING_QUE phase');
-
-        return {
-          ...newState,
-          hands: newHands,
-          phase: 'DING_QUE',
-          exchangeSelections: undefined,
-          exchangeConfirmed: undefined,
-          dingQueSelection: { P0: undefined, P1: undefined, P2: undefined, P3: undefined },
-        } as ChengduState;
-      }
-
-      return newState;
+      log('[EXCHANGE_CONFIRM] Legacy confirm action received, executing atomic exchange');
+      return performAtomicExchange(chengduState);
     }
 
     // 定缺

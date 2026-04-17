@@ -6,7 +6,6 @@ import { renderEventLine } from '../components/eventLogView';
 import type { Action } from '../../core/model/action';
 import type { Tile } from '../../core/model/tile';
 import type { PlayerId } from '../../core/model/types';
-import type { GameEvent } from '../../core/model/event';
 import type { Meld } from '../../core/model/state';
 import { sortTiles } from '../../core/rules/packs/chengdu/sort';
 import { languageStore } from '../../store/languageStore';
@@ -22,7 +21,6 @@ const hiddenTileStub: Tile = { suit: 'W', rank: 1 };
 
 export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   const state = ctx.gameStore.state;
-  const events = ctx.gameStore.events;
 
   if (!state) {
     root.innerHTML = '<div style="padding:var(--sp-8);text-align:center;color:var(--text-muted);">No match running.</div>';
@@ -53,12 +51,12 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
 
   const chengduState = state as any;
   const dingQueSelections = chengduState.dingQueSelection || {};
-  const lastEvent = events.length > 0 ? events[events.length - 1] : null;
 
   table.appendChild(renderOpponentSeat('P2', state, dingQueSelections));
   table.appendChild(renderOpponentSeat('P3', state, dingQueSelections));
   table.appendChild(renderOpponentSeat('P1', state, dingQueSelections));
-  table.appendChild(renderCenterBoard(state, lastEvent));
+  table.appendChild(renderCenterBoard(state));
+  table.appendChild(renderSelfAvatar(state.currentPlayer === 'P0'));
   table.appendChild(renderPlayerSeat(ctx, state, dingQueSelections));
 
   tableScreen.appendChild(table);
@@ -74,6 +72,7 @@ function renderOpponentSeat(
   const seat = document.createElement('section');
   seat.className = `pixel-seat pixel-seat--${direction}`;
 
+  seat.appendChild(renderOpponentAvatar(playerId, state.currentPlayer === playerId));
   const header = renderSeatHeader(playerId, state.currentPlayer === playerId, dingQueSelections[playerId], state.hands[playerId].length);
   seat.appendChild(header);
   seat.appendChild(renderHiddenHand(state.hands[playerId].length, direction));
@@ -83,6 +82,55 @@ function renderOpponentSeat(
   }
 
   return seat;
+}
+
+function renderOpponentAvatar(playerId: PlayerId, isCurrent: boolean): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = isCurrent
+    ? `pixel-rival pixel-rival--${playerId.toLowerCase()} pixel-rival--active`
+    : `pixel-rival pixel-rival--${playerId.toLowerCase()}`;
+  wrap.setAttribute('aria-hidden', 'true');
+
+  const sprite = document.createElement('div');
+  sprite.className = 'pixel-rival__sprite';
+
+  const hat = document.createElement('span');
+  hat.className = 'pixel-rival__hat';
+  sprite.appendChild(hat);
+
+  const hair = document.createElement('span');
+  hair.className = 'pixel-rival__hair';
+  sprite.appendChild(hair);
+
+  const head = document.createElement('span');
+  head.className = 'pixel-rival__head';
+  sprite.appendChild(head);
+
+  const eyeLeft = document.createElement('span');
+  eyeLeft.className = 'pixel-rival__eye pixel-rival__eye--left';
+  sprite.appendChild(eyeLeft);
+
+  const eyeRight = document.createElement('span');
+  eyeRight.className = 'pixel-rival__eye pixel-rival__eye--right';
+  sprite.appendChild(eyeRight);
+
+  const body = document.createElement('span');
+  body.className = 'pixel-rival__body';
+  sprite.appendChild(body);
+
+  const emblem = document.createElement('span');
+  emblem.className = 'pixel-rival__emblem';
+  sprite.appendChild(emblem);
+
+  wrap.appendChild(sprite);
+  return wrap;
+}
+
+function renderSelfAvatar(isCurrent: boolean): HTMLElement {
+  const anchor = document.createElement('div');
+  anchor.className = 'pixel-self-avatar';
+  anchor.appendChild(renderOpponentAvatar('P0', isCurrent));
+  return anchor;
 }
 
 function renderPlayerSeat(
@@ -118,15 +166,14 @@ function renderPlayerSeat(
   chrome.className = 'pixel-hand-shell__chrome';
   chrome.appendChild(renderSeatHeader('P0', state.currentPlayer === 'P0', dingQueSelections.P0, state.hands.P0.length, true));
 
-  if (state.melds.P0.length > 0) {
-    chrome.appendChild(renderCompactMelds(state.melds.P0, 'pixel-meld-strip pixel-meld-strip--self'));
-  }
-
   if (!ctx.settingsStore.p0IsAI) {
     chrome.appendChild(renderReactionRow(ctx, state));
   }
 
   handShell.appendChild(chrome);
+  if (state.melds.P0.length > 0) {
+    handShell.appendChild(renderCompactMelds(state.melds.P0, 'pixel-meld-strip pixel-meld-strip--self-tray'));
+  }
   handShell.appendChild(renderHand(state.hands.P0, onClick, dingQueSelections.P0, reactionTargetTiles));
   seat.appendChild(handShell);
 
@@ -145,7 +192,7 @@ function renderSeatHeader(
   header.className = isCurrent ? 'pixel-seat__header pixel-seat__header--active' : 'pixel-seat__header';
 
   const title = document.createElement('div');
-  title.className = 'pixel-seat__title';
+  title.className = isCurrent ? 'pixel-seat__title pixel-seat__title--active' : 'pixel-seat__title';
   title.textContent = isSelf ? `${playerId} / ${t.you}` : playerId;
   header.appendChild(title);
 
@@ -163,14 +210,6 @@ function renderSeatHeader(
     badge.textContent = missingSuit === 'W' ? t.wan : missingSuit === 'B' ? t.tiao : t.bing;
     meta.appendChild(badge);
   }
-
-  if (isCurrent) {
-    const active = document.createElement('span');
-    active.className = 'pixel-seat__badge pixel-seat__badge--turn';
-    active.textContent = t.turn;
-    meta.appendChild(active);
-  }
-
   header.appendChild(meta);
   return header;
 }
@@ -187,29 +226,42 @@ function renderHiddenHand(count: number, direction: 'top' | 'right' | 'left' | '
 }
 
 function renderCompactMelds(melds: Meld[], className: string): HTMLElement {
+  const t = languageStore.t().game;
   const strip = document.createElement('div');
   strip.className = className;
 
   for (const meld of melds) {
     const group = document.createElement('div');
-    group.className = 'pixel-meld-group';
+    group.className = `pixel-meld-group pixel-meld-group--${meld.type.toLowerCase()}`;
+    const tag = document.createElement('span');
+    tag.className = 'pixel-meld-group__tag';
+    tag.textContent = meld.type === 'GANG' ? t.gang : t.peng;
+    group.appendChild(tag);
+
+    const tiles = document.createElement('div');
+    tiles.className = 'pixel-meld-group__tiles';
     const tileCount = meld.type === 'GANG' ? 4 : 3;
     for (let i = 0; i < tileCount; i += 1) {
-      group.appendChild(renderTile(meld.tile, 'xs', 'meld'));
+      tiles.appendChild(renderTile(meld.tile, 'sm', 'meld'));
     }
+    group.appendChild(tiles);
     strip.appendChild(group);
   }
 
   return strip;
 }
 
-function renderCenterBoard(state: any, lastEvent: GameEvent | null): HTMLElement {
+function renderCenterBoard(state: any): HTMLElement {
   const center = document.createElement('section');
   center.className = 'pixel-center';
 
+  const wall = document.createElement('div');
+  wall.className = 'pixel-table__wall';
+  wall.textContent = `${languageStore.t().game.wallRemaining} ${state.wall.length}`;
+  center.appendChild(wall);
+
   center.appendChild(renderDiscardLane(state.discards.P2, 'top', state.lastDiscard?.from === 'P2'));
   center.appendChild(renderDiscardLane(state.discards.P3, 'left', state.lastDiscard?.from === 'P3'));
-  center.appendChild(renderStatusBlock(state, lastEvent));
   center.appendChild(renderDiscardLane(state.discards.P1, 'right', state.lastDiscard?.from === 'P1'));
   center.appendChild(renderDiscardLane(state.discards.P0, 'bottom', state.lastDiscard?.from === 'P0'));
 
@@ -225,52 +277,6 @@ function renderDiscardLane(
   lane.className = `pixel-discard-lane pixel-discard-lane--${direction}`;
   lane.appendChild(renderDiscardGrid(discards, direction, focusLast));
   return lane;
-}
-
-function renderStatusBlock(state: any, lastEvent: GameEvent | null): HTMLElement {
-  const t = languageStore.t().game;
-  const block = document.createElement('div');
-  block.className = 'pixel-status';
-
-  const title = document.createElement('div');
-  title.className = 'pixel-status__title';
-  title.textContent = `${state.currentPlayer} ${t.thinking}`;
-  block.appendChild(title);
-
-  const stats = document.createElement('div');
-  stats.className = 'pixel-status__stats';
-
-  const wall = document.createElement('span');
-  wall.className = 'pixel-status__chip';
-  wall.textContent = `${t.wallRemaining} ${state.wall.length}`;
-  stats.appendChild(wall);
-
-  const turn = document.createElement('span');
-  turn.className = 'pixel-status__chip';
-  turn.textContent = `${t.turn} ${state.turn}`;
-  stats.appendChild(turn);
-
-  block.appendChild(stats);
-
-  const action = document.createElement('div');
-  action.className = 'pixel-status__action';
-  action.textContent = formatLastAction(lastEvent);
-  block.appendChild(action);
-
-  if (state.lastDiscard) {
-    const focus = document.createElement('div');
-    focus.className = 'pixel-status__focus';
-
-    focus.appendChild(renderTile(state.lastDiscard.tile, 'sm', 'discard-focus'));
-
-    const label = document.createElement('span');
-    label.textContent = `${state.lastDiscard.from} ${t.discard}`;
-    focus.appendChild(label);
-
-    block.appendChild(focus);
-  }
-
-  return block;
 }
 
 function renderReactionRow(ctx: UiCtx, state: any): HTMLElement {
@@ -346,8 +352,6 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   const actions = container.querySelector('.phase-shell__actions') as HTMLElement;
 
   const selectedIndices = new Set<number>();
-  const chengduState = state as any;
-  const currentSelections = chengduState.exchangeSelections?.P0 || [];
 
   const handWrap = document.createElement('div');
   handWrap.className = 'phase-shell__hand';
@@ -357,13 +361,8 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   confirmBtn.className = 'phase-cta phase-cta--gold';
 
   const updateButtonState = () => {
-    if (currentSelections.length === 3) {
-      confirmBtn.disabled = true;
-      confirmBtn.textContent = t.exchangeWaiting;
-    } else {
-      confirmBtn.disabled = selectedIndices.size !== 3;
-      confirmBtn.textContent = t.exchangeConfirm;
-    }
+    confirmBtn.disabled = selectedIndices.size !== 3;
+    confirmBtn.textContent = t.exchangeConfirm;
   };
 
   const renderHandWithSelection = () => {
@@ -398,7 +397,6 @@ function renderExchangePhase(root: HTMLElement, ctx: UiCtx, state: any): void {
     const sortedHand = sortTiles(state.hands.P0);
     const selectedTiles = Array.from(selectedIndices).map((idx) => sortedHand[idx]);
     ctx.orchestrator.dispatchHumanAction({ type: 'EXCHANGE_SELECT', tiles: selectedTiles });
-    setTimeout(() => ctx.orchestrator.dispatchHumanAction({ type: 'EXCHANGE_CONFIRM' }), 100);
   };
 
   renderHandWithSelection();
@@ -543,7 +541,10 @@ function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   restartBtn.type = 'button';
   restartBtn.className = 'phase-cta phase-cta--gold';
   restartBtn.textContent = t.newGame;
-  restartBtn.onclick = () => window.location.reload();
+  restartBtn.onclick = () => {
+    ctx.orchestrator.startNewMatch(ctx.settingsStore.ruleId);
+    ctx.navigate('#/match');
+  };
 
   actions.appendChild(copyLogBtn);
   actions.appendChild(restartBtn);
@@ -574,21 +575,5 @@ function mapActionLabel(type: Action['type'], t: ReturnType<typeof languageStore
     case 'PENG': return t.peng;
     case 'PASS': return t.pass;
     default: return type;
-  }
-}
-
-function formatLastAction(event: GameEvent | null): string {
-  const t = languageStore.t().game;
-  if (!event) return t.waiting;
-  const actor = event.playerId ?? 'SYSTEM';
-  switch (event.type) {
-    case 'DRAW': return `${actor} ${t.draw}`;
-    case 'DISCARD': return `${actor} ${t.discard}`;
-    case 'PENG': return `${actor} ${t.peng}`;
-    case 'GANG': return `${actor} ${t.gang}`;
-    case 'HU': return `${actor} ${t.hu}`;
-    case 'TURN': return `${actor} ${t.thinking}`;
-    case 'END': return t.gameOver;
-    default: return `${actor}`;
   }
 }

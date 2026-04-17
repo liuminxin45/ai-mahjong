@@ -8,6 +8,21 @@ function t(suit: Tile['suit'], rank: Tile['rank']): Tile {
     return { suit, rank };
 }
 
+function countTileCopies(state: GameState, target: Tile): number {
+    let count = state.wall.filter(tile => tile.suit === target.suit && tile.rank === target.rank).length;
+
+    for (const pid of ['P0', 'P1', 'P2', 'P3'] as const) {
+        count += state.hands[pid].filter(tile => tile.suit === target.suit && tile.rank === target.rank).length;
+        count += state.discards[pid].filter(tile => tile.suit === target.suit && tile.rank === target.rank).length;
+        count += state.melds[pid].reduce((sum, meld) => {
+            if (meld.tile.suit !== target.suit || meld.tile.rank !== target.rank) return sum;
+            return sum + (meld.type === 'GANG' ? 4 : 3);
+        }, 0);
+    }
+
+    return count;
+}
+
 /** Create a base PLAYING state with chengdu-specific fields */
 function baseState(): GameState {
     const state: GameState & Record<string, unknown> = {
@@ -49,6 +64,47 @@ function baseState(): GameState {
     return state as GameState;
 }
 
+function exchangeState(): GameState {
+    const state: GameState & Record<string, unknown> = {
+        wall: [t('W', 8), t('W', 9), t('B', 9)],
+        hands: {
+            P0: [t('T', 1), t('T', 1), t('T', 2), t('W', 1), t('W', 2), t('W', 3), t('B', 1), t('B', 2), t('B', 3), t('W', 4), t('W', 5), t('W', 6), t('W', 7)],
+            P1: [t('T', 7), t('T', 7), t('T', 7), t('T', 8), t('W', 1), t('W', 2), t('W', 3), t('B', 1), t('B', 2), t('B', 3), t('W', 4), t('W', 5), t('W', 6)],
+            P2: [t('W', 1), t('W', 1), t('W', 2), t('W', 2), t('W', 3), t('W', 3), t('B', 1), t('B', 1), t('B', 2), t('B', 2), t('T', 3), t('T', 4), t('T', 5)],
+            P3: [t('W', 4), t('W', 4), t('W', 5), t('W', 5), t('W', 6), t('W', 6), t('B', 4), t('B', 4), t('B', 5), t('B', 5), t('T', 6), t('T', 6), t('T', 9)],
+        },
+        discards: {
+            P0: [],
+            P1: [],
+            P2: [],
+            P3: [],
+        },
+        melds: {
+            P0: [],
+            P1: [],
+            P2: [],
+            P3: [],
+        },
+        lastDiscard: null,
+        declaredHu: { P0: false, P1: false, P2: false, P3: false },
+        currentPlayer: 'P0',
+        phase: 'EXCHANGE',
+        turn: 0,
+        exchangeSelections: { P0: [], P1: [], P2: [], P3: [] },
+        exchangeConfirmed: { P0: false, P1: false, P2: false, P3: false },
+        dingQueSelection: { P0: undefined, P1: undefined, P2: undefined, P3: undefined },
+        roundScores: { P0: 0, P1: 0, P2: 0, P3: 0 },
+        dealInStats: {
+            P0: { count: 0, stageB: 0, stageC: 0 },
+            P1: { count: 0, stageB: 0, stageC: 0 },
+            P2: { count: 0, stageB: 0, stageC: 0 },
+            P3: { count: 0, stageB: 0, stageC: 0 },
+        },
+        passedHuPlayers: { P0: false, P1: false, P2: false, P3: false },
+    };
+    return state as GameState;
+}
+
 describe('碰定缺花色 blocking', () => {
     it('should NOT allow PENG on missing-suit tile', () => {
         const s = baseState();
@@ -77,6 +133,81 @@ describe('碰定缺花色 blocking', () => {
         const legal = chengduRulePack.getLegalActions(s, 'P0');
         const pengActions = legal.filter(a => a.type === 'PENG');
         expect(pengActions.length).toBeGreaterThan(0);
+    });
+});
+
+describe('换三张完整性', () => {
+    it('auto-generates AI exchange selections when human confirms from a fresh exchange state', () => {
+        const s = exchangeState();
+
+        const next = chengduRulePack.applyAction(s, {
+            type: 'EXCHANGE_SELECT',
+            tiles: [t('T', 1), t('T', 1), t('T', 2)],
+        });
+
+        expect(next.phase).toBe('DING_QUE');
+        expect(next.currentPlayer).toBe('P0');
+        expect(next.hands.P0).toHaveLength(13);
+        expect(next.hands.P1).toHaveLength(13);
+        expect(next.hands.P2).toHaveLength(13);
+        expect(next.hands.P3).toHaveLength(13);
+    });
+
+    it('executes one atomic clockwise exchange when human submits selection', () => {
+        const s = exchangeState() as GameState & Record<string, unknown>;
+        s.exchangeSelections = {
+            P0: [],
+            P1: [t('T', 7), t('T', 7), t('T', 7)],
+            P2: [t('W', 1), t('W', 1), t('W', 2)],
+            P3: [t('W', 4), t('W', 4), t('W', 5)],
+        };
+
+        const next = chengduRulePack.applyAction(s, {
+            type: 'EXCHANGE_SELECT',
+            tiles: [t('T', 1), t('T', 1), t('T', 2)],
+        });
+
+        expect(next.phase).toBe('DING_QUE');
+        expect(next.currentPlayer).toBe('P0');
+        expect(next.hands.P0).toHaveLength(13);
+        expect(next.hands.P1).toHaveLength(13);
+        expect(next.hands.P2).toHaveLength(13);
+        expect(next.hands.P3).toHaveLength(13);
+        expect(next.hands.P0.filter(tile => tile.suit === 'W' && tile.rank === 4)).toHaveLength(3);
+        expect(next.hands.P0.some(tile => tile.suit === 'W' && tile.rank === 5)).toBe(true);
+        expect(next.hands.P0.some(tile => tile.suit === 'T' && tile.rank === 2)).toBe(false);
+    });
+
+    it('rejects EXCHANGE_SELECT when tiles are not all in current hand', () => {
+        const s = exchangeState();
+        const originalHand = [...s.hands.P0];
+
+        const next = chengduRulePack.applyAction(s, {
+            type: 'EXCHANGE_SELECT',
+            tiles: [t('T', 7), t('T', 7), t('T', 7)],
+        });
+
+        expect((next as Record<string, unknown>).exchangeSelections).toEqual((s as Record<string, unknown>).exchangeSelections);
+        expect(next.hands.P0).toEqual(originalHand);
+    });
+
+    it('does not duplicate tiles when exchange confirmation sees an invalid saved selection', () => {
+        const s = exchangeState() as GameState & Record<string, unknown>;
+        s.exchangeSelections = {
+            P0: [t('T', 1), t('T', 1), t('T', 2)],
+            P1: [t('T', 7), t('T', 7), t('T', 9)],
+            P2: [t('W', 1), t('W', 2), t('W', 3)],
+            P3: [t('W', 4), t('W', 5), t('W', 6)],
+        };
+        s.exchangeConfirmed = { P0: false, P1: true, P2: true, P3: true };
+
+        const beforeCount = countTileCopies(s, t('T', 9));
+        const next = chengduRulePack.applyAction(s, { type: 'EXCHANGE_CONFIRM' });
+        const afterCount = countTileCopies(next, t('T', 9));
+
+        expect(next.phase).toBe('EXCHANGE');
+        expect(afterCount).toBe(beforeCount);
+        expect(afterCount).toBeLessThanOrEqual(4);
     });
 });
 

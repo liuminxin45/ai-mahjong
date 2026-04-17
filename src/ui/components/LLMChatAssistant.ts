@@ -426,13 +426,8 @@ async function requestAdvice(): Promise<void> {
     if (requestKey !== getCoachContextKey(latestContext)) return;
     currentAdvice = advice;
     if (state.phase === 'EXCHANGE' && advice.autoActions && advice.autoActions.length > 0) {
-      const [selectAction, confirmAction] = advice.autoActions;
+      const [selectAction] = advice.autoActions;
       latestContext.dispatchAction?.(selectAction);
-      if (confirmAction) {
-        window.setTimeout(() => {
-          latestContext.dispatchAction?.(confirmAction);
-        }, 100);
-      }
     }
   } catch (error) {
     console.error('[Coach] Failed to get advice:', error);
@@ -735,7 +730,6 @@ async function buildAdviceForCurrentPhase(state: GameState, legalActions: Action
     const autoActions: Action[] = [];
     if (recommendedTiles.length === 3) {
       autoActions.push({ type: 'EXCHANGE_SELECT', tiles: recommendedTiles });
-      autoActions.push({ type: 'EXCHANGE_CONFIRM' });
     }
 
     return {
