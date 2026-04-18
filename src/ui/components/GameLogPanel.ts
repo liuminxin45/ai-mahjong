@@ -4,6 +4,7 @@
  */
 
 import { gameLogStore } from '../../store/gameLogStore';
+import { showPixelAlertDialog, showPixelConfirmDialog } from './pixelDialog';
 
 export function renderGameLogPanel(container: HTMLElement): void {
   container.innerHTML = '';
@@ -37,15 +38,27 @@ export function renderGameLogPanel(container: HTMLElement): void {
     navigator.clipboard.writeText(text).then(() => {
       copyBtn.textContent = '✅';
       setTimeout(() => { copyBtn.textContent = '📋 Copy'; }, 2000);
-    }).catch(() => alert('Failed to copy logs'));
+    }).catch(() => {
+      showPixelAlertDialog({
+        title: 'Game Log',
+        code: 'COPY LOGS',
+        message: 'Failed to copy logs',
+      });
+    });
   };
 
   const clearBtn = document.createElement('button');
   clearBtn.className = 'btn btn-danger btn-sm';
   clearBtn.style.cssText += 'font-size:11px; padding:3px 8px;';
   clearBtn.textContent = '🗑️';
-  clearBtn.onclick = () => {
-    if (confirm('Clear all logs?')) gameLogStore.clear();
+  clearBtn.onclick = async () => {
+    const confirmed = await showPixelConfirmDialog({
+      title: 'Game Log',
+      code: 'CLEAR LOGS',
+      message: 'Clear all logs?',
+      confirmText: 'Clear',
+    });
+    if (confirmed) gameLogStore.clear();
   };
 
   buttonGroup.appendChild(copyBtn);

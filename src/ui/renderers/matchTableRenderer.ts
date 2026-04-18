@@ -48,6 +48,9 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   const table = document.createElement('section');
   table.className = 'pixel-table';
   table.setAttribute('aria-label', 'Mahjong table');
+  if (state.melds.P0?.length) {
+    table.classList.add('pixel-table--self-melds');
+  }
 
   const chengduState = state as any;
   const dingQueSelections = chengduState.dingQueSelection || {};
@@ -70,25 +73,84 @@ function renderOpponentSeat(
 ): HTMLElement {
   const direction = seatDirectionByPlayer[playerId];
   const seat = document.createElement('section');
-  seat.className = `pixel-seat pixel-seat--${direction}`;
+  seat.className = `pixel-seat pixel-seat--opponent pixel-seat--${direction}`;
 
-  seat.appendChild(renderOpponentAvatar(playerId, state.currentPlayer === playerId));
-  const header = renderSeatHeader(playerId, state.currentPlayer === playerId, dingQueSelections[playerId], state.hands[playerId].length);
-  seat.appendChild(header);
-  seat.appendChild(renderHiddenHand(state.hands[playerId].length, direction));
+  const avatar = renderOpponentAvatar(playerId, state.currentPlayer === playerId, Boolean(state.declaredHu[playerId]));
+  const shell = document.createElement('div');
+  shell.className = `pixel-seat__shell pixel-seat__shell--opponent pixel-seat__shell--${direction}`;
 
-  if (state.melds[playerId]?.length) {
-    seat.appendChild(renderCompactMelds(state.melds[playerId], 'pixel-meld-strip pixel-meld-strip--opponent'));
+  const header = renderSeatHeader(
+    playerId,
+    state.currentPlayer === playerId,
+    dingQueSelections[playerId],
+    state.hands[playerId].length,
+    false,
+    direction === 'left' || direction === 'right',
+  );
+  const content = renderOpponentSeatContent(playerId, state, direction);
+
+  if (direction === 'top') {
+    shell.appendChild(content);
+    shell.appendChild(header);
+  } else if (direction === 'right') {
+    shell.appendChild(header);
+    shell.appendChild(content);
+  } else {
+    shell.appendChild(content);
+    shell.appendChild(header);
+  }
+
+  if (direction === 'right') {
+    seat.appendChild(shell);
+    seat.appendChild(avatar);
+  } else {
+    seat.appendChild(avatar);
+    seat.appendChild(shell);
   }
 
   return seat;
 }
 
-function renderOpponentAvatar(playerId: PlayerId, isCurrent: boolean): HTMLElement {
+function renderOpponentSeatContent(
+  playerId: PlayerId,
+  state: any,
+  direction: 'top' | 'right' | 'left',
+): HTMLElement {
+  const hand = renderHiddenHand(state.hands[playerId].length, direction);
+  const melds = state.melds[playerId]?.length
+    ? renderCompactMelds(
+      state.melds[playerId],
+      `pixel-meld-strip pixel-meld-strip--opponent pixel-meld-strip--seat-${direction}`,
+    )
+    : null;
+
+  if (direction === 'top') {
+    const stack = document.createElement('div');
+    stack.className = 'pixel-seat__content pixel-seat__content--top';
+    stack.appendChild(hand);
+    if (melds) stack.appendChild(melds);
+    return stack;
+  }
+
+  const row = document.createElement('div');
+  row.className = `pixel-seat__content pixel-seat__content--${direction}`;
+  if (direction === 'left') {
+    row.appendChild(hand);
+    if (melds) row.appendChild(melds);
+  } else {
+    if (melds) row.appendChild(melds);
+    row.appendChild(hand);
+  }
+
+  return row;
+}
+
+function renderOpponentAvatar(playerId: PlayerId, isCurrent: boolean, hasHu = false): HTMLElement {
   const wrap = document.createElement('div');
-  wrap.className = isCurrent
-    ? `pixel-rival pixel-rival--${playerId.toLowerCase()} pixel-rival--active`
-    : `pixel-rival pixel-rival--${playerId.toLowerCase()}`;
+  const classNames = [`pixel-rival`, `pixel-rival--${playerId.toLowerCase()}`];
+  if (isCurrent) classNames.push('pixel-rival--active');
+  if (hasHu && playerId !== 'P0') classNames.push('pixel-rival--hu');
+  wrap.className = classNames.join(' ');
   wrap.setAttribute('aria-hidden', 'true');
 
   const sprite = document.createElement('div');
@@ -123,6 +185,14 @@ function renderOpponentAvatar(playerId: PlayerId, isCurrent: boolean): HTMLEleme
   sprite.appendChild(emblem);
 
   wrap.appendChild(sprite);
+
+  if (hasHu && playerId !== 'P0') {
+    const stamp = document.createElement('span');
+    stamp.className = 'pixel-rival__hu-stamp';
+    stamp.textContent = '胡';
+    wrap.appendChild(stamp);
+  }
+
   return wrap;
 }
 
@@ -172,7 +242,10 @@ function renderPlayerSeat(
 
   handShell.appendChild(chrome);
   if (state.melds.P0.length > 0) {
-    handShell.appendChild(renderCompactMelds(state.melds.P0, 'pixel-meld-strip pixel-meld-strip--self-tray'));
+    handShell.appendChild(renderCompactMelds(
+      state.melds.P0,
+      'pixel-meld-strip pixel-meld-strip--self-tray pixel-meld-strip--compact pixel-meld-strip--grid-two',
+    ));
   }
   handShell.appendChild(renderHand(state.hands.P0, onClick, dingQueSelections.P0, reactionTargetTiles));
   seat.appendChild(handShell);
@@ -186,10 +259,14 @@ function renderSeatHeader(
   missingSuit: 'W' | 'B' | 'T' | undefined,
   handCount: number,
   isSelf = false,
+  isVertical = false,
 ): HTMLElement {
   const t = languageStore.t().game;
   const header = document.createElement('div');
-  header.className = isCurrent ? 'pixel-seat__header pixel-seat__header--active' : 'pixel-seat__header';
+  const headerClasses = ['pixel-seat__header'];
+  if (isCurrent) headerClasses.push('pixel-seat__header--active');
+  if (isVertical) headerClasses.push('pixel-seat__header--vertical');
+  header.className = headerClasses.join(' ');
 
   const title = document.createElement('div');
   title.className = isCurrent ? 'pixel-seat__title pixel-seat__title--active' : 'pixel-seat__title';
@@ -219,7 +296,11 @@ function renderHiddenHand(count: number, direction: 'top' | 'right' | 'left' | '
   hand.className = `pixel-hidden-hand pixel-hidden-hand--${direction}`;
 
   for (let i = 0; i < count; i += 1) {
-    hand.appendChild(renderTile(hiddenTileStub, 'xs', 'back'));
+    const tile = renderTile(hiddenTileStub, 'xs', 'back');
+    if (direction === 'left' || direction === 'right') {
+      tile.classList.add('mj-tile--sideways');
+    }
+    hand.appendChild(tile);
   }
 
   return hand;
@@ -229,20 +310,31 @@ function renderCompactMelds(melds: Meld[], className: string): HTMLElement {
   const t = languageStore.t().game;
   const strip = document.createElement('div');
   strip.className = className;
+  const isTopOrSelf = className.includes('pixel-meld-strip--self-tray') || className.includes('pixel-meld-strip--seat-top');
+  const tileSize = className.includes('pixel-meld-strip--self-tray') ? 'xs' : isTopOrSelf ? 'xs' : 'xs';
+  const compactTag = (type: Meld['type']) => {
+    const full = type === 'GANG' ? t.gang : t.peng;
+    if (className.includes('pixel-meld-strip--self-tray') || className.includes('pixel-meld-strip--seat-top')) {
+      return languageStore.getLanguage() === 'zh'
+        ? (type === 'GANG' ? '杠' : '碰')
+        : (type === 'GANG' ? 'G' : 'P');
+    }
+    return full;
+  };
 
   for (const meld of melds) {
     const group = document.createElement('div');
     group.className = `pixel-meld-group pixel-meld-group--${meld.type.toLowerCase()}`;
     const tag = document.createElement('span');
     tag.className = 'pixel-meld-group__tag';
-    tag.textContent = meld.type === 'GANG' ? t.gang : t.peng;
+    tag.textContent = compactTag(meld.type);
     group.appendChild(tag);
 
     const tiles = document.createElement('div');
     tiles.className = 'pixel-meld-group__tiles';
     const tileCount = meld.type === 'GANG' ? 4 : 3;
     for (let i = 0; i < tileCount; i += 1) {
-      tiles.appendChild(renderTile(meld.tile, 'sm', 'meld'));
+      tiles.appendChild(renderTile(meld.tile, tileSize, 'meld'));
     }
     group.appendChild(tiles);
     strip.appendChild(group);

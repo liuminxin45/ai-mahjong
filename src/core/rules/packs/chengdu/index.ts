@@ -417,6 +417,12 @@ export const chengduRulePack: RulePack = {
       }
     }
 
+    const dealerDraw = wall[0];
+    if (dealerDraw) {
+      hands.P0 = hands.P0.concat([dealerDraw]);
+      wall = wall.slice(1);
+    }
+
     return {
       wall,
       hands,

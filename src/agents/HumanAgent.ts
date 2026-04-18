@@ -59,9 +59,10 @@ export class HumanAgent implements PlayerAgent {
     
     // 检查动作类型是否匹配
     const isLegal = p.legal.some((a) => {
-      // 对于 EXCHANGE_SELECT，只检查类型，不检查具体的 tiles
       if (action.type === 'EXCHANGE_SELECT' && a.type === 'EXCHANGE_SELECT') {
-        return true;
+        if (action.tiles.length !== 3) return false;
+        const [first] = action.tiles;
+        return Boolean(first) && action.tiles.every((tile) => tile.suit === first.suit);
       }
       // 对于其他动作，使用 JSON 比较
       return JSON.stringify(a) === JSON.stringify(action);

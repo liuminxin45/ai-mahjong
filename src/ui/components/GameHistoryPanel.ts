@@ -9,6 +9,7 @@ import {
   createPixelToast,
   mountPixelSurface,
 } from './pixelFrame';
+import { showPixelConfirmDialog } from './pixelDialog';
 
 let historyData: GameHistory | null = null;
 
@@ -61,7 +62,13 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
 
   const clearBtn = createPixelButton('Clear', 'danger');
   clearBtn.onclick = async () => {
-    if (confirm('确定要清除所有对局记录吗？此操作不可恢复。')) {
+    const confirmed = await showPixelConfirmDialog({
+      title: 'Clear History',
+      code: 'HISTORY',
+      message: '确定要清除所有对局记录吗？此操作不可恢复。',
+      confirmText: 'Clear',
+    });
+    if (confirmed) {
       await historyStorage.clearAll();
       surface.close();
       void renderGameHistoryPanel(onClose);

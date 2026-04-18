@@ -26,6 +26,7 @@ import { gameLogger } from '../utils/gameLogger';
 import { setAIParams } from '../agents/algo/aiParams';
 import { testConfig } from '../config/testConfig';
 import { clearChatHistory } from '../ui/components/LLMChatAssistant';
+import { showPixelAlertDialog } from '../ui/components/pixelDialog';
 
 // 条件日志函数 - 训练模式下禁用
 const log = (...args: any[]) => {
@@ -40,8 +41,12 @@ const error = (...args: any[]) => {
 // 安全的alert函数 - 训练模式或Node.js环境下跳过
 const safeAlert = (msg: string) => {
   if (testConfig.trainingMode) return;
-  if (typeof alert === 'function') {
-    alert(msg);
+  if (typeof document !== 'undefined') {
+    showPixelAlertDialog({
+      title: 'Error',
+      code: 'SYSTEM',
+      message: msg,
+    });
   } else {
     console.error('[Alert]', msg);
   }
@@ -50,6 +55,12 @@ import { loadParams } from '../training/paramPersistence';
 import { recordGameResult, loadOnlineLearnedParams, type GameResult } from '../training/onlineLearning';
 import { historyStorage } from '../llm';
 import type { GameRecord } from '../llm/types';
+
+type UiAlertPayload = {
+  title?: string;
+  message: string;
+  code?: string;
+};
 
 function now(): number {
   return Date.now();
@@ -92,6 +103,7 @@ export class GameOrchestrator {
   private state: GameState | null = null;
   private gameStartTime: number = 0;
   private currentGameId: string = '';
+  private uiAlertHandler: ((payload: UiAlertPayload) => void) | null = null;
 
   private setLastLegalActions(playerId: PlayerId, legal: Action[]): void {
     const g = globalThis as any;
@@ -218,7 +230,22 @@ export class GameOrchestrator {
     return this.running;
   }
 
+  setUiAlertHandler(handler: ((payload: UiAlertPayload) => void) | null): void {
+    this.uiAlertHandler = handler;
+  }
+
   dispatchHumanAction(action: Action): void {
+    const legal = this.state ? this.rulePack.getLegalActions(this.state, 'P0') : [];
+    const validation = this.validateHumanAction(action, legal);
+    if (!validation.valid) {
+      this.notifyUser({
+        title: validation.title || '操作无效',
+        code: validation.code || 'INVALID ACTION',
+        message: validation.message || `当前阶段不能执行这个操作：${this.describeAction(action)}`,
+      });
+      return;
+    }
+
     // 如果是出牌动作且有校验器，先进行校验
     if (action.type === 'DISCARD' && this.discardValidator && this.state) {
       const validation = this.discardValidator.validateDiscard(this.state, 'P0', action.tile);
@@ -228,7 +255,11 @@ export class GameOrchestrator {
 
         // 在 UI 上显示错误提示
         if (!testConfig.trainingMode) {
-          safeAlert(`Cannot discard this tile!\n\n${validation.reason}`);
+          this.notifyUser({
+            title: '出牌不正确',
+            code: 'INVALID DISCARD',
+            message: validation.reason,
+          });
         }
 
         // 如果有建议的牌，显示给玩家
@@ -420,7 +451,11 @@ export class GameOrchestrator {
         } else {
           error('[DeadlockGuard] Unable to recover from PASS-only state. Stopping game.');
           this.stop();
-          safeAlert('Game entered invalid PASS-only state. Game stopped. Please check console for details.');
+          this.notifyUser({
+            title: '对局异常',
+            code: 'INVALID STATE',
+            message: 'Game entered invalid PASS-only state. Game stopped. Please check console for details.',
+          });
           throw new Error(`PASS-only state for ${actor} with no recovery action`);
         }
       }
@@ -453,7 +488,11 @@ export class GameOrchestrator {
         const recoveryAction = this.buildRecoveryAction(state, actor);
         if (!recoveryAction) {
           this.stop();
-          safeAlert('Game entered invalid PASS state. Game stopped. Please check console for details.');
+          this.notifyUser({
+            title: '对局异常',
+            code: 'INVALID STATE',
+            message: 'Game entered invalid PASS state. Game stopped. Please check console for details.',
+          });
           throw new Error(`Active player ${actor} produced PASS action during own turn with no recovery available.`);
         }
         action = recoveryAction;
@@ -496,8 +535,12 @@ export class GameOrchestrator {
 
           // 在 UI 上显示错误（非训练模式）
           if (!testConfig.trainingMode) {
-            const errorMessage = `❌ VALIDATION ERROR\n\nPlayer: ${actor}\nAttempted: ${errorDetails.attemptedTile}\n\nReason: ${validation.reason}\n\nLegal discards: ${errorDetails.legalDiscards}\n\nGame stopped. Check console for details.`;
-            safeAlert(errorMessage);
+            this.notifyUser({
+              title: '出牌不正确',
+              code: 'VALIDATION ERROR',
+              message:
+                `玩家: ${actor}\n尝试打出: ${errorDetails.attemptedTile}\n\n原因: ${validation.reason}\n\n合法出牌: ${errorDetails.legalDiscards}\n\n对局已停止，请查看控制台详情。`,
+            });
           }
 
           // 抛出异常
@@ -565,6 +608,129 @@ export class GameOrchestrator {
       }
 
       await timers.yield();
+    }
+  }
+
+  private notifyUser(payload: UiAlertPayload): void {
+    if (testConfig.trainingMode) return;
+    if (this.uiAlertHandler) {
+      this.uiAlertHandler(payload);
+      return;
+    }
+    safeAlert(payload.message);
+  }
+
+  private validateHumanAction(action: Action, legal: Action[]): { valid: boolean; title?: string; code?: string; message?: string } {
+    if (action.type === 'EXCHANGE_SELECT') {
+      const state = this.state;
+      if (!state || state.phase !== 'EXCHANGE') {
+        return {
+          valid: false,
+          title: '换三张不正确',
+          code: 'INVALID EXCHANGE',
+          message: '当前不在换三张阶段。',
+        };
+      }
+
+      if (action.tiles.length !== 3) {
+        return {
+          valid: false,
+          title: '换三张不正确',
+          code: 'INVALID EXCHANGE',
+          message: '换三张必须恰好选择 3 张牌。',
+        };
+      }
+
+      const [first] = action.tiles;
+      if (!first || action.tiles.some((tile) => tile.suit !== first.suit)) {
+        return {
+          valid: false,
+          title: '换三张不正确',
+          code: 'INVALID EXCHANGE',
+          message: '换三张必须选择同一花色的 3 张牌。',
+        };
+      }
+
+      const hand = [...state.hands.P0];
+      for (const selected of action.tiles) {
+        const idx = hand.findIndex((tile) => tile.suit === selected.suit && tile.rank === selected.rank);
+        if (idx === -1) {
+          return {
+            valid: false,
+            title: '换三张不正确',
+            code: 'INVALID EXCHANGE',
+            message: '你选择的牌并不都在当前手牌里。',
+          };
+        }
+        hand.splice(idx, 1);
+      }
+
+      return { valid: true };
+    }
+
+    if (!this.isActionLegal(action, legal)) {
+      return {
+        valid: false,
+        title: '操作无效',
+        code: 'INVALID ACTION',
+        message: `当前阶段不能执行这个操作：${this.describeAction(action)}`,
+      };
+    }
+
+    return { valid: true };
+  }
+
+  private isActionLegal(action: Action, legal: Action[]): boolean {
+    return legal.some((candidate) => {
+      if (candidate.type !== action.type) return false;
+
+      if (action.type === 'DISCARD' && candidate.type === 'DISCARD') {
+        return action.tile.suit === candidate.tile.suit && action.tile.rank === candidate.tile.rank;
+      }
+      if (action.type === 'DING_QUE' && candidate.type === 'DING_QUE') {
+        return action.suit === candidate.suit;
+      }
+      if (action.type === 'PENG' && candidate.type === 'PENG') {
+        return action.from === candidate.from
+          && action.tile.suit === candidate.tile.suit
+          && action.tile.rank === candidate.tile.rank;
+      }
+      if (action.type === 'GANG' && candidate.type === 'GANG') {
+        return action.from === candidate.from
+          && action.gangType === candidate.gangType
+          && action.tile.suit === candidate.tile.suit
+          && action.tile.rank === candidate.tile.rank;
+      }
+      if (action.type === 'HU' && candidate.type === 'HU') {
+        return true;
+      }
+
+      return true;
+    });
+  }
+
+  private describeAction(action: Action): string {
+    switch (action.type) {
+      case 'DISCARD':
+        return `出牌 ${tileToString(action.tile)}`;
+      case 'DING_QUE':
+        return `定缺 ${action.suit}`;
+      case 'EXCHANGE_SELECT':
+        return `换三张 ${action.tiles.map(tileToString).join(' ')}`;
+      case 'PENG':
+        return `碰 ${tileToString(action.tile)}`;
+      case 'GANG':
+        return `杠 ${tileToString(action.tile)}`;
+      case 'HU':
+        return '胡牌';
+      case 'PASS':
+        return '过';
+      case 'DRAW':
+        return '摸牌';
+      case 'EXCHANGE_CONFIRM':
+        return '确认换牌';
+      default:
+        return action.type;
     }
   }
 

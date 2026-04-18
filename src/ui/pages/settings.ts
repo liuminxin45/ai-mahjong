@@ -5,6 +5,7 @@ import { createPixelButton } from '../components/pixelFrame';
 import { renderLLMSettingsPanel } from '../components/LLMSettingsPanel';
 import { getActiveLLMProfile } from '../../llm/browserConfig';
 import { getAiText } from '../aiLocale';
+import { showPixelAlertDialog } from '../components/pixelDialog';
 
 export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   root.innerHTML = '';
@@ -16,7 +17,7 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   page.className = 'pixel-app-page';
 
   const shell = document.createElement('section');
-  shell.className = 'pixel-page-shell';
+  shell.className = 'pixel-page-shell pixel-page-shell--compact';
 
   const header = document.createElement('div');
   header.className = 'pixel-page-header';
@@ -149,7 +150,13 @@ function renderAISection(ctx: UiCtx): HTMLElement {
   checkbox.checked = ctx.settingsStore.p0IsAI;
   checkbox.onchange = () => {
     ctx.settingsStore.setP0IsAI(checkbox.checked);
-    if (checkbox.checked) alert(t.p0AIModeAlert);
+    if (checkbox.checked) {
+      showPixelAlertDialog({
+        title: t.title,
+        code: 'P0 AI MODE',
+        message: t.p0AIModeAlert,
+      });
+    }
   };
 
   body.appendChild(createInlineField(t.p0AIMode, checkbox));
@@ -244,7 +251,11 @@ function renderTrainingSection(ctx: UiCtx): HTMLElement {
   startButton.onclick = async () => {
     const games = parseInt(trainingGamesInput.value, 10);
     if (games < 1 || games > 10000) {
-      alert('Training games must be between 1 and 10000');
+      showPixelAlertDialog({
+        title: t.title,
+        code: 'TRAINING',
+        message: 'Training games must be between 1 and 10000',
+      });
       return;
     }
 
@@ -290,7 +301,11 @@ function renderTrainingSection(ctx: UiCtx): HTMLElement {
         trainingInterval = null;
         startButton.style.display = 'inline-flex';
         stopButton.style.display = 'none';
-        alert('Training completed!');
+        showPixelAlertDialog({
+          title: t.title,
+          code: 'TRAINING',
+          message: 'Training completed!',
+        });
       }
     }, 500);
 
@@ -300,7 +315,11 @@ function renderTrainingSection(ctx: UiCtx): HTMLElement {
       trainingInterval = null;
       startButton.style.display = 'inline-flex';
       stopButton.style.display = 'none';
-      alert(`Training failed: ${err.message}`);
+      showPixelAlertDialog({
+        title: t.title,
+        code: 'TRAINING',
+        message: `Training failed: ${err.message}`,
+      });
     });
   };
 
@@ -309,7 +328,11 @@ function renderTrainingSection(ctx: UiCtx): HTMLElement {
     trainingInterval = null;
     startButton.style.display = 'inline-flex';
     stopButton.style.display = 'none';
-    alert('Training stopped');
+    showPixelAlertDialog({
+      title: t.title,
+      code: 'TRAINING',
+      message: 'Training stopped',
+    });
   };
 
   actions.appendChild(startButton);

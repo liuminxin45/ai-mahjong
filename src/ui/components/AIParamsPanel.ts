@@ -6,6 +6,7 @@ import {
   createPixelToast,
   mountPixelSurface,
 } from './pixelFrame';
+import { showPixelConfirmDialog } from './pixelDialog';
 
 function calculateAICapability(): number {
   try {
@@ -66,8 +67,14 @@ export function renderAIParamsPanel(): HTMLElement {
   surface.body.appendChild(renderParams(params));
 
   const resetBtn = createPixelButton('Reset', 'danger');
-  resetBtn.onclick = () => {
-    if (confirm('Reset all AI parameters to default values?')) {
+  resetBtn.onclick = async () => {
+    const confirmed = await showPixelConfirmDialog({
+      title: 'AI Parameters',
+      code: 'RESET PARAMS',
+      message: 'Reset all AI parameters to default values?',
+      confirmText: 'Reset',
+    });
+    if (confirmed) {
       const { resetParams } = require('../../training/paramPersistence');
       resetParams();
       createPixelToast('RESET');

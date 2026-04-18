@@ -8,10 +8,14 @@ import {
   renderChatAssistantButton,
   syncCoachPanelContext,
 } from '../components/LLMChatAssistant';
+import { dismissPixelAlertDialog, showPixelAlertDialog } from '../components/pixelDialog';
 import { languageStore } from '../../store/languageStore';
 
 export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   root.innerHTML = '';
+  ctx.orchestrator.setUiAlertHandler((payload) => {
+    showPixelAlertDialog(payload);
+  });
 
   const lastLlmState = {
     key: null as string | null,
@@ -97,6 +101,8 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   const unsubSettings = ctx.settingsStore.subscribe(render);
 
   return () => {
+    ctx.orchestrator.setUiAlertHandler(null);
+    dismissPixelAlertDialog();
     aiLauncher?.remove();
     removeChatAssistantSurface();
     unsub();

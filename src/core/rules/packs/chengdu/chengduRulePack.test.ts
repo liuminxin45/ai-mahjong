@@ -9,18 +9,27 @@ import type { PlayerId } from '../../../model/types';
 
 describe('chengduRulePack', () => {
   describe('basic flow', () => {
-    it('reuses placeholder behavior (init/draw/discard/rotate)', () => {
+    it('starts with dealer on 14 tiles before exchange', () => {
+      const s0 = chengduRulePack.buildInitialState();
+      expect(s0.phase).toBe('EXCHANGE');
+      expect(s0.currentPlayer).toBe('P0');
+      expect(s0.hands.P0.length).toBe(14);
+      expect(s0.hands.P1.length).toBe(13);
+      expect(s0.hands.P2.length).toBe(13);
+      expect(s0.hands.P3.length).toBe(13);
+      expect(s0.wall.length).toBe(55);
+    });
+
+    it('lets P0 discard first after special phases complete', () => {
       const s0 = chengduRulePack.buildInitialState();
       const s0Playing = { ...s0, phase: 'PLAYING', currentPlayer: 'P0' } as any;
       expect(s0Playing.phase).toBe('PLAYING');
       expect(s0Playing.currentPlayer).toBe('P0');
+      expect(s0Playing.hands.P0.length).toBe(14);
 
-      const s1 = chengduRulePack.applyAction(s0Playing, { type: 'DRAW' });
-      expect(s1.hands.P0.length).toBe(14);
-
-      const discard = chengduRulePack.getLegalActions(s1, 'P0').find((a) => a.type === 'DISCARD');
+      const discard = chengduRulePack.getLegalActions(s0Playing, 'P0').find((a) => a.type === 'DISCARD');
       expect(discard).toBeTruthy();
-      const s2 = chengduRulePack.applyAction(s1, discard!);
+      const s2 = chengduRulePack.applyAction(s0Playing, discard!);
       expect(s2.turn).toBe(1);
 
       const resolved = chengduRulePack.resolveReactions(s2, []);
