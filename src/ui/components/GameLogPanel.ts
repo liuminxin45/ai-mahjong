@@ -4,59 +4,51 @@
  */
 
 import { gameLogStore } from '../../store/gameLogStore';
+import { languageStore } from '../../store/languageStore';
 import { showPixelAlertDialog, showPixelConfirmDialog } from './pixelDialog';
+import { createPixelButton } from './pixelFrame';
 
 export function renderGameLogPanel(container: HTMLElement): void {
+  const t = languageStore.t().gameLog;
   container.innerHTML = '';
-  container.style.cssText = `
-    display:flex; flex-direction:column; height:100%;
-    border:1px solid var(--border-default); border-radius:var(--r-md);
-    background:var(--bg-surface); overflow:hidden;
-  `;
+  container.className = 'pixel-log-panel';
 
-  // Header
   const header = document.createElement('div');
-  header.style.cssText = `
-    display:flex; justify-content:space-between; align-items:center;
-    padding:var(--sp-2); background:var(--bg-hover);
-    border-bottom:1px solid var(--border-default);
-  `;
+  header.className = 'pixel-log-panel__header';
 
   const title = document.createElement('div');
-  title.style.cssText = 'font-weight:var(--fw-semibold); font-size:var(--fs-sm);';
-  title.textContent = '📋 Game Log';
+  title.className = 'pixel-log-panel__title';
+  title.textContent = t.title;
 
   const buttonGroup = document.createElement('div');
-  buttonGroup.style.cssText = 'display:flex; gap:var(--sp-1);';
+  buttonGroup.className = 'pixel-btn-row';
 
-  const copyBtn = document.createElement('button');
-  copyBtn.className = 'btn btn-primary btn-sm';
-  copyBtn.style.cssText += 'font-size:11px; padding:3px 8px;';
-  copyBtn.textContent = '📋 Copy';
+  const copyBtn = createPixelButton(t.copy, 'success', { size: 'sm' });
   copyBtn.onclick = () => {
     const text = gameLogStore.getAllLogsAsText();
     navigator.clipboard.writeText(text).then(() => {
-      copyBtn.textContent = '✅';
-      setTimeout(() => { copyBtn.textContent = '📋 Copy'; }, 2000);
+      const label = copyBtn.querySelector('.pixel-btn__text');
+      if (label) label.textContent = t.copyDone;
+      setTimeout(() => {
+        const nextLabel = copyBtn.querySelector('.pixel-btn__text');
+        if (nextLabel) nextLabel.textContent = t.copy;
+      }, 2000);
     }).catch(() => {
       showPixelAlertDialog({
-        title: 'Game Log',
+        title: t.clearTitle,
         code: 'COPY LOGS',
-        message: 'Failed to copy logs',
+        message: t.copyFailed,
       });
     });
   };
 
-  const clearBtn = document.createElement('button');
-  clearBtn.className = 'btn btn-danger btn-sm';
-  clearBtn.style.cssText += 'font-size:11px; padding:3px 8px;';
-  clearBtn.textContent = '🗑️';
+  const clearBtn = createPixelButton(t.clear, 'danger', { size: 'sm' });
   clearBtn.onclick = async () => {
     const confirmed = await showPixelConfirmDialog({
-      title: 'Game Log',
+      title: t.clearTitle,
       code: 'CLEAR LOGS',
-      message: 'Clear all logs?',
-      confirmText: 'Clear',
+      message: t.clearMessage,
+      confirmText: t.clear,
     });
     if (confirmed) gameLogStore.clear();
   };
@@ -66,13 +58,8 @@ export function renderGameLogPanel(container: HTMLElement): void {
   header.appendChild(title);
   header.appendChild(buttonGroup);
 
-  // Log content
   const logContent = document.createElement('div');
-  logContent.style.cssText = `
-    flex:1; overflow-y:auto; padding:var(--sp-2);
-    font-family:monospace; font-size:11px;
-    line-height:1.4; white-space:pre-wrap; word-break:break-word;
-  `;
+  logContent.className = 'pixel-log-panel__content';
 
   const renderLogs = () => {
     const logs = gameLogStore.getLogs();
@@ -80,25 +67,24 @@ export function renderGameLogPanel(container: HTMLElement): void {
 
     if (logs.length === 0) {
       const emptyMsg = document.createElement('div');
-      emptyMsg.textContent = 'No logs yet. Start a game to see logs.';
-      emptyMsg.style.cssText = 'color:var(--text-muted); text-align:center; margin-top:20px;';
+      emptyMsg.textContent = t.empty;
+      emptyMsg.className = 'pixel-log-panel__empty';
       logContent.appendChild(emptyMsg);
       return;
     }
 
     for (const log of logs) {
       const logLine = document.createElement('div');
-      logLine.style.marginBottom = '2px';
+      logLine.className = 'pixel-log-panel__line';
 
       if (log.type === 'phase') {
-        logLine.style.color = 'var(--c-primary-light)';
-        logLine.style.fontWeight = 'var(--fw-semibold)';
+        logLine.classList.add('pixel-log-panel__line--phase');
       } else if (log.type === 'action') {
-        logLine.style.color = 'var(--text-primary)';
+        logLine.classList.add('pixel-log-panel__line--action');
       } else if (log.type === 'error') {
-        logLine.style.color = 'var(--c-danger)';
+        logLine.classList.add('pixel-log-panel__line--error');
       } else {
-        logLine.style.color = 'var(--text-muted)';
+        logLine.classList.add('pixel-log-panel__line--misc');
       }
 
       logLine.textContent = log.message;

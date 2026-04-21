@@ -4,6 +4,7 @@ import { renderEventLog } from '../components/eventLogView';
 import type { Action } from '../../core/model/action';
 import type { Tile } from '../../core/model/tile';
 import { makeAgentStyleContext, styleBadgeText } from '../../agents/algo/style';
+import { languageStore } from '../../store/languageStore';
 
 export function renderDebugMode(
   root: HTMLElement,
@@ -14,47 +15,42 @@ export function renderDebugMode(
     inFlight: boolean;
   }
 ): void {
+  const t = languageStore.t().debug;
   const s = ctx.gameStore.state;
   const evs = ctx.gameStore.events;
 
   if (!s) {
-    root.innerHTML = '<div>No match running.</div>';
+    root.innerHTML = `<div>${t.noMatchRunning}</div>`;
     return;
   }
 
   root.innerHTML = '';
 
   const info = document.createElement('div');
-  info.style.display = 'flex';
-  info.style.gap = '12px';
-  info.style.alignItems = 'center';
-  info.style.marginBottom = '12px';
-  info.style.color = 'var(--text-secondary)';
+  info.className = 'debug-info';
 
   const cur = document.createElement('div');
-  cur.textContent = `Current: ${s.currentPlayer} | Turn: ${s.turn} | Wall: ${s.wall.length}`;
+  cur.textContent = `${t.current}: ${s.currentPlayer} | ${t.turn}: ${s.turn} | ${t.wall}: ${s.wall.length}`;
 
   const disc = document.createElement('div');
-  disc.textContent = `Discards: P0=${s.discards.P0.length} P1=${s.discards.P1.length} P2=${s.discards.P2.length} P3=${s.discards.P3.length}`;
+  disc.textContent = `${t.discards}: P0=${s.discards.P0.length} P1=${s.discards.P1.length} P2=${s.discards.P2.length} P3=${s.discards.P3.length}`;
 
   info.appendChild(cur);
   info.appendChild(disc);
 
   const p0Style = makeAgentStyleContext(s, 'P0');
   const styleDiv = document.createElement('div');
-  styleDiv.textContent = `Style: ${styleBadgeText(p0Style.style)} (${p0Style.style})`;
+  styleDiv.textContent = `${t.style}: ${styleBadgeText(p0Style.style)} (${p0Style.style})`;
   info.appendChild(styleDiv);
 
   const layout = document.createElement('div');
-  layout.style.display = 'grid';
-  layout.style.gridTemplateColumns = '1fr 1fr';
-  layout.style.gap = '12px';
+  layout.className = 'debug-layout';
 
   const left = document.createElement('div');
   const right = document.createElement('div');
 
   const hTitle = document.createElement('h3');
-  hTitle.textContent = 'P0 Hand (click to discard)';
+  hTitle.textContent = t.handTitle;
   left.appendChild(hTitle);
 
   const handWrap = document.createElement('div');
@@ -87,20 +83,19 @@ export function renderDebugMode(
 
   if (s.lastDiscard && s.lastDiscard.from !== 'P0' && p0Reactions.length > 0) {
     const title = document.createElement('div');
-    title.textContent = `Response to ${s.lastDiscard.from} discard`;
-    title.style.marginTop = '8px';
+    title.textContent = t.responseToDiscard(s.lastDiscard.from);
+    title.className = 'debug-title';
     reactionWrap.appendChild(title);
 
     const btnRow = document.createElement('div');
-    btnRow.style.display = 'flex';
-    btnRow.style.gap = '8px';
-    btnRow.style.flexWrap = 'wrap';
+    btnRow.className = 'debug-btn-row';
 
     const order: Array<Action['type']> = ['HU', 'GANG', 'PENG', 'PASS'];
     for (const t of order) {
       const act = p0Reactions.find((a) => a.type === t);
       if (!act) continue;
       const b = document.createElement('button');
+      b.className = 'debug-btn';
       b.textContent = act.type;
       b.onclick = () => ctx.orchestrator.dispatchHumanAction(act);
       btnRow.appendChild(b);
@@ -110,7 +105,7 @@ export function renderDebugMode(
 
     if (ctx.settingsStore.analysisEnabled) {
       const a = document.createElement('div');
-      a.style.whiteSpace = 'pre-wrap';
+      a.className = 'debug-pre';
       const meldCount = s.melds.P0.length;
       a.textContent = ctx.analyzer.analyzeReactions(s.hands.P0, meldCount, p0Reactions, s.lastDiscard.tile);
       reactionWrap.appendChild(a);
@@ -127,19 +122,19 @@ export function renderDebugMode(
     });
 
     const title = document.createElement('div');
-    title.textContent = '推荐出牌 Top3';
-    title.style.fontWeight = '600';
+    title.textContent = t.recommendTop3;
+    title.className = 'debug-title debug-title--strong';
     analysisWrap.appendChild(title);
 
     for (const r of recs) {
       const row = document.createElement('div');
-      row.style.marginTop = '6px';
-      row.textContent = `打 ${r.discard}：向听 ${r.shantenBefore}->${r.shantenAfter}，有效牌 ${r.ukeireTotal}，风险 ${r.dangerLevel}`;
+      row.className = 'debug-row';
+      row.textContent = t.recommendLine(r.discard, r.shantenBefore, r.shantenAfter, r.ukeireTotal, r.dangerLevel);
       analysisWrap.appendChild(row);
 
       if (r.dangerReasons.length > 0) {
         const ul = document.createElement('ul');
-        ul.style.margin = '4px 0 0 18px';
+        ul.className = 'debug-list';
         for (const reason of r.dangerReasons) {
           const li = document.createElement('li');
           li.textContent = reason;
@@ -150,8 +145,7 @@ export function renderDebugMode(
     }
 
     const warning = document.createElement('div');
-    warning.style.whiteSpace = 'pre-wrap';
-    warning.style.marginTop = '8px';
+    warning.className = 'debug-pre debug-pre--gap';
     warning.textContent = ctx.analyzer.analyzeHand(s.hands.P0, meldCountP0, {
       state: s,
       playerId: 'P0',
@@ -161,31 +155,30 @@ export function renderDebugMode(
 
     if (ctx.settingsStore.llmEnabled) {
       const details = document.createElement('details');
-      details.style.marginTop = '10px';
+      details.className = 'debug-details';
       const summary = document.createElement('summary');
-      summary.textContent = 'AI 战术解释';
+      summary.textContent = t.tacticalExplain;
       details.appendChild(summary);
 
       const box = document.createElement('div');
-      box.style.whiteSpace = 'pre-wrap';
-      box.style.marginTop = '6px';
+      box.className = 'debug-pre debug-pre--gap';
       details.appendChild(box);
 
       const wallN = s.wall.length;
-      const phase = wallN <= 16 ? '后巡' : wallN <= 28 ? '中巡' : '早巡';
-      const stateSummary = `${phase}，wall=${wallN}，玩家碰杠=${meldCountP0} 组`;
+      const phase = wallN <= 16 ? t.phaseLate : wallN <= 28 ? t.phaseMid : t.phaseEarly;
+      const stateSummary = t.stateSummary(phase, wallN, meldCountP0);
 
       const key = `${stateSummary}|${recs
         .map((r) => `${r.discard}:${r.shantenAfter}:${r.ukeireTotal}:${r.dangerLevel}`)
         .join('|')}`;
 
       if (!ctx.llmAnalyzer) {
-        box.textContent = 'AI 解释暂不可用（未配置 LLM）。';
+        box.textContent = t.llmUnavailable;
       } else {
         if (lastLlmState.key === key && lastLlmState.text) {
           box.textContent = lastLlmState.text;
         } else {
-          box.textContent = lastLlmState.inFlight ? '生成中…' : '生成中…';
+          box.textContent = t.generating;
 
           if (!lastLlmState.inFlight || lastLlmState.key !== key) {
             lastLlmState.key = key;
@@ -197,7 +190,7 @@ export function renderDebugMode(
                 lastLlmState.text = txt;
               })
               .catch(() => {
-                lastLlmState.text = 'AI 解释暂不可用';
+                lastLlmState.text = t.llmUnavailableShort;
               })
               .finally(() => {
                 lastLlmState.inFlight = false;
@@ -213,7 +206,7 @@ export function renderDebugMode(
   left.appendChild(analysisWrap);
 
   const eTitle = document.createElement('h3');
-  eTitle.textContent = 'Event Log';
+  eTitle.textContent = t.eventLog;
   right.appendChild(eTitle);
   right.appendChild(renderEventLog(evs));
 

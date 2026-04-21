@@ -6,19 +6,33 @@ import {
   createPixelModalSurface,
   mountPixelSurface,
 } from './pixelFrame';
+import { languageStore } from '../../store/languageStore';
+
+function getReviewText() {
+  const text = languageStore.t().reviewPanel;
+  return {
+    ...text,
+    impact: {
+      critical: text.impactCritical,
+      significant: text.impactSignificant,
+      minor: text.impactMinor,
+    },
+  };
+}
 
 export async function renderGameReviewPanel(
   gameRecord: GameRecord,
   onClose?: () => void,
 ): Promise<HTMLElement> {
+  const text = getReviewText();
   const surface = createPixelModalSurface({
-    title: 'Game Review',
-    subtitle: 'SCORE / MOMENTS / IMPROVEMENT',
+    title: text.title,
+    subtitle: text.subtitle,
     width: 'min(94vw, 840px)',
     onClose,
   });
 
-  surface.body.appendChild(createPixelLoadingState('ANALYZE', '正在分析对局...'));
+  surface.body.appendChild(createPixelLoadingState('ANALYZE', text.loading));
   mountPixelSurface(surface);
 
   try {
@@ -28,7 +42,7 @@ export async function renderGameReviewPanel(
   } catch (error) {
     console.error('[GameReview] Failed to generate:', error);
     surface.body.innerHTML = '';
-    surface.body.appendChild(createPixelEmptyState('ERROR', '分析生成失败', '请稍后重试。'));
+    surface.body.appendChild(createPixelEmptyState('ERROR', text.errorTitle, text.errorDetail));
   }
 
   return surface.panel;
@@ -53,6 +67,7 @@ async function generateReview(gameRecord: GameRecord): Promise<GameReview> {
 }
 
 function renderReviewContent(container: HTMLElement, review: GameReview, gameRecord: GameRecord): void {
+  const text = getReviewText();
   container.appendChild(renderSummary(review, gameRecord));
   container.appendChild(renderStrengthsWeaknesses(review));
 
@@ -61,8 +76,8 @@ function renderReviewContent(container: HTMLElement, review: GameReview, gameRec
     moments.className = 'pixel-page-section';
     moments.innerHTML = `
       <div class="pixel-page-section__header">
-        <div class="pixel-page-section__title">KEY MOMENTS</div>
-        <div class="pixel-page-section__subtitle">${review.keyMoments.length} ITEMS</div>
+        <div class="pixel-page-section__title">${text.keyMoments}</div>
+        <div class="pixel-page-section__subtitle">${review.keyMoments.length} ${text.items}</div>
       </div>
     `;
     const body = document.createElement('div');
@@ -78,32 +93,33 @@ function renderReviewContent(container: HTMLElement, review: GameReview, gameRec
   improvements.className = 'pixel-page-section';
   improvements.innerHTML = `
     <div class="pixel-page-section__header">
-      <div class="pixel-page-section__title">IMPROVEMENTS</div>
-      <div class="pixel-page-section__subtitle">NEXT GAMES</div>
+      <div class="pixel-page-section__title">${text.improvements}</div>
+      <div class="pixel-page-section__subtitle">${text.nextGames}</div>
     </div>
   `;
   const improveBody = document.createElement('div');
   improveBody.className = 'pixel-page-section__body';
-  improveBody.appendChild(renderListBox('ACTIONS', review.improvements));
+  improveBody.appendChild(renderListBox(text.actions, review.improvements));
   improveBody.appendChild(renderStats(review.statistics));
   improvements.appendChild(improveBody);
   container.appendChild(improvements);
 }
 
 function renderSummary(review: GameReview, gameRecord: GameRecord): HTMLElement {
+  const text = getReviewText();
   const section = document.createElement('section');
   section.className = 'pixel-page-section';
   section.innerHTML = `
     <div class="pixel-page-section__header">
-      <div class="pixel-page-section__title">SUMMARY</div>
+      <div class="pixel-page-section__title">${text.summary}</div>
       <div class="pixel-page-section__subtitle">${new Date(gameRecord.timestamp).toLocaleString()}</div>
     </div>
     <div class="pixel-page-section__body">
       <div class="pixel-grid pixel-grid--stats">
-        <div class="pixel-stat"><div class="pixel-stat__label">GRADE</div><div class="pixel-stat__value">${review.overallAssessment.grade}</div></div>
-        <div class="pixel-stat"><div class="pixel-stat__label">SCORE</div><div class="pixel-stat__value">${review.overallAssessment.score}/100</div></div>
-        <div class="pixel-stat"><div class="pixel-stat__label">DEAL IN</div><div class="pixel-stat__value">${gameRecord.stats?.dealInCount || 0}</div></div>
-        <div class="pixel-stat"><div class="pixel-stat__label">MELDS</div><div class="pixel-stat__value">${gameRecord.stats?.meldCount || 0}</div></div>
+        <div class="pixel-stat"><div class="pixel-stat__label">${text.grade}</div><div class="pixel-stat__value">${review.overallAssessment.grade}</div></div>
+        <div class="pixel-stat"><div class="pixel-stat__label">${text.score}</div><div class="pixel-stat__value">${review.overallAssessment.score}/100</div></div>
+        <div class="pixel-stat"><div class="pixel-stat__label">${text.dealIn}</div><div class="pixel-stat__value">${gameRecord.stats?.dealInCount || 0}</div></div>
+        <div class="pixel-stat"><div class="pixel-stat__label">${text.melds}</div><div class="pixel-stat__value">${gameRecord.stats?.meldCount || 0}</div></div>
       </div>
     </div>
   `;
@@ -111,23 +127,25 @@ function renderSummary(review: GameReview, gameRecord: GameRecord): HTMLElement 
 }
 
 function renderStrengthsWeaknesses(review: GameReview): HTMLElement {
+  const text = getReviewText();
   const section = document.createElement('section');
   section.className = 'pixel-page-section';
   section.innerHTML = `
     <div class="pixel-page-section__header">
-      <div class="pixel-page-section__title">ASSESSMENT</div>
-      <div class="pixel-page-section__subtitle">GOOD / BAD</div>
+      <div class="pixel-page-section__title">${text.assessment}</div>
+      <div class="pixel-page-section__subtitle">${text.goodBad}</div>
     </div>
   `;
   const body = document.createElement('div');
   body.className = 'pixel-page-section__body pixel-grid pixel-grid--two';
-  body.appendChild(renderListBox('STRENGTHS', review.overallAssessment.strengths, 'success'));
-  body.appendChild(renderListBox('WEAKNESSES', review.overallAssessment.weaknesses, 'danger'));
+  body.appendChild(renderListBox(text.strengths, review.overallAssessment.strengths, 'success'));
+  body.appendChild(renderListBox(text.weaknesses, review.overallAssessment.weaknesses, 'danger'));
   section.appendChild(body);
   return section;
 }
 
 function renderKeyMoment(moment: KeyMoment): HTMLElement {
+  const text = getReviewText();
   const card = document.createElement('div');
   card.className = 'pixel-note-box';
 
@@ -139,29 +157,30 @@ function renderKeyMoment(moment: KeyMoment): HTMLElement {
 
   card.innerHTML = `
     <div class="pixel-list-item__row">
-      <div class="pixel-page-section__title" style="font-size:11px;">TURN ${moment.turn}</div>
-      <span class="${impactClass}">${moment.impact}</span>
+      <div class="pixel-page-section__title pixel-page-section__title--compact">${text.turn} ${moment.turn}</div>
+      <span class="${impactClass}">${text.impact[moment.impact]}</span>
     </div>
-    <div class="pixel-note" style="margin-top:8px;">${moment.situation}</div>
-    <div class="pixel-kv" style="margin-top:8px;">
-      <div class="pixel-kv__row"><span class="pixel-kv__label">YOUR ACTION</span><span class="pixel-kv__value">${String(moment.playerAction?.type ?? '')}</span></div>
-      <div class="pixel-kv__row"><span class="pixel-kv__label">OPTIMAL</span><span class="pixel-kv__value">${String(moment.optimalAction?.type ?? '')}</span></div>
+    <div class="pixel-note pixel-note--gap">${moment.situation}</div>
+    <div class="pixel-kv pixel-kv--gap">
+      <div class="pixel-kv__row"><span class="pixel-kv__label">${text.yourAction}</span><span class="pixel-kv__value">${String(moment.playerAction?.type ?? '')}</span></div>
+      <div class="pixel-kv__row"><span class="pixel-kv__label">${text.optimal}</span><span class="pixel-kv__value">${String(moment.optimalAction?.type ?? '')}</span></div>
     </div>
-    <div class="pixel-note" style="margin-top:8px;">${moment.analysis}</div>
-    <div class="pixel-note" style="margin-top:6px;">LESSON: ${moment.lesson}</div>
+    <div class="pixel-note pixel-note--gap">${moment.analysis}</div>
+    <div class="pixel-note pixel-note--gap-sm">${text.lesson}: ${moment.lesson}</div>
   `;
   return card;
 }
 
 function renderStats(statistics: GameReview['statistics']): HTMLElement {
+  const text = getReviewText();
   const block = document.createElement('div');
   block.className = 'pixel-note-box';
   block.innerHTML = `
-    <div class="pixel-page-section__title" style="font-size:11px;">SKILLS</div>
-    <div class="pixel-page-section__body" style="padding:8px 0 0;">
-      ${renderProgress('效率', statistics.efficiency)}
-      ${renderProgress('防守', statistics.defense)}
-      ${renderProgress('时机', statistics.timing)}
+    <div class="pixel-page-section__title pixel-page-section__title--compact">${text.skills}</div>
+    <div class="pixel-page-section__body pixel-page-section__body--compact">
+      ${renderProgress(text.efficiency, statistics.efficiency)}
+      ${renderProgress(text.defense, statistics.defense)}
+      ${renderProgress(text.timing, statistics.timing)}
     </div>
   `;
   return block;
@@ -188,14 +207,12 @@ function renderListBox(title: string, items: string[], tone: 'neutral' | 'succes
   block.className = className;
 
   const titleEl = document.createElement('div');
-  titleEl.className = 'pixel-page-section__title';
-  titleEl.style.fontSize = '11px';
+  titleEl.className = 'pixel-page-section__title pixel-page-section__title--compact';
   titleEl.textContent = title;
   block.appendChild(titleEl);
 
   const list = document.createElement('div');
-  list.className = 'pixel-list';
-  list.style.marginTop = '8px';
+  list.className = 'pixel-list pixel-list--gap';
   for (const item of items.length > 0 ? items : ['-']) {
     const line = document.createElement('div');
     line.className = 'pixel-note';

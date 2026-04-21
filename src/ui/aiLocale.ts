@@ -60,6 +60,14 @@ type CoachTexts = {
   openSettingsToast: string;
   phaseNames: Record<string, string>;
   actionNames: Record<string, string>;
+  chatRoleUser: string;
+  chatRoleAssistant: string;
+  chatFallback: string;
+  thinking: string;
+  suitNames: Record<'W' | 'B' | 'T', string>;
+  tileCompact: boolean;
+  riskLabels: Record<'low' | 'medium' | 'high', string>;
+  exchangeFallback: string;
 };
 
 type LlmSettingsTexts = {
@@ -85,6 +93,7 @@ type LlmSettingsTexts = {
   entrypoint: string;
   maxOutputTokens: string;
   contextWindow: string;
+  timeoutMs: string;
   temperature: string;
   creativity: string;
   notesTitle: string;
@@ -95,6 +104,7 @@ type LlmSettingsTexts = {
   deletedToast: string;
   connectionOkToast: string;
   connectionFailedToast: string;
+  unknownError: string;
   providerLabels: {
     kimiCodingAnthropic: string;
     openaiCompatible: string;
@@ -212,6 +222,22 @@ const zh: AiTexts = {
       HU: '胡',
       DRAW: '摸牌',
     },
+    chatRoleUser: '用户',
+    chatRoleAssistant: '助手',
+    chatFallback: '抱歉，我暂时无法回答这个问题。请稍后再试。',
+    thinking: '思考中...',
+    suitNames: {
+      W: '万',
+      B: '条',
+      T: '筒',
+    },
+    tileCompact: true,
+    riskLabels: {
+      low: '低风险',
+      medium: '中风险',
+      high: '高风险',
+    },
+    exchangeFallback: '优先换出孤张和碎张',
   },
   llmSettings: {
     title: 'LLM 设置',
@@ -236,6 +262,7 @@ const zh: AiTexts = {
     entrypoint: '入口地址',
     maxOutputTokens: '最大输出 Token',
     contextWindow: '上下文窗口',
+    timeoutMs: '超时时间 (ms)',
     temperature: '温度',
     creativity: '创造性',
     notesTitle: '说明',
@@ -246,6 +273,7 @@ const zh: AiTexts = {
     deletedToast: '已删除',
     connectionOkToast: '连接成功',
     connectionFailedToast: '连接失败',
+    unknownError: '未知错误',
     providerLabels: {
       kimiCodingAnthropic: 'Kimi Coding / Anthropic 格式',
       openaiCompatible: 'OpenAI 兼容',
@@ -355,6 +383,22 @@ const en: AiTexts = {
       HU: 'Hu',
       DRAW: 'Draw',
     },
+    chatRoleUser: 'User',
+    chatRoleAssistant: 'Assistant',
+    chatFallback: 'Sorry, I cannot answer that right now. Please try again later.',
+    thinking: 'Thinking...',
+    suitNames: {
+      W: 'Character',
+      B: 'Bamboo',
+      T: 'Dot',
+    },
+    tileCompact: false,
+    riskLabels: {
+      low: 'low',
+      medium: 'medium',
+      high: 'high',
+    },
+    exchangeFallback: 'Discard isolated tiles first',
   },
   llmSettings: {
     title: 'LLM Settings',
@@ -379,6 +423,7 @@ const en: AiTexts = {
     entrypoint: 'Entrypoint',
     maxOutputTokens: 'Max Output Tokens',
     contextWindow: 'Context Window Size',
+    timeoutMs: 'Timeout (ms)',
     temperature: 'Temperature',
     creativity: 'Creativity',
     notesTitle: 'Notes',
@@ -389,6 +434,7 @@ const en: AiTexts = {
     deletedToast: 'Deleted',
     connectionOkToast: 'Connection ok',
     connectionFailedToast: 'Connection failed',
+    unknownError: 'Unknown error',
     providerLabels: {
       kimiCodingAnthropic: 'Kimi Coding / Anthropic format',
       openaiCompatible: 'OpenAI Compatible',

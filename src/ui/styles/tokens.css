@@ -1,0 +1,9 @@
+:root {
+  --ui-scale: 1;
+  --safe-zone-percent: 3;
+  --safe-zone-x: max(calc(var(--safe-zone-percent) * 1vw), max(env(safe-area-inset-left), env(safe-area-inset-right)));
+  --safe-zone-y: max(calc(var(--safe-zone-percent) * 1vh), max(env(safe-area-inset-top), env(safe-area-inset-bottom)));
+  --pixel-unit: calc(2px * var(--ui-scale));
+  --font-body-min: 14px;
+  --touch-target-min: 44px;
+}

@@ -5,6 +5,8 @@ import { createPixelButton, createPixelEmptyState } from '../components/pixelFra
 
 export function renderReplay(root: HTMLElement, ctx: UiCtx): void {
   root.innerHTML = '';
+  const t = languageStore.t();
+  const tr = t.replay;
 
   const page = document.createElement('div');
   page.className = 'pixel-app-page';
@@ -18,22 +20,20 @@ export function renderReplay(root: HTMLElement, ctx: UiCtx): void {
   const titleWrap = document.createElement('div');
   const title = document.createElement('div');
   title.className = 'pixel-page-title';
-  title.textContent = languageStore.getLanguage() === 'zh' ? 'Replay' : 'Replay';
+  title.textContent = tr.title;
   const subtitle = document.createElement('div');
   subtitle.className = 'pixel-page-subtitle';
-  subtitle.textContent = languageStore.getLanguage() === 'zh'
-    ? '像素回放台。按时间顺序播放最近一局。'
-    : 'Pixel replay desk. Play the latest match in order.';
+  subtitle.textContent = tr.subtitle;
   titleWrap.appendChild(title);
   titleWrap.appendChild(subtitle);
 
   const toolbar = document.createElement('div');
   toolbar.className = 'pixel-page-toolbar';
 
-  const back = createPixelButton(languageStore.t().common.back, 'neutral');
+  const back = createPixelButton(t.common.back, 'neutral');
   back.onclick = () => ctx.navigate('#/');
-  const play = createPixelButton('Play', 'success');
-  const stop = createPixelButton('Stop', 'danger');
+  const play = createPixelButton(tr.play, 'success');
+  const stop = createPixelButton(tr.stop, 'danger');
   stop.disabled = true;
 
   toolbar.appendChild(back);
@@ -50,8 +50,8 @@ export function renderReplay(root: HTMLElement, ctx: UiCtx): void {
   section.className = 'pixel-page-section';
   section.innerHTML = `
     <div class="pixel-page-section__header">
-      <div class="pixel-page-section__title">EVENT LOG</div>
-      <div class="pixel-page-section__subtitle">LATEST REPLAY</div>
+      <div class="pixel-page-section__title">${tr.eventLogTitle}</div>
+      <div class="pixel-page-section__subtitle">${tr.eventLogSubtitle}</div>
     </div>
   `;
 
@@ -71,7 +71,7 @@ export function renderReplay(root: HTMLElement, ctx: UiCtx): void {
   const replay = ctx.storage.loadLatest();
   if (!replay) {
     out.innerHTML = '';
-    out.appendChild(createPixelEmptyState('NO DATA', languageStore.getLanguage() === 'zh' ? '没有可用回放' : 'No replay available', languageStore.getLanguage() === 'zh' ? '先在对局页导出一局。' : 'Export one from the match page first.'));
+    out.appendChild(createPixelEmptyState('NO DATA', tr.noDataTitle, tr.noDataDetail));
     play.disabled = true;
     return;
   }

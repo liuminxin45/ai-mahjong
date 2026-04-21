@@ -1,0 +1,72 @@
+.pixel-actions__hint,
+.pixel-seat__badge,
+.center-hud__metric span,
+.pixel-table__wall {
+  font-size: max(var(--font-body-min), calc(14px * var(--ui-scale)));
+}
+
+.pixel-action-btn {
+  min-height: max(40px, calc(40px * var(--ui-scale)));
+  font-size: max(var(--font-body-min), calc(14px * var(--ui-scale)));
+}
+
+.mj-tile--static {
+  cursor: default;
+}
+
+.pixel-meld-strip--seat-left,
+.pixel-meld-strip--seat-right {
+  align-items: center;
+  gap: 3px;
+}
+
+.pixel-meld-strip--seat-left .pixel-meld-group,
+.pixel-meld-strip--seat-right .pixel-meld-group {
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  width: auto;
+}
+
+.pixel-meld-strip--seat-left .pixel-meld-group__tag,
+.pixel-meld-strip--seat-right .pixel-meld-group__tag {
+  min-width: 0;
+  padding: 1px;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.pixel-meld-strip--seat-left .pixel-meld-group__tiles,
+.pixel-meld-strip--seat-right .pixel-meld-group__tiles {
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.pixel-seat--left .pixel-rival__hu-stamp,
+.pixel-seat--right .pixel-rival__hu-stamp {
+  right: -3px;
+  min-width: 14px;
+  min-height: 22px;
+  padding: 1px;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+@media (max-width: 720px) {
+  .pixel-action-btn,
+  .match-toolbar__button {
+    min-height: max(var(--touch-target-min), calc(var(--touch-target-min) * var(--ui-scale)));
+  }
+
+  .pixel-seat--left .pixel-rival__hu-stamp,
+  .pixel-seat--right .pixel-rival__hu-stamp {
+    min-height: 18px;
+    min-width: 12px;
+  }
+}

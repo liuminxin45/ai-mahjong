@@ -273,13 +273,10 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
     } else {
       for (const profile of store.profiles) {
         const row = document.createElement('div');
-        row.className = 'pixel-kv__row';
-        row.style.alignItems = 'flex-start';
-        row.style.gap = '10px';
+        row.className = 'pixel-kv__row pixel-kv__row--start';
 
         const info = document.createElement('div');
-        info.style.flex = '1';
-        info.style.cursor = 'pointer';
+        info.className = 'pixel-kv__info';
         info.onclick = () => {
           persistDraft();
           selectedProfileId = profile.id;
@@ -400,7 +397,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
     body.appendChild(createSection(text.entrypoint, baseUrlInput));
     body.appendChild(createSection(text.maxOutputTokens, maxTokensInput));
     body.appendChild(createSection(text.contextWindow, contextWindowInput));
-    body.appendChild(createSection('Timeout (ms)', timeoutInput));
+    body.appendChild(createSection(text.timeoutMs, timeoutInput));
 
     const actionRow = document.createElement('div');
     actionRow.className = 'pixel-btn-row';
@@ -428,8 +425,8 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
     const tips = document.createElement('div');
     tips.className = 'pixel-note-box pixel-note-box--accent';
     tips.innerHTML = `
-      <div class="pixel-page-section__title" style="font-size:11px;">${text.notesTitle}</div>
-      <div class="pixel-note" style="margin-top:8px;">${text.notesBody}</div>
+      <div class="pixel-page-section__title pixel-page-section__title--compact">${text.notesTitle}</div>
+      <div class="pixel-note pixel-note--gap">${text.notesBody}</div>
     `;
     body.appendChild(tips);
 
@@ -473,7 +470,7 @@ export function renderLLMSettingsPanel(onClose?: () => void): HTMLElement {
       createPixelToast(text.connectionOkToast);
       renderProfileList();
     } catch (error: any) {
-      createPixelToast(`${text.connectionFailedToast}: ${error?.message || 'Unknown error'}`);
+      createPixelToast(`${text.connectionFailedToast}: ${error?.message || text.unknownError}`);
     } finally {
       testConnectionButton.disabled = false;
       testConnectionButton.textContent = originalLabel;

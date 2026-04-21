@@ -8,18 +8,24 @@ import {
   createPixelToast,
   mountPixelSurface,
 } from './pixelFrame';
+import { languageStore } from '../../store/languageStore';
 
 let cachedProfile: UserProfile | null = null;
 
+function getProfileText() {
+  return languageStore.t().profilePanel;
+}
+
 export async function renderUserProfilePanel(onClose?: () => void): Promise<HTMLElement> {
+  const text = getProfileText();
   const surface = createPixelModalSurface({
-    title: 'Player Profile',
-    subtitle: 'SKILL / STYLE / LEARNING',
+    title: text.title,
+    subtitle: text.subtitle,
     width: 'min(94vw, 680px)',
     onClose,
   });
 
-  surface.body.appendChild(createPixelLoadingState('LOAD', '正在分析你的游戏数据...'));
+  surface.body.appendChild(createPixelLoadingState('LOAD', text.loading));
   mountPixelSurface(surface);
 
   try {
@@ -29,7 +35,7 @@ export async function renderUserProfilePanel(onClose?: () => void): Promise<HTML
     surface.body.innerHTML = '';
     if (stats.totalGames < 3) {
       surface.body.appendChild(
-        createPixelEmptyState('LOW DATA', '数据不足', `当前仅有 ${stats.totalGames} 局记录，至少需要 3 局才能生成画像。`),
+        createPixelEmptyState('LOW DATA', text.lowDataTitle, text.lowDataDetail(stats.totalGames)),
       );
       return surface.panel;
     }
@@ -38,7 +44,7 @@ export async function renderUserProfilePanel(onClose?: () => void): Promise<HTML
       const profileData = await llmService.analyzeProfile(stats);
       cachedProfile = {
         userId: 'default_user',
-        nickname: '玩家',
+        nickname: text.player,
         createdAt: new Date(),
         lastActive: new Date(),
         ...profileData,
@@ -48,17 +54,17 @@ export async function renderUserProfilePanel(onClose?: () => void): Promise<HTML
 
     renderProfileContent(surface.body, cachedProfile, stats);
 
-    const refresh = createPixelButton('Refresh', 'success');
+    const refresh = createPixelButton(text.refresh, 'success');
     refresh.onclick = async () => {
       cachedProfile = null;
       surface.body.innerHTML = '';
-      surface.body.appendChild(createPixelLoadingState('LOAD', '重新分析中...'));
+      surface.body.appendChild(createPixelLoadingState('LOAD', text.refreshing));
       try {
         const newStats = await historyStorage.calculateStatsForAnalysis();
         const profileData = await llmService.analyzeProfile(newStats);
         cachedProfile = {
           userId: 'default_user',
-          nickname: '玩家',
+          nickname: text.player,
           createdAt: new Date(),
           lastActive: new Date(),
           ...profileData,
@@ -66,7 +72,7 @@ export async function renderUserProfilePanel(onClose?: () => void): Promise<HTML
         await historyStorage.saveProfile(cachedProfile);
         surface.body.innerHTML = '';
         renderProfileContent(surface.body, cachedProfile, newStats);
-        createPixelToast('REFRESH');
+        createPixelToast(text.refreshToast);
       } catch (error) {
         console.error('[UserProfile] Refresh failed:', error);
       }
@@ -75,7 +81,7 @@ export async function renderUserProfilePanel(onClose?: () => void): Promise<HTML
   } catch (error) {
     console.error('[UserProfile] Failed to load:', error);
     surface.body.innerHTML = '';
-    surface.body.appendChild(createPixelEmptyState('ERROR', '加载失败', '请稍后再试。'));
+    surface.body.appendChild(createPixelEmptyState('ERROR', text.errorTitle, text.errorDetail));
   }
 
   return surface.panel;
@@ -86,29 +92,30 @@ function renderProfileContent(
   profile: UserProfile,
   stats: { totalGames: number; winRate: number; avgDealIn: number },
 ): void {
+  const text = getProfileText();
   const rankNames: Record<string, string> = {
-    beginner: '初学者',
-    intermediate: '进阶玩家',
-    advanced: '高级玩家',
-    expert: '专家',
+    beginner: text.rankBeginner,
+    intermediate: text.rankIntermediate,
+    advanced: text.rankAdvanced,
+    expert: text.rankExpert,
   };
 
   const summary = document.createElement('section');
   summary.className = 'pixel-page-section';
   summary.innerHTML = `
     <div class="pixel-page-section__header">
-      <div class="pixel-page-section__title">PROFILE</div>
-      <div class="pixel-page-section__subtitle">${rankNames[profile.skillLevel.rank] || '未知'}</div>
+      <div class="pixel-page-section__title">${text.profile}</div>
+      <div class="pixel-page-section__subtitle">${rankNames[profile.skillLevel.rank] || text.unknown}</div>
     </div>
   `;
   const summaryBody = document.createElement('div');
   summaryBody.className = 'pixel-page-section__body';
   summaryBody.innerHTML = `
     <div class="pixel-grid pixel-grid--stats">
-      <div class="pixel-stat"><div class="pixel-stat__label">Overall</div><div class="pixel-stat__value">${profile.skillLevel.overall}</div></div>
-      <div class="pixel-stat"><div class="pixel-stat__label">Games</div><div class="pixel-stat__value">${stats.totalGames}</div></div>
-      <div class="pixel-stat"><div class="pixel-stat__label">Win Rate</div><div class="pixel-stat__value">${(stats.winRate * 100).toFixed(1)}%</div></div>
-      <div class="pixel-stat"><div class="pixel-stat__label">Deal In</div><div class="pixel-stat__value">${stats.avgDealIn.toFixed(2)}</div></div>
+      <div class="pixel-stat"><div class="pixel-stat__label">${text.overall}</div><div class="pixel-stat__value">${profile.skillLevel.overall}</div></div>
+      <div class="pixel-stat"><div class="pixel-stat__label">${text.games}</div><div class="pixel-stat__value">${stats.totalGames}</div></div>
+      <div class="pixel-stat"><div class="pixel-stat__label">${text.winRate}</div><div class="pixel-stat__value">${(stats.winRate * 100).toFixed(1)}%</div></div>
+      <div class="pixel-stat"><div class="pixel-stat__label">${text.dealIn}</div><div class="pixel-stat__value">${stats.avgDealIn.toFixed(2)}</div></div>
     </div>
   `;
   summary.appendChild(summaryBody);
@@ -118,19 +125,19 @@ function renderProfileContent(
   skillsSection.className = 'pixel-page-section';
   skillsSection.innerHTML = `
     <div class="pixel-page-section__header">
-      <div class="pixel-page-section__title">SKILLS</div>
-      <div class="pixel-page-section__subtitle">CURRENT LEVELS</div>
+      <div class="pixel-page-section__title">${text.skills}</div>
+      <div class="pixel-page-section__subtitle">${text.currentLevels}</div>
     </div>
   `;
   const skillsBody = document.createElement('div');
   skillsBody.className = 'pixel-page-section__body';
   const skillLabels: Record<string, string> = {
-    handReading: '读牌能力',
-    efficiency: '牌效率',
-    defense: '防守意识',
-    riskManagement: '风险控制',
-    timing: '时机把握',
-    adaptation: '应变能力',
+    handReading: text.skillHandReading,
+    efficiency: text.skillEfficiency,
+    defense: text.skillDefense,
+    riskManagement: text.skillRiskManagement,
+    timing: text.skillTiming,
+    adaptation: text.skillAdaptation,
   };
   for (const [key, rawValue] of Object.entries(profile.skillLevel.skills)) {
     skillsBody.appendChild(renderProgress(skillLabels[key] || key, rawValue));
@@ -142,16 +149,16 @@ function renderProfileContent(
   styleSection.className = 'pixel-page-section';
   styleSection.innerHTML = `
     <div class="pixel-page-section__header">
-      <div class="pixel-page-section__title">STYLE</div>
+      <div class="pixel-page-section__title">${text.style}</div>
       <div class="pixel-page-section__subtitle">${profile.playStyle.primaryStyle.toUpperCase()}</div>
     </div>
   `;
   const styleBody = document.createElement('div');
   styleBody.className = 'pixel-page-section__body pixel-grid pixel-grid--two';
-  styleBody.appendChild(renderListBlock('DESCRIPTION', [profile.playStyle.description]));
-  styleBody.appendChild(renderListBlock('STRENGTHS', profile.playStyle.strengths));
-  styleBody.appendChild(renderListBlock('WEAKNESSES', profile.playStyle.weaknesses));
-  styleBody.appendChild(renderListBlock('FOCUS', [profile.learningProgress.currentFocus]));
+  styleBody.appendChild(renderListBlock(text.description, [profile.playStyle.description]));
+  styleBody.appendChild(renderListBlock(text.strengths, profile.playStyle.strengths));
+  styleBody.appendChild(renderListBlock(text.weaknesses, profile.playStyle.weaknesses));
+  styleBody.appendChild(renderListBlock(text.focus, [profile.learningProgress.currentFocus]));
   styleSection.appendChild(styleBody);
   container.appendChild(styleSection);
 
@@ -159,14 +166,14 @@ function renderProfileContent(
   learningSection.className = 'pixel-page-section';
   learningSection.innerHTML = `
     <div class="pixel-page-section__header">
-      <div class="pixel-page-section__title">RECOMMENDATIONS</div>
-      <div class="pixel-page-section__subtitle">NEXT STEPS</div>
+      <div class="pixel-page-section__title">${text.recommendations}</div>
+      <div class="pixel-page-section__subtitle">${text.nextSteps}</div>
     </div>
   `;
   const learningBody = document.createElement('div');
   learningBody.className = 'pixel-page-section__body';
-  learningBody.appendChild(renderListBlock('IMPROVE', profile.learningProgress.recommendations));
-  learningBody.appendChild(renderListBlock('MISTAKES', profile.patterns.commonMistakes));
+  learningBody.appendChild(renderListBlock(text.improve, profile.learningProgress.recommendations));
+  learningBody.appendChild(renderListBlock(text.mistakes, profile.patterns.commonMistakes));
   learningSection.appendChild(learningBody);
   container.appendChild(learningSection);
 }
@@ -186,14 +193,12 @@ function renderListBlock(title: string, items: string[]): HTMLElement {
   block.className = 'pixel-note-box';
 
   const titleEl = document.createElement('div');
-  titleEl.className = 'pixel-page-section__title';
-  titleEl.style.fontSize = '11px';
+  titleEl.className = 'pixel-page-section__title pixel-page-section__title--compact';
   titleEl.textContent = title;
   block.appendChild(titleEl);
 
   const list = document.createElement('div');
-  list.className = 'pixel-list';
-  list.style.marginTop = '8px';
+  list.className = 'pixel-list pixel-list--gap';
 
   const safeItems = items.length > 0 ? items : ['-'];
   for (const item of safeItems) {
@@ -208,7 +213,8 @@ function renderListBlock(title: string, items: string[]): HTMLElement {
 }
 
 export function renderProfileButton(): HTMLElement {
-  const btn = createPixelButton('Profile', 'neutral');
+  const text = getProfileText();
+  const btn = createPixelButton(text.button, 'neutral');
   btn.onclick = () => { void renderUserProfilePanel(); };
   return btn;
 }

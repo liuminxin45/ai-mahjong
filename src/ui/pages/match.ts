@@ -3,6 +3,7 @@ import type { Action } from '../../core/model/action';
 import { renderDebugMode } from '../renderers/matchDebugRenderer';
 import { renderTableMode } from '../renderers/matchTableRenderer';
 import { renderEventLine } from '../components/eventLogView';
+import { extractTransferEvents, playActionTransferFx } from '../components/actionEventFx';
 import {
   removeChatAssistantSurface,
   renderChatAssistantButton,
@@ -32,6 +33,9 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   const contentArea = document.createElement('div');
   contentArea.className = 'match-page__content';
   let aiLauncher: HTMLElement | null = null;
+  let lastAnimatedEventIndex = ctx.gameStore.events.length;
+  let fxChain: Promise<void> = Promise.resolve();
+  let disposed = false;
 
   page.appendChild(toolbar);
   page.appendChild(contentArea);
@@ -72,8 +76,21 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
 
     if (ctx.settingsStore.uiMode === 'DEBUG') {
       renderDebugMode(contentArea, ctx, lastLlmState);
+      lastAnimatedEventIndex = ctx.gameStore.events.length;
     } else {
       renderTableMode(contentArea, ctx);
+      const nextEvents = extractTransferEvents(ctx.gameStore.events, lastAnimatedEventIndex);
+      lastAnimatedEventIndex = ctx.gameStore.events.length;
+      if (nextEvents.length > 0) {
+        for (const ev of nextEvents) {
+          fxChain = fxChain
+            .then(async () => {
+              if (disposed) return;
+              await playActionTransferFx(ev, contentArea);
+            })
+            .catch(() => undefined);
+        }
+      }
     }
 
     const coachContext = ctx.gameStore.state
@@ -101,6 +118,7 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   const unsubSettings = ctx.settingsStore.subscribe(render);
 
   return () => {
+    disposed = true;
     ctx.orchestrator.setUiAlertHandler(null);
     dismissPixelAlertDialog();
     aiLauncher?.remove();

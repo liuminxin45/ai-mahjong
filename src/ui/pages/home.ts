@@ -21,15 +21,11 @@ export function renderHome(root: HTMLElement, ctx: UiCtx): void {
 
   const subtitle = document.createElement('div');
   subtitle.className = 'pixel-home-subtitle';
-  subtitle.textContent = languageStore.getLanguage() === 'zh'
-    ? 'CHENGDU MAHJONG / PIXEL TABLE'
-    : 'CHENGDU MAHJONG / PIXEL TABLE';
+  subtitle.textContent = t.home.subtitle;
 
   const copy = document.createElement('div');
   copy.className = 'pixel-home-copy';
-  copy.textContent = languageStore.getLanguage() === 'zh'
-    ? '血战到底，像素化平面牌桌。开始新局、调整设置、查看回放。'
-    : 'Blood battle mahjong on a flat pixel table. Start, configure, and replay.';
+  copy.textContent = t.home.copy;
 
   const actions = document.createElement('div');
   actions.className = 'pixel-home-actions';
@@ -43,7 +39,7 @@ export function renderHome(root: HTMLElement, ctx: UiCtx): void {
   const settings = createPixelButton(t.home.settings, 'neutral');
   settings.onclick = () => ctx.navigate('#/settings');
 
-  const replay = createPixelButton(languageStore.getLanguage() === 'zh' ? '回放' : 'Replay', 'neutral');
+  const replay = createPixelButton(t.home.replay, 'neutral');
   replay.onclick = () => ctx.navigate('#/replay');
 
   actions.appendChild(start);
@@ -52,7 +48,7 @@ export function renderHome(root: HTMLElement, ctx: UiCtx): void {
 
   const footer = document.createElement('div');
   footer.className = 'pixel-home-copy';
-  footer.textContent = 'V1.0 / OPEN SOURCE';
+  footer.textContent = t.home.footer;
 
   body.appendChild(title);
   body.appendChild(subtitle);

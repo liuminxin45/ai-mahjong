@@ -25,31 +25,26 @@ export function renderPlayerPanel(
   const t = languageStore.t().game;
 
   const handInfo = document.createElement('div');
-  handInfo.style.fontSize = 'var(--fs-xs)';
+  handInfo.style.fontSize = 'max(var(--font-body-min), 14px)';
   handInfo.style.color = 'var(--text-muted)';
   handInfo.textContent = `${t.hand}: ${handCount} ${t.tiles}`;
 
   // Missing suit badge
+  let missingSuitInfo: HTMLElement | null = null;
   if (missingSuit) {
-    const missingSuitInfo = document.createElement('div');
+    missingSuitInfo = document.createElement('div');
     missingSuitInfo.className = 'badge badge-gold';
     missingSuitInfo.style.marginTop = '4px';
 
     const suitName = missingSuit === 'W' ? t.wan : missingSuit === 'B' ? t.tiao : t.bing;
     missingSuitInfo.textContent = suitName;
 
-    panel.appendChild(header);
-    panel.appendChild(handInfo);
-    panel.appendChild(missingSuitInfo);
-  } else {
-    panel.appendChild(header);
-    panel.appendChild(handInfo);
   }
 
   // 显示碰杠信息
   if (melds.length > 0) {
     const meldsSection = document.createElement('div');
-    meldsSection.style.fontSize = 'var(--fs-xs)';
+    meldsSection.style.fontSize = 'max(var(--font-body-min), 14px)';
     meldsSection.style.marginTop = '6px';
     meldsSection.style.color = 'var(--text-secondary)';
 
@@ -106,9 +101,9 @@ export function renderPlayerPanel(
   }
 
   const discardsLabel = document.createElement('div');
-  discardsLabel.style.fontSize = '12px';
+  discardsLabel.style.fontSize = 'max(var(--font-body-min), 14px)';
   discardsLabel.style.marginTop = '6px';
-  discardsLabel.style.color = '#666';
+  discardsLabel.style.color = 'var(--text-muted)';
   discardsLabel.textContent = `${t.discards} (${discards.length}):`;
 
   // 弃牌容器，添加滚动和最大高度限制
@@ -120,6 +115,7 @@ export function renderPlayerPanel(
 
   panel.appendChild(header);
   panel.appendChild(handInfo);
+  if (missingSuitInfo) panel.appendChild(missingSuitInfo);
   panel.appendChild(discardsLabel);
   panel.appendChild(discardsContainer);
 

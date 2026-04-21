@@ -6,6 +6,9 @@ import { renderLLMSettingsPanel } from '../components/LLMSettingsPanel';
 import { getActiveLLMProfile } from '../../llm/browserConfig';
 import { getAiText } from '../aiLocale';
 import { showPixelAlertDialog } from '../components/pixelDialog';
+import { renderHistoryButton } from '../components/GameHistoryPanel';
+import { renderProfileButton } from '../components/UserProfilePanel';
+import { renderAIParamsButton } from '../components/AIParamsPanel';
 
 export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   root.innerHTML = '';
@@ -28,9 +31,7 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   title.textContent = t.title;
   const subtitle = document.createElement('div');
   subtitle.className = 'pixel-page-subtitle';
-  subtitle.textContent = languageStore.getLanguage() === 'zh'
-    ? '像素扁平设置台。所有控制统一到单层壳体内。'
-    : 'Pixel-flat control desk. All controls stay in one shell.';
+  subtitle.textContent = t.displaySubtitle;
   titleWrap.appendChild(title);
   titleWrap.appendChild(subtitle);
 
@@ -47,8 +48,10 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
   body.className = 'pixel-page-body';
 
   body.appendChild(renderSettingsSection(ctx));
-  body.appendChild(renderAISection(ctx));
+  body.appendChild(renderDisplaySection(ctx));
+  body.appendChild(renderAISection(ctx, () => renderSettings(root, ctx)));
   body.appendChild(renderTrainingSection(ctx));
+  body.appendChild(renderToolsSection(ctx));
 
   shell.appendChild(header);
   shell.appendChild(body);
@@ -58,7 +61,7 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
 
 function renderSettingsSection(ctx: UiCtx): HTMLElement {
   const t = languageStore.t().settings;
-  const section = createSection(t.title, languageStore.getLanguage() === 'zh' ? 'RULE / UI / LANGUAGE / TIMEOUT' : 'RULE / UI / LANGUAGE / TIMEOUT');
+  const section = createSection(t.title, t.ruleSubtitle);
   const body = section.querySelector('.pixel-page-section__body') as HTMLElement;
 
   const difficultyRow = createInfoRow(t.aiDifficulty, t.aiDifficultyValue);
@@ -137,7 +140,65 @@ function renderSettingsSection(ctx: UiCtx): HTMLElement {
   return section;
 }
 
-function renderAISection(ctx: UiCtx): HTMLElement {
+function renderDisplaySection(ctx: UiCtx): HTMLElement {
+  const t = languageStore.t().settings;
+  const section = createSection(t.displayTitle, t.displaySubtitleShort);
+  const body = section.querySelector('.pixel-page-section__body') as HTMLElement;
+
+  const scaleField = document.createElement('div');
+  scaleField.className = 'pixel-field';
+  const scaleLabel = document.createElement('div');
+  scaleLabel.className = 'pixel-field__label';
+  scaleLabel.textContent = t.uiScale;
+  const scaleHint = document.createElement('div');
+  scaleHint.className = 'pixel-field__desc';
+  scaleHint.textContent = `${Math.round(ctx.settingsStore.uiScale * 100)}%`;
+  const scale = document.createElement('input');
+  scale.type = 'range';
+  scale.className = 'pixel-range';
+  scale.min = '0.85';
+  scale.max = '1.35';
+  scale.step = '0.05';
+  scale.value = String(ctx.settingsStore.uiScale);
+  scale.oninput = () => {
+    const next = Number(scale.value);
+    ctx.settingsStore.setUiScale(next);
+    scaleHint.textContent = `${Math.round(next * 100)}%`;
+  };
+  scaleField.appendChild(scaleLabel);
+  scaleField.appendChild(scale);
+  scaleField.appendChild(scaleHint);
+  body.appendChild(scaleField);
+
+  const safeZoneField = document.createElement('div');
+  safeZoneField.className = 'pixel-field';
+  const safeZoneLabel = document.createElement('div');
+  safeZoneLabel.className = 'pixel-field__label';
+  safeZoneLabel.textContent = t.hudSafeZone;
+  const safeZoneHint = document.createElement('div');
+  safeZoneHint.className = 'pixel-field__desc';
+  safeZoneHint.textContent = `${ctx.settingsStore.hudSafeZonePercent}%`;
+  const safeZone = document.createElement('input');
+  safeZone.type = 'range';
+  safeZone.className = 'pixel-range';
+  safeZone.min = '0';
+  safeZone.max = '8';
+  safeZone.step = '1';
+  safeZone.value = String(ctx.settingsStore.hudSafeZonePercent);
+  safeZone.oninput = () => {
+    const next = Number(safeZone.value);
+    ctx.settingsStore.setHudSafeZonePercent(next);
+    safeZoneHint.textContent = `${Math.round(next)}%`;
+  };
+  safeZoneField.appendChild(safeZoneLabel);
+  safeZoneField.appendChild(safeZone);
+  safeZoneField.appendChild(safeZoneHint);
+  body.appendChild(safeZoneField);
+
+  return section;
+}
+
+function renderAISection(ctx: UiCtx, onLLMSettingsClose?: () => void): HTMLElement {
   const t = languageStore.t().settings;
   const aiText = getAiText().settings;
   const section = createSection(t.p0AIMode, t.p0AIModeDesc);
@@ -174,7 +235,7 @@ function renderAISection(ctx: UiCtx): HTMLElement {
   const llmRow = document.createElement('div');
   llmRow.className = 'pixel-btn-row';
   const llmButton = createPixelButton(aiText.llmSettings, 'neutral');
-  llmButton.onclick = () => renderLLMSettingsPanel();
+  llmButton.onclick = () => renderLLMSettingsPanel(onLLMSettingsClose);
   llmRow.appendChild(llmButton);
   body.appendChild(llmRow);
   return section;
@@ -182,7 +243,7 @@ function renderAISection(ctx: UiCtx): HTMLElement {
 
 function renderTrainingSection(ctx: UiCtx): HTMLElement {
   const t = languageStore.t().settings;
-  const section = createSection(t.trainingStatus, languageStore.getLanguage() === 'zh' ? 'TRAINING / METRICS / CONTROL' : 'TRAINING / METRICS / CONTROL');
+  const section = createSection(t.trainingStatus, t.trainingSubtitle);
   const body = section.querySelector('.pixel-page-section__body') as HTMLElement;
 
   const trainingGamesInput = document.createElement('input');
@@ -254,7 +315,7 @@ function renderTrainingSection(ctx: UiCtx): HTMLElement {
       showPixelAlertDialog({
         title: t.title,
         code: 'TRAINING',
-        message: 'Training games must be between 1 and 10000',
+        message: t.trainingRangeError,
       });
       return;
     }
@@ -304,7 +365,7 @@ function renderTrainingSection(ctx: UiCtx): HTMLElement {
         showPixelAlertDialog({
           title: t.title,
           code: 'TRAINING',
-          message: 'Training completed!',
+          message: t.trainingCompleted,
         });
       }
     }, 500);
@@ -318,7 +379,7 @@ function renderTrainingSection(ctx: UiCtx): HTMLElement {
       showPixelAlertDialog({
         title: t.title,
         code: 'TRAINING',
-        message: `Training failed: ${err.message}`,
+        message: t.trainingFailed(err.message),
       });
     });
   };
@@ -331,13 +392,35 @@ function renderTrainingSection(ctx: UiCtx): HTMLElement {
     showPixelAlertDialog({
       title: t.title,
       code: 'TRAINING',
-      message: 'Training stopped',
+      message: t.trainingStopped,
     });
   };
 
   actions.appendChild(startButton);
   actions.appendChild(stopButton);
   body.appendChild(actions);
+
+  return section;
+}
+
+function renderToolsSection(_ctx: UiCtx): HTMLElement {
+  const t = languageStore.t().settings;
+  const section = createSection(t.toolsTitle, t.toolsSubtitle);
+  const body = section.querySelector('.pixel-page-section__body') as HTMLElement;
+
+  const row = document.createElement('div');
+  row.className = 'pixel-btn-row';
+
+  const history = renderHistoryButton();
+  const profile = renderProfileButton();
+  const aiParams = renderAIParamsButton();
+  const aiParamsText = aiParams.querySelector('.pixel-btn__text');
+  if (aiParamsText) aiParamsText.textContent = t.toolsAIParams;
+
+  row.appendChild(history);
+  row.appendChild(profile);
+  row.appendChild(aiParams);
+  body.appendChild(row);
 
   return section;
 }

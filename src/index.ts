@@ -12,6 +12,7 @@ import { createBrowserLLMAnalyzerFromStorage } from './analysis/LLMAnalyzer';
 import { placeholderRulePack } from './core/rules/packs/placeholder';
 import { initLLMConfig } from './llm/browserConfig';
 import type { UiCtx } from './ui/context';
+import { applyDisplaySettings } from './ui/styles/runtimeDisplay';
 
 let currentCleanup: (() => void) | null = null;
 
@@ -33,6 +34,11 @@ const ctx: UiCtx = {
 
 window.addEventListener('llm-config-changed', () => {
   ctx.llmAnalyzer = createBrowserLLMAnalyzerFromStorage();
+});
+
+applyDisplaySettings(settingsStore);
+settingsStore.subscribe(() => {
+  applyDisplaySettings(settingsStore);
 });
 
 function mountRouter(root: HTMLElement): void {

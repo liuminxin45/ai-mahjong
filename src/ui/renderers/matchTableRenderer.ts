@@ -21,9 +21,14 @@ const hiddenTileStub: Tile = { suit: 'W', rank: 1 };
 
 export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
   const state = ctx.gameStore.state;
+  const t = languageStore.t().game;
 
   if (!state) {
-    root.innerHTML = '<div style="padding:var(--sp-8);text-align:center;color:var(--text-muted);">No match running.</div>';
+    root.innerHTML = '';
+    const empty = document.createElement('div');
+    empty.className = 'pixel-note';
+    empty.textContent = t.noMatchRunning;
+    root.appendChild(empty);
     return;
   }
 
@@ -47,7 +52,7 @@ export function renderTableMode(root: HTMLElement, ctx: UiCtx): void {
 
   const table = document.createElement('section');
   table.className = 'pixel-table';
-  table.setAttribute('aria-label', 'Mahjong table');
+  table.setAttribute('aria-label', t.tableLabel);
   if (state.melds.P0?.length) {
     table.classList.add('pixel-table--self-melds');
   }
@@ -71,9 +76,10 @@ function renderOpponentSeat(
   state: any,
   dingQueSelections: Record<string, 'W' | 'B' | 'T' | undefined>,
 ): HTMLElement {
-  const direction = seatDirectionByPlayer[playerId];
+  const direction = seatDirectionByPlayer[playerId] as 'top' | 'right' | 'left';
   const seat = document.createElement('section');
   seat.className = `pixel-seat pixel-seat--opponent pixel-seat--${direction}`;
+  seat.dataset.playerId = playerId;
 
   const avatar = renderOpponentAvatar(playerId, state.currentPlayer === playerId, Boolean(state.declaredHu[playerId]));
   const shell = document.createElement('div');
@@ -127,6 +133,8 @@ function renderOpponentSeatContent(
   if (direction === 'top') {
     const stack = document.createElement('div');
     stack.className = 'pixel-seat__content pixel-seat__content--top';
+    stack.dataset.actionTargetHand = playerId;
+    stack.dataset.actionSeat = direction;
     stack.appendChild(hand);
     if (melds) stack.appendChild(melds);
     return stack;
@@ -134,6 +142,8 @@ function renderOpponentSeatContent(
 
   const row = document.createElement('div');
   row.className = `pixel-seat__content pixel-seat__content--${direction}`;
+  row.dataset.actionTargetHand = playerId;
+  row.dataset.actionSeat = direction;
   if (direction === 'left') {
     row.appendChild(hand);
     if (melds) row.appendChild(melds);
@@ -152,6 +162,8 @@ function renderOpponentAvatar(playerId: PlayerId, isCurrent: boolean, hasHu = fa
   if (hasHu && playerId !== 'P0') classNames.push('pixel-rival--hu');
   wrap.className = classNames.join(' ');
   wrap.setAttribute('aria-hidden', 'true');
+  wrap.dataset.actionTargetHu = playerId;
+  wrap.dataset.actionSeat = seatDirectionByPlayer[playerId];
 
   const sprite = document.createElement('div');
   sprite.className = 'pixel-rival__sprite';
@@ -189,7 +201,7 @@ function renderOpponentAvatar(playerId: PlayerId, isCurrent: boolean, hasHu = fa
   if (hasHu && playerId !== 'P0') {
     const stamp = document.createElement('span');
     stamp.className = 'pixel-rival__hu-stamp';
-    stamp.textContent = '胡';
+    stamp.textContent = languageStore.t().game.hu;
     wrap.appendChild(stamp);
   }
 
@@ -210,6 +222,7 @@ function renderPlayerSeat(
 ): HTMLElement {
   const seat = document.createElement('section');
   seat.className = 'pixel-seat pixel-seat--bottom';
+  seat.dataset.playerId = 'P0';
 
   const meldCountP0 = state.melds.P0.length;
   const baseP0 = 13 - meldCountP0 * 3;
@@ -231,6 +244,8 @@ function renderPlayerSeat(
 
   const handShell = document.createElement('div');
   handShell.className = 'pixel-hand-shell';
+  handShell.dataset.actionTargetHand = 'P0';
+  handShell.dataset.actionSeat = 'bottom';
 
   const chrome = document.createElement('div');
   chrome.className = 'pixel-hand-shell__chrome';
@@ -314,10 +329,12 @@ function renderCompactMelds(melds: Meld[], className: string): HTMLElement {
   const tileSize = className.includes('pixel-meld-strip--self-tray') ? 'xs' : isTopOrSelf ? 'xs' : 'xs';
   const compactTag = (type: Meld['type']) => {
     const full = type === 'GANG' ? t.gang : t.peng;
-    if (className.includes('pixel-meld-strip--self-tray') || className.includes('pixel-meld-strip--seat-top')) {
-      return languageStore.getLanguage() === 'zh'
-        ? (type === 'GANG' ? '杠' : '碰')
-        : (type === 'GANG' ? 'G' : 'P');
+    const useShortTag = className.includes('pixel-meld-strip--self-tray')
+      || className.includes('pixel-meld-strip--seat-top')
+      || className.includes('pixel-meld-strip--seat-left')
+      || className.includes('pixel-meld-strip--seat-right');
+    if (useShortTag) {
+      return type === 'GANG' ? t.gangShort : t.pengShort;
     }
     return full;
   };
@@ -401,7 +418,7 @@ function renderReactionRow(ctx: UiCtx, state: any): HTMLElement {
   if (actions.length === 0) {
     const hint = document.createElement('div');
     hint.className = 'pixel-actions__hint';
-    hint.textContent = state.currentPlayer === 'P0' ? '选择要打出的牌' : '';
+    hint.textContent = state.currentPlayer === 'P0' ? t.discardHint : '';
     row.appendChild(hint);
     return row;
   }
@@ -426,12 +443,12 @@ function formatActionLabel(action: Action, t: ReturnType<typeof languageStore.t>
   const tile = `${action.tile.suit}${action.tile.rank}`;
   const gangPrefix =
     action.gangType === 'AN'
-      ? '暗杠'
+      ? t.gangAn
       : action.gangType === 'JIA'
-        ? '补杠'
+        ? t.gangJia
         : action.gangType === 'MING'
-          ? '明杠'
-          : '杠';
+          ? t.gangMing
+          : t.gang;
 
   return `${gangPrefix} ${tile}`;
 }
@@ -573,6 +590,8 @@ function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
   for (const pid of playerOrder) {
     const item = document.createElement('div');
     item.className = state.declaredHu[pid] ? 'result-player result-player--winner' : 'result-player';
+    item.dataset.actionTargetHu = pid;
+    item.dataset.actionSeat = seatDirectionByPlayer[pid];
 
     const row = document.createElement('div');
     row.className = 'result-player__row';
@@ -615,7 +634,7 @@ function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
     const replay = ctx.orchestrator.exportReplay();
     const text = replay.events.map((event) => renderEventLine(event)).join('\n');
     navigator.clipboard.writeText(text).then(() => {
-      copyLogBtn.textContent = '✓ 已复制';
+      copyLogBtn.textContent = t.copied;
       setTimeout(() => { copyLogBtn.textContent = t.copyLog; }, 2000);
     }).catch(() => {
       const ta = document.createElement('textarea');
@@ -624,7 +643,7 @@ function renderEndPhase(root: HTMLElement, ctx: UiCtx, state: any): void {
       ta.select();
       document.execCommand('copy');
       ta.remove();
-      copyLogBtn.textContent = '✓ 已复制';
+      copyLogBtn.textContent = t.copied;
       setTimeout(() => { copyLogBtn.textContent = t.copyLog; }, 2000);
     });
   };

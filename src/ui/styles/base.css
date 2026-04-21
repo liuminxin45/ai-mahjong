@@ -1,0 +1,40 @@
+html {
+  font-size: calc(15px * var(--ui-scale));
+}
+
+body {
+  min-height: 100dvh;
+}
+
+button,
+[role='button'],
+input,
+select,
+textarea {
+  font-size: max(var(--font-body-min), calc(14px * var(--ui-scale)));
+}
+
+button,
+input,
+select {
+  min-height: max(40px, calc(40px * var(--ui-scale)));
+}
+
+.pixel-page-title,
+.pixel-page-section__title,
+.pixel-seat__title,
+.pixel-table__wall,
+.center-hud__metric strong,
+.pixel-seat__badge,
+.pixel-rival__hu-stamp,
+.phase-shell__helper {
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 720px) {
+  button,
+  input,
+  select {
+    min-height: max(var(--touch-target-min), calc(var(--touch-target-min) * var(--ui-scale)));
+  }
+}

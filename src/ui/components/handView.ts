@@ -40,7 +40,7 @@ export function renderHand(
       el.addEventListener('click', () => onClickTile(tile));
     } else {
       el.disabled = true;
-      el.style.cursor = 'default';
+      el.classList.add('mj-tile--static');
     }
 
     if (variant === 'drawn') {

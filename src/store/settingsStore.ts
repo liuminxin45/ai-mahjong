@@ -16,6 +16,8 @@ export interface PersistedSettings {
   trainingGames: number;
   trainingBlocking: boolean;
   trainingVerbose: boolean;
+  uiScale: number;
+  hudSafeZonePercent: number;
 }
 
 export const SETTINGS_STORAGE_KEY = 'ai-mahjong:settings';
@@ -32,6 +34,8 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   trainingGames: 100,
   trainingBlocking: false,
   trainingVerbose: false,
+  uiScale: 1,
+  hudSafeZonePercent: 3,
 };
 
 function hasLocalStorage(): boolean {
@@ -43,6 +47,11 @@ function hasLocalStorage(): boolean {
 }
 
 function sanitizeSettings(settings?: Partial<PersistedSettings>): PersistedSettings {
+  const timeoutMs = Number(settings?.timeoutMs);
+  const trainingGames = Number(settings?.trainingGames);
+  const uiScale = Number(settings?.uiScale);
+  const hudSafeZonePercent = Number(settings?.hudSafeZonePercent);
+
   return {
     difficulty: settings?.difficulty === 'high' ? 'high' : DEFAULT_SETTINGS.difficulty,
     ruleId: settings?.ruleId === 'placeholder' ? 'placeholder' : 'chengdu',
@@ -50,15 +59,19 @@ function sanitizeSettings(settings?: Partial<PersistedSettings>): PersistedSetti
     llmEnabled: typeof settings?.llmEnabled === 'boolean' ? settings.llmEnabled : DEFAULT_SETTINGS.llmEnabled,
     uiMode: settings?.uiMode === 'DEBUG' ? 'DEBUG' : 'TABLE',
     timeoutEnabled: typeof settings?.timeoutEnabled === 'boolean' ? settings.timeoutEnabled : DEFAULT_SETTINGS.timeoutEnabled,
-    timeoutMs: Number.isFinite(settings?.timeoutMs) && (settings?.timeoutMs ?? 0) >= 1000
-      ? Math.min(120000, Math.floor(settings!.timeoutMs))
+    timeoutMs: Number.isFinite(timeoutMs) && timeoutMs >= 1000
+      ? Math.min(120000, Math.floor(timeoutMs))
       : DEFAULT_SETTINGS.timeoutMs,
     p0IsAI: typeof settings?.p0IsAI === 'boolean' ? settings.p0IsAI : DEFAULT_SETTINGS.p0IsAI,
-    trainingGames: Number.isFinite(settings?.trainingGames) && (settings?.trainingGames ?? 0) >= 1
-      ? Math.min(10000, Math.floor(settings!.trainingGames))
+    trainingGames: Number.isFinite(trainingGames) && trainingGames >= 1
+      ? Math.min(10000, Math.floor(trainingGames))
       : DEFAULT_SETTINGS.trainingGames,
     trainingBlocking: typeof settings?.trainingBlocking === 'boolean' ? settings.trainingBlocking : DEFAULT_SETTINGS.trainingBlocking,
     trainingVerbose: typeof settings?.trainingVerbose === 'boolean' ? settings.trainingVerbose : DEFAULT_SETTINGS.trainingVerbose,
+    uiScale: Number.isFinite(uiScale) ? Math.max(0.85, Math.min(1.35, uiScale)) : DEFAULT_SETTINGS.uiScale,
+    hudSafeZonePercent: Number.isFinite(hudSafeZonePercent)
+      ? Math.max(0, Math.min(8, Math.round(hudSafeZonePercent)))
+      : DEFAULT_SETTINGS.hudSafeZonePercent,
   };
 }
 
@@ -115,6 +128,12 @@ class SettingsStore {
 
   get trainingVerbose(): boolean { return this.state.trainingVerbose; }
   set trainingVerbose(trainingVerbose: boolean) { this.update({ trainingVerbose }); }
+
+  get uiScale(): number { return this.state.uiScale; }
+  set uiScale(uiScale: number) { this.update({ uiScale }); }
+
+  get hudSafeZonePercent(): number { return this.state.hudSafeZonePercent; }
+  set hudSafeZonePercent(hudSafeZonePercent: number) { this.update({ hudSafeZonePercent }); }
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
@@ -184,6 +203,14 @@ class SettingsStore {
 
   setTrainingVerbose(enabled: boolean): void {
     this.trainingVerbose = enabled;
+  }
+
+  setUiScale(uiScale: number): void {
+    this.uiScale = uiScale;
+  }
+
+  setHudSafeZonePercent(percent: number): void {
+    this.hudSafeZonePercent = percent;
   }
 }
 

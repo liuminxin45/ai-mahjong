@@ -1,0 +1,129 @@
+.pixel-page-shell,
+.pixel-page-section,
+.pixel-note-box,
+.pixel-kv__row,
+.pixel-list-item,
+.pixel-stat {
+  position: relative;
+}
+
+.pixel-page-shell::before,
+.pixel-page-section::before,
+.pixel-note-box::before,
+.pixel-kv__row::before,
+.pixel-list-item::before,
+.pixel-stat::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: var(--pixel-unit) solid rgba(255, 255, 255, 0.06);
+  mix-blend-mode: screen;
+}
+
+.pixel-page-section__title--compact {
+  font-size: 14px;
+}
+
+.pixel-note--gap {
+  margin-top: 8px;
+}
+
+.pixel-note--gap-sm {
+  margin-top: 6px;
+}
+
+.pixel-list--gap {
+  margin-top: 8px;
+}
+
+.pixel-kv--gap {
+  margin-top: 8px;
+}
+
+.pixel-page-section__body--compact {
+  padding: 8px 0 0;
+}
+
+.pixel-list-item--clickable {
+  cursor: pointer;
+}
+
+.pixel-progress__track--history {
+  height: 20px;
+}
+
+.pixel-kv__row--start {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.pixel-kv__info {
+  flex: 1;
+  cursor: pointer;
+}
+
+.pixel-log--compact {
+  max-height: 240px;
+  white-space: pre-wrap;
+  font-size: max(var(--font-body-min), calc(14px * var(--ui-scale)));
+}
+
+.pixel-log-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: var(--pixel-unit) solid rgba(255, 255, 255, 0.1);
+  background: rgba(9, 16, 12, 0.88);
+}
+
+.pixel-log-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border-bottom: var(--pixel-unit) solid rgba(255, 255, 255, 0.1);
+}
+
+.pixel-log-panel__title {
+  font-size: max(var(--font-body-min), calc(14px * var(--ui-scale)));
+  font-weight: 700;
+}
+
+.pixel-log-panel__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: max(var(--font-body-min), calc(14px * var(--ui-scale)));
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.pixel-log-panel__empty {
+  color: rgba(244, 241, 216, 0.68);
+  text-align: center;
+  margin-top: 20px;
+}
+
+.pixel-log-panel__line {
+  margin-bottom: 2px;
+}
+
+.pixel-log-panel__line--phase {
+  color: #9ae3bb;
+  font-weight: 700;
+}
+
+.pixel-log-panel__line--action {
+  color: #f4f1d8;
+}
+
+.pixel-log-panel__line--error {
+  color: #f37f60;
+}
+
+.pixel-log-panel__line--misc {
+  color: rgba(244, 241, 216, 0.72);
+}

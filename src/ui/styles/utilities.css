@@ -1,0 +1,121 @@
+.pixel-btn {
+  position: relative;
+  min-height: max(40px, calc(40px * var(--ui-scale)));
+  padding: 0 14px;
+  font-size: max(var(--font-body-min), calc(14px * var(--ui-scale)));
+}
+
+.pixel-quick-btn {
+  min-height: max(40px, calc(40px * var(--ui-scale)));
+  font-size: max(var(--font-body-min), calc(14px * var(--ui-scale)));
+}
+
+.pixel-btn::before,
+.pixel-action-btn::before,
+.match-toolbar__button::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--pixel-unit) * -1);
+  pointer-events: none;
+  border: var(--pixel-unit) solid #000;
+}
+
+.pixel-btn--size-sm {
+  min-height: max(36px, calc(36px * var(--ui-scale)));
+}
+
+.pixel-btn--size-lg {
+  min-height: max(48px, calc(48px * var(--ui-scale)));
+  padding-inline: 18px;
+}
+
+.pixel-btn--tone-outline {
+  background: transparent;
+  color: #f4f1d8;
+}
+
+.pixel-btn--block {
+  width: 100%;
+}
+
+.pixel-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+}
+
+@media (max-width: 720px) {
+  .pixel-btn,
+  .pixel-quick-btn,
+  .match-toolbar__button,
+  .pixel-action-btn {
+    min-height: max(var(--touch-target-min), calc(var(--touch-target-min) * var(--ui-scale)));
+  }
+}
+
+.debug-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  color: #d9d9d9;
+  font-size: 14px;
+}
+
+.debug-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.debug-title {
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.debug-title--strong {
+  font-weight: 700;
+}
+
+.debug-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.debug-btn {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 3px solid #060906;
+  background: #d8d1b3;
+  box-shadow: 3px 3px 0 #000;
+  cursor: pointer;
+}
+
+.debug-pre {
+  white-space: pre-wrap;
+}
+
+.debug-pre--gap {
+  margin-top: 8px;
+}
+
+.debug-row {
+  margin-top: 6px;
+}
+
+.debug-list {
+  margin: 4px 0 0 18px;
+}
+
+.debug-details {
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .debug-layout {
+    grid-template-columns: 1fr;
+  }
+}

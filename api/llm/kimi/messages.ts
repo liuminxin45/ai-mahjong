@@ -1,5 +1,5 @@
 const KIMI_API_URL = 'https://api.kimi.com/coding/v1/messages';
-const KIMI_MODEL = 'kimi-k2-thinking';
+const KIMI_MODEL = 'kimi-k2';
 const KIMI_MAX_TOKENS = 1024;
 
 type KimiMessage = {

@@ -10,7 +10,7 @@ export function readLlmConfig(): LlmConfig {
   const provider = 'custom';
   const baseUrl = '/api/llm/kimi/messages';
   const apiKey = '';
-  const model = 'kimi-k2-thinking';
+  const model = 'kimi-k2';
   const timeoutMs = 12000;
 
   return {

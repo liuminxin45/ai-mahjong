@@ -6,6 +6,29 @@ type PixelSurfaceOptions = {
   onClose?: () => void;
 };
 
+type PixelButtonVariant = 'neutral' | 'accent' | 'success' | 'danger';
+type PixelButtonSize = 'sm' | 'md' | 'lg';
+type PixelButtonTone = 'solid' | 'outline';
+export type PixelButtonOptions = {
+  size?: PixelButtonSize;
+  tone?: PixelButtonTone;
+  fullWidth?: boolean;
+  icon?: string;
+};
+
+export function buildPixelSurfaceClass(mode: 'modal' | 'drawer', panelClassName?: string): string {
+  const base = `pixel-surface pixel-surface--${mode} pixel-surface--safe`;
+  return panelClassName ? `${base} ${panelClassName}` : base;
+}
+
+export function buildPixelButtonClass(variant: PixelButtonVariant, options: PixelButtonOptions = {}): string {
+  const size = options.size ?? 'md';
+  const tone = options.tone ?? 'solid';
+  const classes = [`pixel-btn`, `pixel-btn--${variant}`, `pixel-btn--size-${size}`, `pixel-btn--tone-${tone}`];
+  if (options.fullWidth) classes.push('pixel-btn--block');
+  return classes.join(' ');
+}
+
 export type PixelSurface = {
   overlay: HTMLElement;
   panel: HTMLElement;
@@ -19,7 +42,7 @@ export function createPixelModalSurface(options: PixelSurfaceOptions): PixelSurf
   overlay.className = 'pixel-overlay';
 
   const panel = document.createElement('section');
-  panel.className = options.panelClassName ? `pixel-surface pixel-surface--modal ${options.panelClassName}` : 'pixel-surface pixel-surface--modal';
+  panel.className = buildPixelSurfaceClass('modal', options.panelClassName);
   if (options.width) {
     panel.style.width = options.width;
   }
@@ -51,7 +74,7 @@ export function createPixelDrawerSurface(options: PixelSurfaceOptions): PixelSur
   overlay.className = 'pixel-overlay pixel-overlay--drawer';
 
   const panel = document.createElement('aside');
-  panel.className = options.panelClassName ? `pixel-surface pixel-surface--drawer ${options.panelClassName}` : 'pixel-surface pixel-surface--drawer';
+  panel.className = buildPixelSurfaceClass('drawer', options.panelClassName);
   if (options.width) {
     panel.style.width = options.width;
   }
@@ -108,12 +131,24 @@ function createSurfaceHeader(title: string, subtitle: string | undefined, onClos
 
 export function createPixelButton(
   label: string,
-  variant: 'neutral' | 'accent' | 'success' | 'danger' = 'neutral',
+  variant: PixelButtonVariant = 'neutral',
+  options: PixelButtonOptions = {},
 ): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.className = `pixel-btn pixel-btn--${variant}`;
-  btn.textContent = label;
+  btn.className = buildPixelButtonClass(variant, options);
+
+  if (options.icon) {
+    const icon = document.createElement('span');
+    icon.className = 'pixel-btn__icon';
+    icon.textContent = options.icon;
+    btn.appendChild(icon);
+  }
+
+  const text = document.createElement('span');
+  text.className = 'pixel-btn__text';
+  text.textContent = label;
+  btn.appendChild(text);
   return btn;
 }
 

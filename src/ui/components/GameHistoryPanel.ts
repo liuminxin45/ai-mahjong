@@ -10,18 +10,24 @@ import {
   mountPixelSurface,
 } from './pixelFrame';
 import { showPixelConfirmDialog } from './pixelDialog';
+import { languageStore } from '../../store/languageStore';
 
 let historyData: GameHistory | null = null;
 
+function getHistoryText() {
+  return languageStore.t().historyPanel;
+}
+
 export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTMLElement> {
+  const text = getHistoryText();
   const surface = createPixelModalSurface({
-    title: 'Game History',
-    subtitle: 'STATS / RESULTS / REVIEW',
+    title: text.title,
+    subtitle: text.subtitle,
     width: 'min(94vw, 760px)',
     onClose,
   });
 
-  surface.body.appendChild(createPixelLoadingState('LOAD', '正在读取对局记录...'));
+  surface.body.appendChild(createPixelLoadingState('LOAD', text.loading));
   mountPixelSurface(surface);
 
   try {
@@ -35,7 +41,7 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
   surface.body.innerHTML = '';
 
   if (!historyData || historyData.games.length === 0) {
-    surface.body.appendChild(createPixelEmptyState('EMPTY', '暂无对局记录', '完成一局游戏后，记录将自动保存。'));
+    surface.body.appendChild(createPixelEmptyState('EMPTY', text.emptyTitle, text.emptyDetail));
   } else {
     const stats = historyData.aggregateStats;
     surface.body.appendChild(renderStats(stats));
@@ -43,7 +49,7 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
     surface.body.appendChild(renderRecentGames(historyData.games));
   }
 
-  const exportBtn = createPixelButton('Export', 'success');
+  const exportBtn = createPixelButton(text.export, 'success');
   exportBtn.onclick = async () => {
     try {
       const data = await historyStorage.exportData();
@@ -54,19 +60,19 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
       a.download = `mahjong-history-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      createPixelToast('EXPORTED');
+      createPixelToast(text.exported);
     } catch (error) {
       console.error('Export failed:', error);
     }
   };
 
-  const clearBtn = createPixelButton('Clear', 'danger');
+  const clearBtn = createPixelButton(text.clear, 'danger');
   clearBtn.onclick = async () => {
     const confirmed = await showPixelConfirmDialog({
-      title: 'Clear History',
-      code: 'HISTORY',
-      message: '确定要清除所有对局记录吗？此操作不可恢复。',
-      confirmText: 'Clear',
+      title: text.clearTitle,
+      code: text.historyCode,
+      message: text.clearMessage,
+      confirmText: text.clear,
     });
     if (confirmed) {
       await historyStorage.clearAll();
@@ -82,19 +88,20 @@ export async function renderGameHistoryPanel(onClose?: () => void): Promise<HTML
 }
 
 function renderStats(stats: GameHistory['aggregateStats']): HTMLElement {
+  const text = getHistoryText();
   const section = document.createElement('section');
   section.className = 'pixel-page-section';
   section.innerHTML = `
     <div class="pixel-page-section__header">
-      <div class="pixel-page-section__title">SUMMARY</div>
-      <div class="pixel-page-section__subtitle">AGGREGATE</div>
+      <div class="pixel-page-section__title">${text.summary}</div>
+      <div class="pixel-page-section__subtitle">${text.aggregate}</div>
     </div>
     <div class="pixel-page-section__body">
       <div class="pixel-grid pixel-grid--stats">
-        <div class="pixel-stat"><div class="pixel-stat__label">Games</div><div class="pixel-stat__value">${stats.totalGames}</div></div>
-        <div class="pixel-stat"><div class="pixel-stat__label">Win Rate</div><div class="pixel-stat__value">${(stats.winRate * 100).toFixed(1)}%</div></div>
-        <div class="pixel-stat"><div class="pixel-stat__label">Best Streak</div><div class="pixel-stat__value">${stats.bestStreak}</div></div>
-        <div class="pixel-stat"><div class="pixel-stat__label">Avg Score</div><div class="pixel-stat__value">${stats.avgScore.toFixed(0)}</div></div>
+        <div class="pixel-stat"><div class="pixel-stat__label">${text.games}</div><div class="pixel-stat__value">${stats.totalGames}</div></div>
+        <div class="pixel-stat"><div class="pixel-stat__label">${text.winRate}</div><div class="pixel-stat__value">${(stats.winRate * 100).toFixed(1)}%</div></div>
+        <div class="pixel-stat"><div class="pixel-stat__label">${text.bestStreak}</div><div class="pixel-stat__value">${stats.bestStreak}</div></div>
+        <div class="pixel-stat"><div class="pixel-stat__label">${text.avgScore}</div><div class="pixel-stat__value">${stats.avgScore.toFixed(0)}</div></div>
       </div>
     </div>
   `;
@@ -102,12 +109,13 @@ function renderStats(stats: GameHistory['aggregateStats']): HTMLElement {
 }
 
 function renderDistribution(stats: GameHistory['aggregateStats']): HTMLElement {
+  const text = getHistoryText();
   const section = document.createElement('section');
   section.className = 'pixel-page-section';
   section.innerHTML = `
     <div class="pixel-page-section__header">
-      <div class="pixel-page-section__title">RESULT SPLIT</div>
-      <div class="pixel-page-section__subtitle">WIN / LOSE / DRAW</div>
+      <div class="pixel-page-section__title">${text.split}</div>
+      <div class="pixel-page-section__subtitle">${text.splitSub}</div>
     </div>
   `;
 
@@ -120,8 +128,7 @@ function renderDistribution(stats: GameHistory['aggregateStats']): HTMLElement {
   body.className = 'pixel-page-section__body';
 
   const track = document.createElement('div');
-  track.className = 'pixel-progress__track';
-  track.style.height = '20px';
+  track.className = 'pixel-progress__track pixel-progress__track--history';
   track.innerHTML = `
     <div class="pixel-progress__fill" style="width:${wins}%; background:#8ed4a7;"></div>
     <div class="pixel-progress__fill" style="width:${losses}%; background:#d97a54;"></div>
@@ -131,9 +138,9 @@ function renderDistribution(stats: GameHistory['aggregateStats']): HTMLElement {
 
   const kv = document.createElement('div');
   kv.className = 'pixel-kv';
-  kv.appendChild(createKv('Wins', String(stats.wins)));
-  kv.appendChild(createKv('Losses', String(stats.losses)));
-  kv.appendChild(createKv('Draws', String(stats.draws)));
+  kv.appendChild(createKv(text.wins, String(stats.wins)));
+  kv.appendChild(createKv(text.losses, String(stats.losses)));
+  kv.appendChild(createKv(text.draws, String(stats.draws)));
   body.appendChild(kv);
 
   section.appendChild(body);
@@ -141,12 +148,13 @@ function renderDistribution(stats: GameHistory['aggregateStats']): HTMLElement {
 }
 
 function renderRecentGames(games: GameRecord[]): HTMLElement {
+  const text = getHistoryText();
   const section = document.createElement('section');
   section.className = 'pixel-page-section';
   section.innerHTML = `
     <div class="pixel-page-section__header">
-      <div class="pixel-page-section__title">RECENT GAMES</div>
-      <div class="pixel-page-section__subtitle">LATEST 20</div>
+      <div class="pixel-page-section__title">${text.recent}</div>
+      <div class="pixel-page-section__subtitle">${text.latest}</div>
     </div>
   `;
 
@@ -169,12 +177,12 @@ function renderRecentGames(games: GameRecord[]): HTMLElement {
 }
 
 function renderGameItem(game: GameRecord): HTMLElement {
+  const text = getHistoryText();
   const item = document.createElement('button');
   item.type = 'button';
-  item.className = 'pixel-list-item';
-  item.style.cursor = 'pointer';
+  item.className = 'pixel-list-item pixel-list-item--clickable';
 
-  const resultText = game.result === 'win' ? '胜利' : game.result === 'lose' ? '失败' : '流局';
+  const resultText = game.result === 'win' ? text.win : game.result === 'lose' ? text.lose : text.draw;
   const chipClass = game.result === 'win' ? 'pixel-chip pixel-chip--good' : game.result === 'lose' ? 'pixel-chip pixel-chip--bad' : 'pixel-chip pixel-chip--warn';
   const date = new Date(game.timestamp);
   const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
@@ -184,7 +192,7 @@ function renderGameItem(game: GameRecord): HTMLElement {
       <div class="pixel-list-item__title">${resultText}</div>
       <span class="${chipClass}">${game.score >= 0 ? `+${game.score}` : game.score}</span>
     </div>
-    <div class="pixel-list-item__meta">${dateStr} / ${Math.floor(game.duration / 60)} 分钟 / 副露 ${game.stats.meldCount}</div>
+    <div class="pixel-list-item__meta">${dateStr} / ${Math.floor(game.duration / 60)} ${text.minutes} / ${text.melds} ${game.stats.meldCount}</div>
   `;
 
   item.onclick = () => { void quickReview(game); };
@@ -199,7 +207,8 @@ function createKv(label: string, value: string): HTMLElement {
 }
 
 export function renderHistoryButton(): HTMLElement {
-  const btn = createPixelButton('History', 'neutral');
+  const text = getHistoryText();
+  const btn = createPixelButton(text.button, 'neutral');
   btn.onclick = () => { void renderGameHistoryPanel(); };
   return btn;
 }

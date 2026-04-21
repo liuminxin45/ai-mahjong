@@ -44,7 +44,7 @@ export interface LLMProfileStore {
 
 export const DEFAULT_LLM_CONFIG: LLMConfig = {
   provider: 'custom',
-  model: 'kimi-k2-thinking',
+  model: 'kimi-k2',
   baseUrl: '/api/llm/kimi/messages',
   maxTokens: 1024,
   contextWindow: 262144,

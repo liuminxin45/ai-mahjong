@@ -1,0 +1,26 @@
+.match-page {
+  padding-top: var(--safe-zone-y);
+  padding-left: var(--safe-zone-x);
+  padding-right: var(--safe-zone-x);
+  padding-bottom: var(--safe-zone-y);
+}
+
+.pixel-app-page {
+  padding:
+    max(14px, var(--safe-zone-y))
+    max(14px, var(--safe-zone-x))
+    max(14px, var(--safe-zone-y));
+}
+
+.match-toolbar {
+  top: 0;
+}
+
+.match-toolbar__button {
+  min-height: max(40px, calc(40px * var(--ui-scale)));
+  font-size: max(var(--font-body-min), calc(14px * var(--ui-scale)));
+}
+
+.pixel-home-actions {
+  width: min(100%, 420px);
+}

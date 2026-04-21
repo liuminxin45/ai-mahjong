@@ -119,7 +119,20 @@ export class LLMService {
    * 更新配置
    */
   updateConfig(config: Partial<LLMConfig>): void {
-    this.config = { ...this.config, ...config };
+    const previous = this.config;
+    const next = { ...this.config, ...config };
+    const shouldClearCache =
+      previous.provider !== next.provider
+      || previous.baseUrl !== next.baseUrl
+      || previous.apiKey !== next.apiKey
+      || previous.model !== next.model
+      || previous.temperature !== next.temperature
+      || previous.maxTokens !== next.maxTokens;
+
+    this.config = next;
+    if (shouldClearCache) {
+      this.clearCache();
+    }
   }
 
   /**

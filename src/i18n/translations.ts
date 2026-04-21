@@ -21,6 +21,10 @@ export interface Translations {
   // 主页
   home: {
     title: string;
+    subtitle: string;
+    copy: string;
+    replay: string;
+    footer: string;
     newGame: string;
     settings: string;
     about: string;
@@ -61,6 +65,22 @@ export interface Translations {
     trainingBestFitness: string;
     trainingCurrentFitness: string;
     trainingAcceptRate: string;
+    displayTitle: string;
+    displaySubtitle: string;
+    displaySubtitleShort: string;
+    ruleSubtitle: string;
+    uiScale: string;
+    hudSafeZone: string;
+    trainingSubtitle: string;
+    trainingRangeError: string;
+    trainingCompleted: string;
+    trainingFailed: (error: string) => string;
+    trainingStopped: string;
+    toolsTitle: string;
+    toolsSubtitle: string;
+    toolsHistory: string;
+    toolsProfile: string;
+    toolsAIParams: string;
   };
   
   // 游戏界面
@@ -144,6 +164,197 @@ export interface Translations {
     melds: string;
     yourMelds: string;
     selfDrawWin: string;
+    copied: string;
+    discardHint: string;
+    noMatchRunning: string;
+    pengShort: string;
+    gangShort: string;
+    gangAn: string;
+    gangJia: string;
+    gangMing: string;
+    tableLabel: string;
+  };
+
+  replay: {
+    title: string;
+    subtitle: string;
+    eventLogTitle: string;
+    eventLogSubtitle: string;
+    play: string;
+    stop: string;
+    noDataTitle: string;
+    noDataDetail: string;
+  };
+
+  historyPanel: {
+    title: string;
+    subtitle: string;
+    loading: string;
+    emptyTitle: string;
+    emptyDetail: string;
+    export: string;
+    clear: string;
+    clearTitle: string;
+    clearMessage: string;
+    summary: string;
+    aggregate: string;
+    games: string;
+    winRate: string;
+    bestStreak: string;
+    avgScore: string;
+    split: string;
+    splitSub: string;
+    wins: string;
+    losses: string;
+    draws: string;
+    recent: string;
+    latest: string;
+    win: string;
+    lose: string;
+    draw: string;
+    melds: string;
+    minutes: string;
+    exported: string;
+    historyCode: string;
+    button: string;
+  };
+
+  profilePanel: {
+    title: string;
+    subtitle: string;
+    loading: string;
+    lowDataTitle: string;
+    lowDataDetail: (count: number) => string;
+    refresh: string;
+    refreshing: string;
+    refreshToast: string;
+    errorTitle: string;
+    errorDetail: string;
+    profile: string;
+    skills: string;
+    style: string;
+    recommendations: string;
+    currentLevels: string;
+    nextSteps: string;
+    description: string;
+    strengths: string;
+    weaknesses: string;
+    focus: string;
+    improve: string;
+    mistakes: string;
+    overall: string;
+    games: string;
+    winRate: string;
+    dealIn: string;
+    unknown: string;
+    player: string;
+    button: string;
+    rankBeginner: string;
+    rankIntermediate: string;
+    rankAdvanced: string;
+    rankExpert: string;
+    skillHandReading: string;
+    skillEfficiency: string;
+    skillDefense: string;
+    skillRiskManagement: string;
+    skillTiming: string;
+    skillAdaptation: string;
+  };
+
+  aiParamsPanel: {
+    panelTitle: string;
+    panelSubtitle: string;
+    reset: string;
+    export: string;
+    resetCode: string;
+    resetMessage: string;
+    copied: string;
+    resetDone: string;
+    capability: string;
+    currentScore: string;
+    aiScore: string;
+    trainingStats: string;
+    currentRun: string;
+    trainingSteps: string;
+    bestFitness: string;
+    acceptRate: string;
+    gamesPlayed: string;
+    aiWinRate: string;
+    paramList: string;
+    readOnly: string;
+    btnLabel: (cap: number) => string;
+    na: string;
+    catShantenStage: string;
+    catRiskDefense: string;
+    catValueScore: string;
+    catMeldPenalties: string;
+    catMultipliers: string;
+  };
+
+  reviewPanel: {
+    title: string;
+    subtitle: string;
+    loading: string;
+    errorTitle: string;
+    errorDetail: string;
+    keyMoments: string;
+    items: string;
+    improvements: string;
+    nextGames: string;
+    actions: string;
+    summary: string;
+    grade: string;
+    score: string;
+    dealIn: string;
+    melds: string;
+    assessment: string;
+    goodBad: string;
+    strengths: string;
+    weaknesses: string;
+    turn: string;
+    yourAction: string;
+    optimal: string;
+    lesson: string;
+    skills: string;
+    efficiency: string;
+    defense: string;
+    timing: string;
+    impactCritical: string;
+    impactSignificant: string;
+    impactMinor: string;
+  };
+
+  debug: {
+    noMatchRunning: string;
+    current: string;
+    turn: string;
+    wall: string;
+    discards: string;
+    style: string;
+    handTitle: string;
+    responseToDiscard: (from: string) => string;
+    recommendTop3: string;
+    recommendLine: (discard: string, before: number, after: number, ukeire: number, risk: string) => string;
+    tacticalExplain: string;
+    phaseEarly: string;
+    phaseMid: string;
+    phaseLate: string;
+    stateSummary: (phase: string, wall: number, meldCount: number) => string;
+    llmUnavailable: string;
+    llmUnavailableShort: string;
+    generating: string;
+    eventLog: string;
+  };
+
+  gameLog: {
+    title: string;
+    copy: string;
+    copyDone: string;
+    copyFailed: string;
+    clear: string;
+    clearTitle: string;
+    clearMessage: string;
+    empty: string;
   };
   
   // 关于页面
@@ -172,6 +383,10 @@ export const translations: Record<Language, Translations> = {
     
     home: {
       title: '成都麻将',
+      subtitle: 'CHENGDU MAHJONG / PIXEL TABLE',
+      copy: '血战到底，像素化平面牌桌。开始新局、调整设置、查看回放。',
+      replay: '回放',
+      footer: 'V1.0 / OPEN SOURCE',
       newGame: '开始游戏',
       settings: '设置',
       about: '关于',
@@ -209,6 +424,22 @@ export const translations: Record<Language, Translations> = {
       trainingBestFitness: '最佳适应度',
       trainingCurrentFitness: '当前适应度',
       trainingAcceptRate: '接受率',
+      displayTitle: '显示与可读性',
+      displaySubtitle: '像素扁平设置台。所有控制统一到单层壳体内。',
+      displaySubtitleShort: 'UI SCALE / SAFE ZONE',
+      ruleSubtitle: 'RULE / UI / LANGUAGE / TIMEOUT',
+      uiScale: 'UI 缩放',
+      hudSafeZone: 'HUD 安全边距',
+      trainingSubtitle: 'TRAINING / METRICS / CONTROL',
+      trainingRangeError: '训练局数必须在 1 到 10000 之间',
+      trainingCompleted: '训练完成',
+      trainingFailed: (error: string) => `训练失败：${error}`,
+      trainingStopped: '训练已停止',
+      toolsTitle: '数据与分析工具',
+      toolsSubtitle: 'HISTORY / PROFILE / AI PARAMS',
+      toolsHistory: '历史',
+      toolsProfile: '画像',
+      toolsAIParams: '参数',
     },
     
     game: {
@@ -282,6 +513,197 @@ export const translations: Record<Language, Translations> = {
       melds: '碰杠',
       yourMelds: '你的碰杠',
       selfDrawWin: '自摸胡牌',
+      copied: '✓ 已复制',
+      discardHint: '选择要打出的牌',
+      noMatchRunning: '暂无进行中的对局',
+      pengShort: '碰',
+      gangShort: '杠',
+      gangAn: '暗杠',
+      gangJia: '补杠',
+      gangMing: '明杠',
+      tableLabel: '麻将牌桌',
+    },
+
+    replay: {
+      title: '回放',
+      subtitle: '像素回放台。按时间顺序播放最近一局。',
+      eventLogTitle: '事件日志',
+      eventLogSubtitle: '最近回放',
+      play: '播放',
+      stop: '停止',
+      noDataTitle: '没有可用回放',
+      noDataDetail: '先在对局页导出一局。',
+    },
+
+    historyPanel: {
+      title: '对局历史',
+      subtitle: '统计 / 结果 / 复盘',
+      loading: '正在读取对局记录...',
+      emptyTitle: '暂无对局记录',
+      emptyDetail: '完成一局游戏后，记录将自动保存。',
+      export: '导出',
+      clear: '清除',
+      clearTitle: '清除历史',
+      clearMessage: '确定要清除所有对局记录吗？此操作不可恢复。',
+      summary: '汇总',
+      aggregate: '总览',
+      games: '对局',
+      winRate: '胜率',
+      bestStreak: '最长连胜',
+      avgScore: '平均得分',
+      split: '结果分布',
+      splitSub: '胜 / 负 / 流局',
+      wins: '胜',
+      losses: '负',
+      draws: '流局',
+      recent: '最近对局',
+      latest: '最近 20 局',
+      win: '胜利',
+      lose: '失败',
+      draw: '流局',
+      melds: '副露',
+      minutes: '分钟',
+      exported: '已导出',
+      historyCode: 'HISTORY',
+      button: '历史',
+    },
+
+    profilePanel: {
+      title: '玩家画像',
+      subtitle: '能力 / 风格 / 训练',
+      loading: '正在分析你的游戏数据...',
+      lowDataTitle: '数据不足',
+      lowDataDetail: (count: number) => `当前仅有 ${count} 局记录，至少需要 3 局才能生成画像。`,
+      refresh: '刷新',
+      refreshing: '重新分析中...',
+      refreshToast: '已刷新',
+      errorTitle: '加载失败',
+      errorDetail: '请稍后再试。',
+      profile: '画像',
+      skills: '能力',
+      style: '风格',
+      recommendations: '建议',
+      currentLevels: '当前等级',
+      nextSteps: '下一步',
+      description: '描述',
+      strengths: '优势',
+      weaknesses: '短板',
+      focus: '当前重点',
+      improve: '提升方向',
+      mistakes: '常见失误',
+      overall: '综合',
+      games: '对局',
+      winRate: '胜率',
+      dealIn: '放铳率',
+      unknown: '未知',
+      player: '玩家',
+      button: '画像',
+      rankBeginner: '初学者',
+      rankIntermediate: '进阶玩家',
+      rankAdvanced: '高级玩家',
+      rankExpert: '专家',
+      skillHandReading: '读牌能力',
+      skillEfficiency: '牌效率',
+      skillDefense: '防守意识',
+      skillRiskManagement: '风险控制',
+      skillTiming: '时机把握',
+      skillAdaptation: '应变能力',
+    },
+
+    aiParamsPanel: {
+      panelTitle: 'AI 参数',
+      panelSubtitle: '训练 / 适应度 / 参数',
+      reset: '重置',
+      export: '导出',
+      resetCode: 'RESET PARAMS',
+      resetMessage: '将 AI 参数重置为默认值？',
+      copied: '已复制',
+      resetDone: '已重置',
+      capability: '能力评分',
+      currentScore: '当前得分',
+      aiScore: 'AI 分数',
+      trainingStats: '训练统计',
+      currentRun: '当前运行',
+      trainingSteps: '训练步数',
+      bestFitness: '最佳适应度',
+      acceptRate: '接受率',
+      gamesPlayed: '对局数',
+      aiWinRate: 'AI 胜率',
+      paramList: '参数列表',
+      readOnly: '只读',
+      btnLabel: (cap: number) => `AI ${cap}/100`,
+      na: 'N/A',
+      catShantenStage: '向听与阶段',
+      catRiskDefense: '风险与防守',
+      catValueScore: '价值与得分',
+      catMeldPenalties: '副露惩罚',
+      catMultipliers: '倍率参数',
+    },
+
+    reviewPanel: {
+      title: '对局复盘',
+      subtitle: '评分 / 关键回合 / 改进建议',
+      loading: '正在分析对局...',
+      errorTitle: '分析生成失败',
+      errorDetail: '请稍后重试。',
+      keyMoments: '关键回合',
+      items: '条目',
+      improvements: '改进建议',
+      nextGames: '下一局重点',
+      actions: '行动项',
+      summary: '总结',
+      grade: '评级',
+      score: '得分',
+      dealIn: '放铳',
+      melds: '副露',
+      assessment: '评估',
+      goodBad: '优势 / 短板',
+      strengths: '优势',
+      weaknesses: '短板',
+      turn: '回合',
+      yourAction: '你的操作',
+      optimal: '最优操作',
+      lesson: '教训',
+      skills: '能力',
+      efficiency: '效率',
+      defense: '防守',
+      timing: '时机',
+      impactCritical: '致命',
+      impactSignificant: '显著',
+      impactMinor: '一般',
+    },
+
+    debug: {
+      noMatchRunning: '暂无进行中的对局',
+      current: '当前',
+      turn: '回合',
+      wall: '牌墙',
+      discards: '弃牌',
+      style: '风格',
+      handTitle: 'P0 手牌（点击打牌）',
+      responseToDiscard: (from: string) => `响应 ${from} 的弃牌`,
+      recommendTop3: '推荐出牌 Top3',
+      recommendLine: (discard: string, before: number, after: number, ukeire: number, risk: string) => `打 ${discard}：向听 ${before}->${after}，有效牌 ${ukeire}，风险 ${risk}`,
+      tacticalExplain: 'AI 战术解释',
+      phaseEarly: '早巡',
+      phaseMid: '中巡',
+      phaseLate: '后巡',
+      stateSummary: (phase: string, wall: number, meldCount: number) => `${phase}，wall=${wall}，玩家碰杠=${meldCount} 组`,
+      llmUnavailable: 'AI 解释暂不可用（未配置 LLM）。',
+      llmUnavailableShort: 'AI 解释暂不可用',
+      generating: '生成中…',
+      eventLog: '事件日志',
+    },
+
+    gameLog: {
+      title: '对局日志',
+      copy: '复制',
+      copyDone: '已复制',
+      copyFailed: '复制失败',
+      clear: '清空',
+      clearTitle: '对局日志',
+      clearMessage: '确认清空全部日志？',
+      empty: '暂无日志，开始对局后会显示。',
     },
     
     about: {
@@ -315,6 +737,10 @@ export const translations: Record<Language, Translations> = {
     
     home: {
       title: 'Chengdu Mahjong',
+      subtitle: 'CHENGDU MAHJONG / PIXEL TABLE',
+      copy: 'Blood battle mahjong on a flat pixel table. Start, configure, and replay.',
+      replay: 'Replay',
+      footer: 'V1.0 / OPEN SOURCE',
       newGame: 'New Game',
       settings: 'Settings',
       about: 'About',
@@ -352,6 +778,22 @@ export const translations: Record<Language, Translations> = {
       trainingBestFitness: 'Best Fitness',
       trainingCurrentFitness: 'Current Fitness',
       trainingAcceptRate: 'Accept Rate',
+      displayTitle: 'Display & Readability',
+      displaySubtitle: 'Pixel-flat control desk. All controls stay in one shell.',
+      displaySubtitleShort: 'UI SCALE / SAFE ZONE',
+      ruleSubtitle: 'RULE / UI / LANGUAGE / TIMEOUT',
+      uiScale: 'UI Scale',
+      hudSafeZone: 'HUD Safe Zone',
+      trainingSubtitle: 'TRAINING / METRICS / CONTROL',
+      trainingRangeError: 'Training games must be between 1 and 10000',
+      trainingCompleted: 'Training completed',
+      trainingFailed: (error: string) => `Training failed: ${error}`,
+      trainingStopped: 'Training stopped',
+      toolsTitle: 'Data & Analysis Tools',
+      toolsSubtitle: 'HISTORY / PROFILE / AI PARAMS',
+      toolsHistory: 'History',
+      toolsProfile: 'Profile',
+      toolsAIParams: 'AI Params',
     },
     
     game: {
@@ -425,6 +867,197 @@ export const translations: Record<Language, Translations> = {
       melds: 'Melds',
       yourMelds: 'Your Melds',
       selfDrawWin: 'Self-Draw Win',
+      copied: '✓ Copied',
+      discardHint: 'Choose a tile to discard',
+      noMatchRunning: 'No match running.',
+      pengShort: 'P',
+      gangShort: 'G',
+      gangAn: 'Hidden Kong',
+      gangJia: 'Added Kong',
+      gangMing: 'Open Kong',
+      tableLabel: 'Mahjong table',
+    },
+
+    replay: {
+      title: 'Replay',
+      subtitle: 'Pixel replay desk. Play the latest match in order.',
+      eventLogTitle: 'Event Log',
+      eventLogSubtitle: 'Latest Replay',
+      play: 'Play',
+      stop: 'Stop',
+      noDataTitle: 'No replay available',
+      noDataDetail: 'Export one from the match page first.',
+    },
+
+    historyPanel: {
+      title: 'Game History',
+      subtitle: 'STATS / RESULTS / REVIEW',
+      loading: 'Loading game history...',
+      emptyTitle: 'No game history',
+      emptyDetail: 'Finish one match to save records.',
+      export: 'Export',
+      clear: 'Clear',
+      clearTitle: 'Clear History',
+      clearMessage: 'Clear all game history? This cannot be undone.',
+      summary: 'Summary',
+      aggregate: 'Aggregate',
+      games: 'Games',
+      winRate: 'Win Rate',
+      bestStreak: 'Best Streak',
+      avgScore: 'Avg Score',
+      split: 'Result Split',
+      splitSub: 'WIN / LOSE / DRAW',
+      wins: 'Wins',
+      losses: 'Losses',
+      draws: 'Draws',
+      recent: 'Recent Games',
+      latest: 'Latest 20',
+      win: 'Win',
+      lose: 'Lose',
+      draw: 'Draw',
+      melds: 'Melds',
+      minutes: 'min',
+      exported: 'EXPORTED',
+      historyCode: 'HISTORY',
+      button: 'History',
+    },
+
+    profilePanel: {
+      title: 'Player Profile',
+      subtitle: 'SKILL / STYLE / LEARNING',
+      loading: 'Analyzing your game data...',
+      lowDataTitle: 'Not enough data',
+      lowDataDetail: (count: number) => `Only ${count} games found. At least 3 are required.`,
+      refresh: 'Refresh',
+      refreshing: 'Refreshing analysis...',
+      refreshToast: 'REFRESHED',
+      errorTitle: 'Load failed',
+      errorDetail: 'Please try again later.',
+      profile: 'PROFILE',
+      skills: 'SKILLS',
+      style: 'STYLE',
+      recommendations: 'RECOMMENDATIONS',
+      currentLevels: 'CURRENT LEVELS',
+      nextSteps: 'NEXT STEPS',
+      description: 'DESCRIPTION',
+      strengths: 'STRENGTHS',
+      weaknesses: 'WEAKNESSES',
+      focus: 'FOCUS',
+      improve: 'IMPROVE',
+      mistakes: 'MISTAKES',
+      overall: 'Overall',
+      games: 'Games',
+      winRate: 'Win Rate',
+      dealIn: 'Deal In',
+      unknown: 'Unknown',
+      player: 'Player',
+      button: 'Profile',
+      rankBeginner: 'Beginner',
+      rankIntermediate: 'Intermediate',
+      rankAdvanced: 'Advanced',
+      rankExpert: 'Expert',
+      skillHandReading: 'Hand Reading',
+      skillEfficiency: 'Efficiency',
+      skillDefense: 'Defense',
+      skillRiskManagement: 'Risk Control',
+      skillTiming: 'Timing',
+      skillAdaptation: 'Adaptation',
+    },
+
+    aiParamsPanel: {
+      panelTitle: 'AI Parameters',
+      panelSubtitle: 'TRAINING / FITNESS / PARAMS',
+      reset: 'Reset',
+      export: 'Export',
+      resetCode: 'RESET PARAMS',
+      resetMessage: 'Reset all AI parameters to default values?',
+      copied: 'COPIED',
+      resetDone: 'RESET',
+      capability: 'CAPABILITY',
+      currentScore: 'CURRENT SCORE',
+      aiScore: 'AI SCORE',
+      trainingStats: 'TRAINING STATS',
+      currentRun: 'CURRENT RUN',
+      trainingSteps: 'Training Steps',
+      bestFitness: 'Best Fitness',
+      acceptRate: 'Accept Rate',
+      gamesPlayed: 'Games Played',
+      aiWinRate: 'AI Win Rate',
+      paramList: 'PARAM LIST',
+      readOnly: 'READ ONLY',
+      btnLabel: (cap: number) => `AI ${cap}/100`,
+      na: 'N/A',
+      catShantenStage: 'Shanten & Stage',
+      catRiskDefense: 'Risk & Defense',
+      catValueScore: 'Value & Score',
+      catMeldPenalties: 'Meld Penalties',
+      catMultipliers: 'Multipliers',
+    },
+
+    reviewPanel: {
+      title: 'Game Review',
+      subtitle: 'SCORE / MOMENTS / IMPROVEMENT',
+      loading: 'Analyzing match...',
+      errorTitle: 'Review generation failed',
+      errorDetail: 'Please try again later.',
+      keyMoments: 'KEY MOMENTS',
+      items: 'ITEMS',
+      improvements: 'IMPROVEMENTS',
+      nextGames: 'NEXT GAMES',
+      actions: 'ACTIONS',
+      summary: 'SUMMARY',
+      grade: 'GRADE',
+      score: 'SCORE',
+      dealIn: 'DEAL IN',
+      melds: 'MELDS',
+      assessment: 'ASSESSMENT',
+      goodBad: 'GOOD / BAD',
+      strengths: 'STRENGTHS',
+      weaknesses: 'WEAKNESSES',
+      turn: 'TURN',
+      yourAction: 'YOUR ACTION',
+      optimal: 'OPTIMAL',
+      lesson: 'LESSON',
+      skills: 'SKILLS',
+      efficiency: 'Efficiency',
+      defense: 'Defense',
+      timing: 'Timing',
+      impactCritical: 'CRITICAL',
+      impactSignificant: 'SIGNIFICANT',
+      impactMinor: 'MINOR',
+    },
+
+    debug: {
+      noMatchRunning: 'No match running.',
+      current: 'Current',
+      turn: 'Turn',
+      wall: 'Wall',
+      discards: 'Discards',
+      style: 'Style',
+      handTitle: 'P0 Hand (click to discard)',
+      responseToDiscard: (from: string) => `Response to ${from} discard`,
+      recommendTop3: 'Top 3 Discard Recommendations',
+      recommendLine: (discard: string, before: number, after: number, ukeire: number, risk: string) => `Discard ${discard}: shanten ${before}->${after}, ukeire ${ukeire}, risk ${risk}`,
+      tacticalExplain: 'AI Tactical Explanation',
+      phaseEarly: 'Early',
+      phaseMid: 'Mid',
+      phaseLate: 'Late',
+      stateSummary: (phase: string, wall: number, meldCount: number) => `${phase}, wall=${wall}, melds=${meldCount}`,
+      llmUnavailable: 'AI explanation unavailable (LLM not configured).',
+      llmUnavailableShort: 'AI explanation unavailable',
+      generating: 'Generating…',
+      eventLog: 'Event Log',
+    },
+
+    gameLog: {
+      title: 'Game Log',
+      copy: 'Copy',
+      copyDone: 'Copied',
+      copyFailed: 'Failed to copy logs',
+      clear: 'Clear',
+      clearTitle: 'Game Log',
+      clearMessage: 'Clear all logs?',
+      empty: 'No logs yet. Start a game to see logs.',
     },
     
     about: {

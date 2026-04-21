@@ -91,6 +91,18 @@ export function clearChatHistory(): void {
   chatHistory = [];
 }
 
+export function clearCoachAdvice(): void {
+  currentAdvice = null;
+}
+
+export function setCoachGuidanceLevel(level: GuidanceLevel): void {
+  guidanceLevel = level;
+  currentAdvice = null;
+  if (document.getElementById(CHAT_PANEL_ID_CONST)) {
+    mountCoachPanel('preserve');
+  }
+}
+
 export function renderChatAssistantButton(context: CoachPanelContext = {}): HTMLElement {
   latestContext = context;
   const btn = createPixelButton('AI', 'accent');
@@ -206,18 +218,17 @@ function renderAdviceCard(advice: CoachAdviceView): HTMLElement {
 
   card.innerHTML = `
     <div class="pixel-list-item__row">
-      <div class="pixel-page-section__title" style="font-size:11px;">${text.recommended}</div>
+      <div class="pixel-page-section__title pixel-page-section__title--compact">${text.recommended}</div>
       <span class="pixel-chip ${advice.badgeTone === 'neutral' ? '' : `pixel-chip--${advice.badgeTone}`}">${advice.badge}</span>
     </div>
     <div class="pixel-coach-action">${advice.headline}</div>
-    ${advice.confidence !== null && advice.confidence !== undefined ? `<div class="pixel-note" style="margin-top:8px;">${text.confidence} ${(advice.confidence * 100).toFixed(0)}%</div>` : ''}
-    <div class="pixel-note" style="margin-top:8px;">${advice.body}</div>
+    ${advice.confidence !== null && advice.confidence !== undefined ? `<div class="pixel-note pixel-note--gap">${text.confidence} ${(advice.confidence * 100).toFixed(0)}%</div>` : ''}
+    <div class="pixel-note pixel-note--gap">${advice.body}</div>
   `;
 
   if (advice.hints.length > 0) {
     const hints = document.createElement('div');
-    hints.className = 'pixel-note';
-    hints.style.marginTop = '8px';
+    hints.className = 'pixel-note pixel-note--gap';
     hints.textContent = advice.hints.join(' / ');
     card.appendChild(hints);
   }
@@ -296,8 +307,8 @@ function renderChatSection(
     const note = document.createElement('div');
     note.className = 'pixel-note-box pixel-note-box--danger';
     note.innerHTML = `
-      <div class="pixel-page-section__title" style="font-size:11px;">${text.configTitle}</div>
-      <div class="pixel-note" style="margin-top:8px;">${text.configHint}</div>
+      <div class="pixel-page-section__title pixel-page-section__title--compact">${text.configTitle}</div>
+      <div class="pixel-note pixel-note--gap">${text.configHint}</div>
     `;
     body.appendChild(note);
   } else if (!state) {
@@ -306,8 +317,8 @@ function renderChatSection(
     const note = document.createElement('div');
     note.className = 'pixel-note-box';
     note.innerHTML = `
-      <div class="pixel-page-section__title" style="font-size:11px;">${text.adviceUnavailableTitle}</div>
-      <div class="pixel-note" style="margin-top:8px;">${text.adviceUnavailableHint}</div>
+      <div class="pixel-page-section__title pixel-page-section__title--compact">${text.adviceUnavailableTitle}</div>
+      <div class="pixel-note pixel-note--gap">${text.adviceUnavailableHint}</div>
     `;
     body.appendChild(note);
   } else if (isAdviceLoading) {
@@ -468,7 +479,8 @@ async function sendMessage(content: string): Promise<void> {
   mountCoachPanel('bottom');
 
   try {
-    const historyContext = chatHistory.slice(-10).map((message) => `${message.role === 'user' ? '用户' : '助手'}: ${message.content}`);
+    const text = getAiText().coach;
+    const historyContext = chatHistory.slice(-10).map((message) => `${message.role === 'user' ? text.chatRoleUser : text.chatRoleAssistant}: ${message.content}`);
     const response = await llmService.answerQuestion(content, {
       gameState: latestContext.gameState,
       history: historyContext,
@@ -486,11 +498,10 @@ async function sendMessage(content: string): Promise<void> {
     }
   } catch (error) {
     console.error('[Coach] Chat error:', error);
+    const text = getAiText().coach;
     chatHistory.push({
       role: 'assistant',
-      content: languageStore.getLanguage() === 'zh'
-        ? '抱歉，我暂时无法回答这个问题。请稍后再试。'
-        : 'Sorry, I cannot answer that right now. Please try again later.',
+      content: text.chatFallback,
       timestamp: new Date(),
     });
   }
@@ -518,12 +529,13 @@ function renderMessage(msg: QAMessage): HTMLElement {
 }
 
 function createTypingMessage(): HTMLElement {
+  const text = getAiText().coach;
   const bubble = document.createElement('div');
   bubble.className = 'pixel-message pixel-message--assistant';
 
   const inner = document.createElement('div');
   inner.className = 'pixel-message__bubble';
-  inner.textContent = languageStore.getLanguage() === 'zh' ? '思考中...' : 'Thinking...';
+  inner.textContent = text.thinking;
   bubble.appendChild(inner);
   return bubble;
 }
@@ -592,7 +604,8 @@ function hasConfiguredLlm(): boolean {
 }
 
 function canRequestAdvice(state: GameState | undefined, legalActions: Action[]): boolean {
-  return Boolean(state && state.phase !== 'END');
+  if (!state || state.phase === 'END') return false;
+  return legalActions.length > 0 || state.phase === 'EXCHANGE' || state.phase === 'DING_QUE';
 }
 
 function createSection(title: string, subtitle?: string): HTMLElement {
@@ -687,12 +700,6 @@ function getQuickQuestions(phase: string | undefined): string[] {
   return [text.playing[0]];
 }
 
-function formatPhase(phase: string | undefined): string {
-  const text = getAiText().coach;
-  if (!phase) return text.notAvailable;
-  return text.phaseNames[phase] || phase;
-}
-
 function formatRecommendedAction(action: Action | string): string {
   const text = getAiText().coach;
   if (typeof action === 'string') return action;
@@ -708,19 +715,14 @@ function formatRecommendedAction(action: Action | string): string {
 }
 
 function formatTile(suit: 'W' | 'B' | 'T', rank: number): string {
-  if (languageStore.getLanguage() === 'zh') {
-    const suitName = suit === 'W' ? '万' : suit === 'B' ? '条' : '筒';
-    return `${rank}${suitName}`;
-  }
-  const suitName = suit === 'W' ? 'Character' : suit === 'B' ? 'Bamboo' : 'Dot';
+  const text = getAiText().coach;
+  const suitName = text.suitNames[suit];
+  if (text.tileCompact) return `${rank}${suitName}`;
   return `${rank} ${suitName}`;
 }
 
 function formatRiskLabel(risk: 'low' | 'medium' | 'high'): string {
-  if (languageStore.getLanguage() !== 'zh') return risk;
-  if (risk === 'low') return '低风险';
-  if (risk === 'medium') return '中风险';
-  return '高风险';
+  return getAiText().coach.riskLabels[risk];
 }
 
 async function buildAdviceForCurrentPhase(state: GameState, legalActions: Action[]): Promise<CoachAdviceView> {
@@ -735,7 +737,7 @@ async function buildAdviceForCurrentPhase(state: GameState, legalActions: Action
     return {
       headline: exchange.recommendedTiles.length > 0
         ? exchange.recommendedTiles.join(' / ')
-        : languageStore.getLanguage() === 'zh' ? '优先换出孤张和碎张' : 'Discard isolated tiles first',
+        : getAiText().coach.exchangeFallback,
       body: exchange.reasoning,
       badge: exchange.selectedSuit,
       badgeTone: 'warn',
@@ -945,8 +947,8 @@ function syncSpeechUi(): void {
       const errorBox = document.createElement('div');
       errorBox.className = 'pixel-note-box pixel-note-box--danger';
       errorBox.innerHTML = `
-        <div class="pixel-page-section__title" style="font-size:11px;">${text.voiceTitle}</div>
-        <div class="pixel-note" style="margin-top:8px;">${speechError}</div>
+        <div class="pixel-page-section__title pixel-page-section__title--compact">${text.voiceTitle}</div>
+        <div class="pixel-note pixel-note--gap">${speechError}</div>
       `;
       slot.appendChild(errorBox);
     }
