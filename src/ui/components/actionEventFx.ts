@@ -40,6 +40,12 @@ function waitForAnimation(animation: Animation | undefined): Promise<void> {
   return animation.finished.then(() => undefined).catch(() => undefined);
 }
 
+function waitMs(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
 function clampToViewport(point: { x: number; y: number }, padding = 56): { x: number; y: number } {
   return {
     x: Math.max(padding, Math.min(window.innerWidth - padding, point.x)),
@@ -112,6 +118,7 @@ export async function playActionTransferFx(event: GameEvent, root: HTMLElement):
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const popDuration = reduceMotion ? 120 : 220;
   const moveDuration = reduceMotion ? 180 : 430;
+  const holdDuration = 1000;
 
   try {
     const pop = badge.animate(
@@ -127,6 +134,7 @@ export async function playActionTransferFx(event: GameEvent, root: HTMLElement):
       },
     );
     await waitForAnimation(pop);
+    await waitMs(holdDuration);
 
     const move = badge.animate(
       [

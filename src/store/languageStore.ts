@@ -9,7 +9,7 @@ import { translations } from '../i18n/translations';
 type Listener = () => void;
 
 class LanguageStore {
-  private currentLanguage: Language = 'en'; // 默认英文
+  private currentLanguage: Language = 'zh'; // 默认中文
   private readonly listeners = new Set<Listener>();
 
   constructor() {

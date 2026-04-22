@@ -20,6 +20,21 @@
   gap: 3px;
 }
 
+.pixel-meld-strip--opponent.pixel-meld-strip--seat-left,
+.pixel-meld-strip--opponent.pixel-meld-strip--seat-right {
+  max-height: none;
+  overflow: visible;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pixel-meld-strip--opponent.pixel-meld-strip--seat-left::-webkit-scrollbar,
+.pixel-meld-strip--opponent.pixel-meld-strip--seat-right::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 .pixel-meld-strip--seat-left .pixel-meld-group,
 .pixel-meld-strip--seat-right .pixel-meld-group {
   flex-direction: column;
@@ -62,6 +77,11 @@
   .pixel-action-btn,
   .match-toolbar__button {
     min-height: max(var(--touch-target-min), calc(var(--touch-target-min) * var(--ui-scale)));
+  }
+
+  .pixel-meld-strip--opponent.pixel-meld-strip--seat-left,
+  .pixel-meld-strip--opponent.pixel-meld-strip--seat-right {
+    max-height: none;
   }
 
   .pixel-seat--left .pixel-rival__hu-stamp,
