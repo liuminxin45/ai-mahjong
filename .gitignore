@@ -32,3 +32,6 @@ coverage/
 
 # AI eval output
 ai-eval-*.json
+
+# Dev-time screenshots
+PixPin_*.png

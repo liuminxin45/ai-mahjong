@@ -1,9 +1,14 @@
 /**
- * 神经网络训练器
- * 使用强化学习训练麻将AI策略网络
+ * 神经网络训练器（实验性）
+ *
+ * ⚠️ 实验性模块，未接入任何决策路径。
+ * decideHigh / policyForDifficulty 等真实决策逻辑均不引用本文件，
+ * `NeuralNetwork` 仅在 `neuralTrainer.ts` 内部自引用。
+ * `updateWeights` 当前为随机扰动示意，并非真实反向传播。
+ * 保留仅供研究，不应在发布构建中作为「神经网络 AI」对外宣称。
  */
 
-import { MahjongPolicyNetwork, MahjongFeatureExtractor, createDefaultPolicyNetwork } from '../agents/neural/NeuralNetwork';
+import { MahjongPolicyNetwork, createDefaultPolicyNetwork } from '../agents/neural/NeuralNetwork';
 import { GameOrchestrator } from '../orchestration/GameOrchestrator';
 import { chengduRulePack } from '../core/rules/packs/chengdu';
 import { testConfig } from '../config/testConfig';
@@ -129,7 +134,7 @@ export class NeuralTrainer {
   /**
    * 运行一局游戏
    */
-  private async runEpisode(exploration: number): Promise<number> {
+  private async runEpisode(_exploration: number): Promise<number> {
     const orchestrator = new GameOrchestrator(chengduRulePack);
     settingsStore.difficulty = 'high';
     
@@ -176,9 +181,6 @@ export class NeuralTrainer {
     
     // 简化的策略梯度更新（实际应使用更复杂的算法）
     for (const exp of batch) {
-      const output = this.network.forward(exp.state);
-      const actionProbs = this.softmax(output);
-      
       // 计算优势
       const advantage = exp.reward;
       
@@ -191,7 +193,7 @@ export class NeuralTrainer {
   /**
    * 更新网络权重（简化版）
    */
-  private updateWeights(state: number[], action: number, advantage: number): void {
+  private updateWeights(_state: number[], _action: number, advantage: number): void {
     // 这是一个简化的权重更新
     // 实际的神经网络训练需要完整的反向传播实现
     const lr = this.config.learningRate;
@@ -207,13 +209,6 @@ export class NeuralTrainer {
     }
     
     this.network.importWeights(weights);
-  }
-  
-  private softmax(x: number[]): number[] {
-    const max = Math.max(...x);
-    const exp = x.map(v => Math.exp(v - max));
-    const sum = exp.reduce((a, b) => a + b, 0);
-    return exp.map(v => v / sum);
   }
   
   /**

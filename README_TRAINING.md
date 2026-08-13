@@ -95,14 +95,14 @@ npm run train -- --help
 **CLI 参数说明**：
 - `--games <number>`: 训练局数（默认 100）
 - `--blocking <boolean>`: 阻塞模式，更快但会卡 UI（默认 true）
-- `--mode <baseline|mirror>`: 训练模式（默认 baseline）
+- `--mode <baseline|mirror>`: 训练模式（默认 baseline；注意 baseline 当前等效 mirror，见下）
 - `--batch <number>`: 批次大小（默认 1）
 - `--seed <number>`: 随机种子，用于可重现训练
 - `--verbose`: 启用详细日志
 
 **训练模式**：
-- **baseline**: 训练玩家用候选参数，对手用最佳参数（更稳定）
-- **mirror**: 所有玩家用同一候选参数（自博弈）
+- **baseline**（⚠️ 未独立实现）：接口名义存在，但 `autoRun.ts` 自承「所有玩家共享同一套参数，等效于 mirror」——即当前 baseline 与 mirror 行为一致，并未真正区分「对手用 best、训练者用候选」。若需独立实现属代码侧工作。
+- **mirror**：所有玩家用同一候选参数（自博弈）。
 
 ---
 

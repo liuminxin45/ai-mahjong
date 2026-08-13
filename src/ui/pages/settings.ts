@@ -337,7 +337,7 @@ function renderTrainingSection(ctx: UiCtx): HTMLElement {
       {
         totalGames: games,
         blocking: ctx.settingsStore.trainingBlocking,
-        mode: 'baseline',
+        mode: 'mirror',
         batchSize: 1,
         ruleId: 'chengdu',
         trainPlayerId: 'P0',

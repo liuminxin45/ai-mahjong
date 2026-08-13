@@ -11,7 +11,6 @@ import { findWinPatterns, detectYaku, calculateScore, hasQueYiMen, canPerformGua
 import { validateExchangeTiles, performExchange, removeTilesFromHand } from './exchange';
 import { selectExchangeTiles, selectDingQueSuit } from './aiStrategy';
 import { sortTiles } from './sort';
-import { settingsStore } from '../../../../store/settingsStore';
 import { createChengduValidator } from './validator';
 import { tileEq, removeNTiles, removeTile, countTile, canUpgradeToGang, isLastTileInWall, tileKey } from './utils';
 import { getTenpaiTiles, isTenpai } from './tenpai';
@@ -29,6 +28,37 @@ const PLAYERS: PlayerId[] = ['P0', 'P1', 'P2', 'P3'];
 
 function isTileInMissingSuit(tile: Tile, missingSuit: 'W' | 'B' | 'T' | undefined): boolean {
   return !!missingSuit && tile.suit === missingSuit;
+}
+
+/**
+ * QA-P0-002：applyAction 遭遇非法动作时的处理。
+ *
+ * 历史缺陷：非法动作被静默 `return state`（返回同一对象引用），编排层无法察觉，
+ * 状态不推进 → 活锁。这里提供两种模式：
+ *   - 默认（宽松）：返回一个带 `rejected` 标记的**新对象**（绝不返回同一引用），
+ *     供 UI 安全降级，并保留显式信号供检测。
+ *   - 严格（测试 / 训练 harness 设置 `(globalThis as any).__chengduStrictApply = true`）：
+ *     直接抛 IllegalActionError，把契约破坏变成不可忽略的失败。
+ */
+export class IllegalActionError extends Error {
+  constructor(
+    message: string,
+    public readonly actionType: string,
+  ) {
+    super(message);
+    this.name = 'IllegalActionError';
+  }
+}
+
+function rejectIllegalAction(state: GameState, action: Action, reason: string): GameState {
+  if ((globalThis as any).__chengduStrictApply) {
+    throw new IllegalActionError(
+      `[chengdu] Illegal action rejected: ${action.type} — ${reason}`,
+      action.type,
+    );
+  }
+  warn(`[chengdu] Illegal action rejected: ${action.type} — ${reason}`);
+  return { ...state, rejected: { type: action.type, reason } } as ChengduState;
 }
 
 type DealInStat = { count: number; stageB: number; stageC: number };
@@ -212,6 +242,7 @@ function evaluateSelfDrawScore(state: GameState, playerId: PlayerId, isGangShang
     isTianHu,
     false,
     isGuaFengXiaYu,
+    state.melds[playerId], // QA-P1-005：清一色判定需并入副露花色
   );
   return calculateScore(yakuList, gangCount);
 }
@@ -222,6 +253,8 @@ type ChengduState = GameState & {
   lastAddedGangTile?: { tile: Tile; from: PlayerId };
   pendingEvents?: GameEvent[];
   lastPengTile?: Tile;
+  /** QA-P0-002：宽松模式下 applyAction 拒绝非法动作时的显式信号 */
+  rejected?: { type: string; reason: string };
   roundScores?: Record<PlayerId, number>;
   dealInStats?: DealInStats;
   // 换三张相关状态
@@ -231,6 +264,8 @@ type ChengduState = GameState & {
   dingQueSelection?: Record<PlayerId, 'W' | 'B' | 'T' | undefined>;
   // 过水不能胡：玩家跳过胡牌后，直到自己下次摸牌+出牌后才能再胡
   passedHuPlayers?: Record<PlayerId, boolean>;
+  // P0 是否由 AI 接管（通过 buildInitialState 注入，避免在核心层直接依赖 store）
+  p0IsAI?: boolean;
 };
 
 function validateHandSize(hand: Tile[], meldCount: number, expectedExtra: number): boolean {
@@ -252,7 +287,7 @@ function resolveExchangeSelections(
   const selections = {} as Record<PlayerId, Tile[]>;
 
   for (const playerId of PLAYERS) {
-    const isAiPlayer = playerId !== 'P0' || settingsStore.p0IsAI;
+    const isAiPlayer = playerId !== 'P0' || state.p0IsAI;
     const savedSelection = state.exchangeSelections?.[playerId];
     const hasSavedSelection = Array.isArray(savedSelection) && savedSelection.length === 3;
     const selection =
@@ -389,7 +424,7 @@ export const chengduRulePack: RulePack = {
     return createChengduValidator();
   },
 
-  buildInitialState(): GameState {
+  buildInitialState(p0IsAI: boolean = false): GameState {
     // 使用训练器传递的种子或生成新种子
     const trainingSeed = (globalThis as any).__trainingGameSeed;
     const seed = trainingSeed !== undefined ? trainingSeed : Date.now() + Math.random() * 1000000;
@@ -454,6 +489,8 @@ export const chengduRulePack: RulePack = {
       // 初始化计分和放炮统计，确保训练时能正确提取
       roundScores: createZeroScores(),
       dealInStats: createDealInStats(),
+      // P0 是否由 AI 接管（由编排层注入，核心不依赖 store）
+      p0IsAI,
     } as ChengduState;
   },
 
@@ -467,9 +504,9 @@ export const chengduRulePack: RulePack = {
       }
 
       // AI 玩家（包括 P0 AI 模式）智能选择换三张的牌
-      log(`[Exchange] ${player} checking AI mode: p0IsAI=${settingsStore.p0IsAI}, player=${player}`);
+      log(`[Exchange] ${player} checking AI mode: p0IsAI=${chengduState.p0IsAI}, player=${player}`);
 
-      if (player !== 'P0' || settingsStore.p0IsAI) {
+      if (player !== 'P0' || chengduState.p0IsAI) {
         const hand = state.hands[player];
         const selectedTiles = selectExchangeTiles(hand);
         if (selectedTiles.length === 3) {
@@ -507,7 +544,7 @@ export const chengduRulePack: RulePack = {
       }
 
       // AI 玩家（包括 P0 AI 模式）智能选择定缺花色
-      if (player !== 'P0' || settingsStore.p0IsAI) {
+      if (player !== 'P0' || chengduState.p0IsAI) {
         const hand = state.hands[player];
         const selectedSuit = selectDingQueSuit(hand);
         log(`[DingQue] ${player} AI selecting missing suit: ${selectedSuit}`);
@@ -524,7 +561,12 @@ export const chengduRulePack: RulePack = {
     if (state.phase !== 'PLAYING') return [];
     if (state.declaredHu[player]) return [{ type: 'PASS' }];
 
-    // 抢杠胡响应窗口
+    // 抢杠胡响应窗口（QA-P0-001 修复）
+    // 背景：加杠后所有玩家（含加杠者）被 getCurrentActor 依次轮到。其余未胡玩家在此获得
+    // 抢杠胡的 HU 选项；加杠者本人仅 PASS 放行。待窗口内所有人轮过后，由
+    // resolveReactions(lastAddedGangTile 分支) 统一结算——有抢杠胡则计分，否则为加杠者补摸
+    // 一张（isAfterGang=true，供杠上开花判定）。此前此处对加杠者提前 return，使其被
+    // harness 编排层略过 → 窗口永不关闭 → 活锁。
     if (chengduState.lastAddedGangTile) {
       const { tile, from } = chengduState.lastAddedGangTile;
       if (player === from) return [{ type: 'PASS' }];
@@ -578,7 +620,15 @@ export const chengduRulePack: RulePack = {
     }
 
     // 当前玩家的动作
-    const baseActions = placeholderRulePack.getLegalActions(state, player);
+    let baseActions = placeholderRulePack.getLegalActions(state, player);
+    // QA-P0-002 修复：getLegalActions 不得提供 applyAction 会拒绝的动作。
+    // 碰后打碰牌会被 applyAction 的 lastPengTile 守卫静默拒绝（返回原 state 造成空转），
+    // 故在生成候选时先行过滤，与 buildRecoveryAction 的过滤逻辑保持一致。
+    if (chengduState.lastPengTile) {
+      baseActions = baseActions.filter(
+        (a) => !(a.type === 'DISCARD' && tileEq(a.tile, chengduState.lastPengTile!)),
+      );
+    }
     if (state.currentPlayer !== player) return baseActions;
 
     const hand = state.hands[player];
@@ -893,8 +943,8 @@ export const chengduRulePack: RulePack = {
 
       // 碰后出牌限制
       if (chengduState.lastPengTile && tileEq(action.tile, chengduState.lastPengTile)) {
-        warn('Cannot discard the tile just ponged');
-        return state;
+        // QA-P0-002：getLegalActions 已先行过滤 lastPengTile，此处为纵深防御。
+        return rejectIllegalAction(state, action, 'Cannot discard the tile just ponged');
       }
 
       const baseResult = placeholderRulePack.applyAction(state, action);
@@ -918,8 +968,9 @@ export const chengduRulePack: RulePack = {
       // 检测是否是"刮风下雨"胡牌
       let isGuaFengXiaYu = false;
       if (action.tile) {
+        const t = action.tile;
         const pengMelds = state.melds[action.from].filter(
-          m => m.type === 'PENG' && tileEq(m.tile, action.tile),
+          m => m.type === 'PENG' && tileEq(m.tile, t),
         );
         isGuaFengXiaYu = pengMelds.length > 0;
       }
@@ -1167,14 +1218,14 @@ export const chengduRulePack: RulePack = {
       const shouldEnd = huCount >= 3 || state.wall.length === 0;
 
       const nextP = nextActivePlayer({ ...state, declaredHu }, discard.from);
-      const next: GameState = {
+      const next = {
         ...state,
         declaredHu,
         lastDiscard: null,
         currentPlayer: shouldEnd ? discard.from : nextP,
         phase: shouldEnd ? 'END' : 'PLAYING',
         passedHuPlayers: newPassedHuPlayers,
-      };
+      } as ChengduState;
 
       if (!shouldEnd) {
         events.push({ type: 'TURN', playerId: nextP, turn: next.turn, ts: baseTs });
@@ -1338,7 +1389,7 @@ function calcMaxTenpaiScore(state: ChengduState, playerId: PlayerId): number {
   const expectedHandSize = 13 - meldCount * 3;
   if (hand.length !== expectedHandSize) return 0;
 
-  const tenpaiTiles = getTenpaiTiles(hand);
+  const tenpaiTiles = getTenpaiTiles(hand, meldCount);
   if (tenpaiTiles.length === 0) return 0;
 
   const gangCount = state.melds[playerId].filter(m => m.type === 'GANG').length;
@@ -1394,8 +1445,9 @@ function applyDrawSettlement(state: ChengduState): void {
   }
 
   // 查叫：非花猪中，未听牌者向听牌者赔付听牌者的最大得分
-  const tenpaiPlayers = nonHuaZhuPlayers.filter(pid => isTenpai(state.hands[pid]));
-  const noTenpaiPlayers = nonHuaZhuPlayers.filter(pid => !isTenpai(state.hands[pid]));
+  // QA-P1-003：isTenpai 需传入各玩家副露数，按 13 - meldCount*3 校验手牌，避免副露玩家被误判大叫
+  const tenpaiPlayers = nonHuaZhuPlayers.filter(pid => isTenpai(state.hands[pid], state.melds[pid].length));
+  const noTenpaiPlayers = nonHuaZhuPlayers.filter(pid => !isTenpai(state.hands[pid], state.melds[pid].length));
 
   for (const noTenpai of noTenpaiPlayers) {
     for (const tenpaiPlayer of tenpaiPlayers) {

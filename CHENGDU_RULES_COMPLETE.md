@@ -30,16 +30,18 @@
 | 天胡 | ✅ | 🟡 | 庄家第一张优先 |
 | 地胡 | ✅ | 🟡 | 非庄家第一张旁人出 |
 | 刮风下雨 | ✅ | 🟡 | 与PENG相同的牌胡 |
+> 番值以 `src/core/rules/packs/chengdu/patterns.ts` 的 `fan` 为权威真相源（清一色=2、七对子=2、龙七对=3）。
+
 | **番型系统** ||||
 | 平胡 | ✅ | - | 1番 |
 | 自摸 | ✅ | - | 1番 |
-| 门清 | ⏳ | 🟠 | 1番 |
+| 门清 | ⏳ | 🟠 | 尚未实现为番型（isMenQing 仅工具函数，detectYaku 无加分） |
 | 对对胡 | ✅ | - | 2番 |
 | 全带幺 | ✅ | 🟠 | 2番 |
-| 清一色 | ✅ | - | 6番 |
-| 混一色 | ⏳ | 🟠 | 3番 |
-| 七对子 | ✅ | - | 4番 |
-| 龙七对 | ✅ | 🟠 | 5番 |
+| 清一色 | ✅ | - | 2番 |
+| 混一色 | ⏳ | 🟠 | 未计分（YakuType 已声明，detectYaku 无加分分支） |
+| 七对子 | ✅ | - | 2番 |
+| 龙七对 | ✅ | 🟠 | 3番 |
 | 杠上开花 | ✅ | - | 2番 |
 | 抢杠胡 | ✅ | - | 2番 |
 | 海底捞月 | ✅ | - | 2番 |
@@ -367,7 +369,7 @@ function hasSanSe(groups: TileGroup[]): boolean {
 ### 🔴 必须实现（影响核心逻辑）
 1. ✅ 缺一门要求 - 已完成
 2. ✅ 定缺出牌限制 - 已完成
-3. 门清（MEN_QING） - 番型，容易
+3. 门清（MEN_QING） - 尚未实现为番型（若实现拟 +1 番，需先接入 detectYaku）
 4. 坎张听牌限制 - 影响胡牌判断
 
 ### 🟡 应该实现（影响番数计算）
@@ -375,7 +377,7 @@ function hasSanSe(groups: TileGroup[]): boolean {
 6. 全双/全单/无字 - 容易检测，常见
 7. 三色系统 - 使用频率高
 8. 天胡/地胡通用版本
-9. 混一色判定
+9. 混一色判定（类型已声明，detectYaku 无加分分支，待实现计分）
 
 ### 🟠 可选实现（低频、高级玩法）
 10. 三节高/老少配/全求人 - 罕见
@@ -397,7 +399,7 @@ function hasSanSe(groups: TileGroup[]): boolean {
 ### 中影响（影响番数计算）
 - 全带幺/全双/全单：需要手牌分析
 - 三色系列：需要组合分析
-- 混一色：需要分类统计
+- 混一色（未计分）：需要分类统计
 
 ### 低影响（补充性）
 - 特殊胡牌：罕见，不影响主流
@@ -436,7 +438,7 @@ function hasSanSe(groups: TileGroup[]): boolean {
 ├─ 三色(SAN_SE)                      [2小时]
 ├─ 三节高(SAN_JIE_GAO)               [1.5小时]
 ├─ 老少配(LAO_SHAO_PEI)              [1小时]
-├─ 混一色(HUN_YI_SE)                 [1.5小时]
+├─ 混一色(HUN_YI_SE) 未计分，待实现   [1.5小时]
 └─ 全带幺完整化                       [1小时]
 
 第三阶段（高难度或低优先级）
@@ -477,7 +479,7 @@ export function isMenQing(melds: Meld[]): boolean {
 }
 
 // 在detectYaku中集成
-if (isMenQing(melds)) yakuList.push({ type: 'MEN_QING', fan: 1 });
+if (isMenQing(melds)) yakuList.push({ type: 'MEN_QING', fan: 1 }); // 示意：当前 patterns.ts 未将 MEN_QING 接入 detectYaku，不生效
 if (isQuanShuang(hand)) yakuList.push({ type: 'QUAN_SHUANG', fan: 2 });
 if (isQuanDan(hand)) yakuList.push({ type: 'QUAN_DAN', fan: 2 });
 if (isWuZi(hand)) yakuList.push({ type: 'WU_ZI', fan: 1 });

@@ -3,7 +3,7 @@ import type { GameEvent } from '../../../model/event';
 import type { GameState } from '../../../model/state';
 import { makeStandardTileSet, type Tile } from '../../../model/tile';
 import { nextPlayerId, PLAYER_ORDER, type PlayerId } from '../../../model/types';
-import type { RulePack } from '../../RulePack';
+import type { RulePack, RoundResult } from '../../RulePack';
 import { ruleConfig } from './rule.config';
 
 function shuffle<T>(arr: T[]): T[] {
@@ -214,7 +214,7 @@ export const placeholderRulePack: RulePack = {
     return state.wall.length === 0 || state.phase === 'END';
   },
 
-  settleRound(_state: GameState): unknown {
-    return { placeholder: true };
+  settleRound(_state: GameState): RoundResult {
+    return { placeholder: true } as unknown as RoundResult;
   },
 };

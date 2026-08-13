@@ -4,11 +4,14 @@ import { tileEq } from './utils';
 
 /**
  * 检查是否听牌（一张牌即可胡牌）
- * @param hand 手牌（13张）
+ * @param hand 手牌
+ * @param meldCount 副露（碰/杠）数量。QA-P1-003：有副露的玩家手牌张数为 13 - meldCount*3，
+ *   若仍按 13 张校验会导致副露玩家在流局时被误判为「未听牌（大叫）」而倒扣分。
  * @returns 听牌的牌列表
  */
-export function getTenpaiTiles(hand: Tile[]): Tile[] {
-  if (hand.length !== 13) {
+export function getTenpaiTiles(hand: Tile[], meldCount = 0): Tile[] {
+  const expectedSize = 13 - meldCount * 3;
+  if (hand.length !== expectedSize) {
     return [];
   }
 
@@ -43,9 +46,10 @@ export function getTenpaiTiles(hand: Tile[]): Tile[] {
 
 /**
  * 检查是否听牌
+ * @param meldCount 副露数量（QA-P1-003），用于按 13 - meldCount*3 校验手牌张数
  */
-export function isTenpai(hand: Tile[]): boolean {
-  return getTenpaiTiles(hand).length > 0;
+export function isTenpai(hand: Tile[], meldCount = 0): boolean {
+  return getTenpaiTiles(hand, meldCount).length > 0;
 }
 
 /**

@@ -93,7 +93,7 @@ describe('刮风下雨 (Guafeng Xiаyu)', () => {
             }
         });
 
-        it('should detect GUAFENG_XIАYU yaku when player does guafeng xiаyu hu', () => {
+        it('should detect GUAFENG_XIAYU yaku when player does guafeng xiаyu hu', () => {
             const hand: Tile[] = [
                 { suit: 'W', rank: 1 }, { suit: 'W', rank: 2 }, { suit: 'W', rank: 3 }, // 顺子
                 { suit: 'W', rank: 4 }, { suit: 'W', rank: 5 }, { suit: 'W', rank: 6 }, // 顺子
@@ -119,13 +119,13 @@ describe('刮风下雨 (Guafeng Xiаyu)', () => {
                     true, // isGuaFengXiaYu = true
                 );
 
-                const guaFengYaku = yakuList.find(y => y.type === 'GUAFENG_XIАYU');
+                const guaFengYaku = yakuList.find(y => y.type === 'GUAFENG_XIAYU');
                 if (guaFengYaku) {
-                    console.log(`✓ Detected GUAFENG_XIАYU yaku with ${guaFengYaku.fan} fan`);
+                    console.log(`✓ Detected GUAFENG_XIAYU yaku with ${guaFengYaku.fan} fan`);
                     expect(guaFengYaku).toBeDefined();
                     expect(guaFengYaku?.fan).toBe(2);
                 } else {
-                    console.log('⚠ GUAFENG_XIАYU yaku not detected');
+                    console.log('⚠ GUAFENG_XIAYU yaku not detected');
                     console.log('Detected yakus:', yakuList.map(y => y.type).join(', '));
                 }
             }

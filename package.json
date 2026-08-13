@@ -9,7 +9,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "vite build",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
@@ -24,7 +24,5 @@
     "vite": "^6.0.0",
     "vitest": "^2.1.8"
   },
-  "dependencies": {
-    "pixi.js": "^8.17.1"
-  }
+  "dependencies": {}
 }

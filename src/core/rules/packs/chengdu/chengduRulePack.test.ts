@@ -734,9 +734,12 @@ describe('chengduRulePack', () => {
       } as any;
 
       const s2 = chengduRulePack.applyAction(s1, { type: 'DISCARD', tile });
-      
-      // 状态应该不变（不允许打出刚碰的牌）
-      expect(s2).toBe(s1);
+
+      // QA-P0-002：非法动作不再静默返回同一引用，而是返回带 rejected 标记的新对象
+      expect(s2).not.toBe(s1);
+      expect((s2 as any).rejected).toMatchObject({ type: 'DISCARD' });
+      // 且手牌未推进（牌仍在手中）
+      expect((s2 as any).hands.P0).toEqual((s1 as any).hands.P0);
     });
 
     it('should allow discarding different tile after peng', () => {

@@ -238,6 +238,8 @@ export function calculateHuEV(
     false,
     false,
     state.wall.length === 0,
+    false,
+    false,
   );
   
   const score = calculateScore(yakuList, gangCount);

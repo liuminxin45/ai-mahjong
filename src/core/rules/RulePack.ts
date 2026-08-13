@@ -19,7 +19,7 @@ export interface RulePack {
   version: string;
 
   getTileSet(): Tile[];
-  buildInitialState(): GameState;
+  buildInitialState(p0IsAI?: boolean): GameState;
   
   /**
    * 获取出牌校验器（可选）

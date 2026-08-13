@@ -19,7 +19,7 @@ import type { PlayerId } from '../core/model/types';
 export interface TrainingConfig {
   totalGames: number;
   blocking: boolean; // true: 阻塞模式（最快），false: 非阻塞模式（UI 友好）
-  mode: 'baseline' | 'mirror'; // baseline: 对手用最佳参数，mirror: 所有人用同一参数
+  mode: 'mirror'; // mirror: 所有玩家共享同一套候选参数（自我对弈，反映参数整体质量）
   batchSize: number; // 每批次局数（默认 1）
   ruleId: RuleId;
   trainPlayerId: 'P0' | 'P1' | 'P2' | 'P3'; // 训练哪个玩家
@@ -29,7 +29,7 @@ export interface TrainingConfig {
 export const DEFAULT_TRAINING_CONFIG: TrainingConfig = {
   totalGames: 100,
   blocking: false,
-  mode: 'baseline',
+  mode: 'mirror',
   batchSize: 10,
   ruleId: 'chengdu',
   trainPlayerId: 'P0',
@@ -230,9 +230,8 @@ export class AutoTrainer {
     }
 
     // 2. 设置参数（批次内保持一致）
-    // TODO: baseline 模式应该让训练玩家用候选参数，对手用最佳参数
-    // 当前实现：所有玩家共享同一套参数（等效于 mirror 模式）
-    // 对于自我对弈训练，mirror 模式更能反映参数的整体质量
+    // mirror 模式：训练玩家与对手共享同一套候选参数（自我对弈），
+    // 用于评估参数的整体质量；不再保留未实现的 baseline（对手用最佳参数）分支。
     setAIParams(this.currentCandidateParams!);
 
     // 3. 运行游戏

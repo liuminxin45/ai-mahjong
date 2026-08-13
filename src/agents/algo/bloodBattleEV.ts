@@ -6,7 +6,7 @@
 import type { GameState } from '../../core/model/state';
 import type { PlayerId } from '../../core/model/types';
 import type { Tile } from '../../core/model/tile';
-import { shantenWithMelds, ukeireTilesWithMelds, handToCounts } from './shanten';
+import { shantenWithMelds, ukeireTilesWithMelds } from './shanten';
 import { evaluateTileDanger } from './danger';
 import { getAIParams } from './aiParams';
 
@@ -110,7 +110,7 @@ export interface PwinDetails {
  */
 export function calcPwin(
   state: GameState,
-  playerId: PlayerId,
+  _playerId: PlayerId,
   handAfter: Tile[],
   meldCount: number,
   stageInfo: StageInfo,
@@ -332,8 +332,8 @@ export interface ScoreDetails {
  * 计算 Score - 胜利的价值
  */
 export function calcScore(
-  state: GameState,
-  playerId: PlayerId,
+  _state: GameState,
+  _playerId: PlayerId,
   stageInfo: StageInfo,
   xiangting: number,
 ): ScoreDetails {
@@ -391,7 +391,7 @@ export interface LossDetails {
  */
 export function calcLoss(
   state: GameState,
-  playerId: PlayerId,
+  _playerId: PlayerId,
   stageInfo: StageInfo,
   maxRiskOpponent: PlayerId | null,
 ): LossDetails {

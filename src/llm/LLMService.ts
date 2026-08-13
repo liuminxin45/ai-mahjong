@@ -356,7 +356,7 @@ export class LLMService {
         );
         headers = {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
+          'x-api-key': apiKey ?? '',
           'anthropic-version': '2023-06-01',
         };
         body = {
@@ -481,22 +481,6 @@ export class LLMService {
       throw new Error('LLM response did not contain JSON');
     }
     return JSON.parse(jsonMatch[0]) as T;
-  }
-
-  private getDefaultCoachingAdvice(legalActions: Action[]): CoachingAdvice {
-    const discardAction = legalActions.find(a => a.type === 'DISCARD');
-    return {
-      recommendedAction: discardAction || { type: 'PASS' },
-      confidence: 0.5,
-      reasoning: '基于基本策略的建议',
-      alternatives: [],
-      riskAssessment: {
-        dealInRisk: 'medium',
-        riskySuits: [],
-        safeDiscards: [],
-      },
-      strategicHints: ['保持冷静', '观察对手'],
-    };
   }
 
   private getDefaultReview(gameRecord: any): GameReview {

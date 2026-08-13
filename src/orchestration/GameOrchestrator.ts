@@ -200,7 +200,7 @@ export class GameOrchestrator {
       }
     }
 
-    const init = this.rulePack.buildInitialState();
+    const init = this.rulePack.buildInitialState(this.ss.p0IsAI);
     this.state = init;
 
     this.gs.reset();
@@ -258,7 +258,7 @@ export class GameOrchestrator {
           this.notifyUser({
             title: '出牌不正确',
             code: 'INVALID DISCARD',
-            message: validation.reason,
+            message: validation.reason ?? '出牌校验失败',
           });
         }
 
@@ -730,7 +730,7 @@ export class GameOrchestrator {
       case 'EXCHANGE_CONFIRM':
         return '确认换牌';
       default:
-        return action.type;
+        return 'unknown';
     }
   }
 

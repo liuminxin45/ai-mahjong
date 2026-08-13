@@ -1,4 +1,4 @@
-export type Difficulty = 'high';
+export type Difficulty = 'high' | 'mid' | 'low';
 export type RuleId = 'placeholder' | 'chengdu';
 export type UiMode = 'DEBUG' | 'TABLE';
 
@@ -53,7 +53,10 @@ function sanitizeSettings(settings?: Partial<PersistedSettings>): PersistedSetti
   const hudSafeZonePercent = Number(settings?.hudSafeZonePercent);
 
   return {
-    difficulty: settings?.difficulty === 'high' ? 'high' : DEFAULT_SETTINGS.difficulty,
+    difficulty:
+      settings?.difficulty === 'high' || settings?.difficulty === 'mid' || settings?.difficulty === 'low'
+        ? settings.difficulty
+        : DEFAULT_SETTINGS.difficulty,
     ruleId: settings?.ruleId === 'placeholder' ? 'placeholder' : 'chengdu',
     analysisEnabled: typeof settings?.analysisEnabled === 'boolean' ? settings.analysisEnabled : DEFAULT_SETTINGS.analysisEnabled,
     llmEnabled: typeof settings?.llmEnabled === 'boolean' ? settings.llmEnabled : DEFAULT_SETTINGS.llmEnabled,

@@ -39,7 +39,7 @@ export type YakuType =
   | 'DI_HU'             // 地胡（非头家第一巡点炮胡牌）
   | 'ZI_MO'             // 自摸
   | 'JIN_GOU_DIAO'      // 金钩钓（单钓将）
-  | 'GUAFENG_XIАYU';    // 刮风下雨（用与碰相同的牌胡）
+  | 'GUAFENG_XIAYU';    // 刮风下雨（用与碰相同的牌胡）
 
 export type Yaku = {
   type: YakuType;
@@ -224,6 +224,11 @@ export function detectYaku(
   isTianHu: boolean,
   isDiHu: boolean,
   isGuaFengXiaYu: boolean = false,
+  /**
+   * QA-P1-005：副露（碰/杠）。清一色判定必须并入副露花色，否则手牌同色 + 副露异色
+   * 会被误判为清一色，多送 2 番。默认 [] 以兼容未传参的旧调用点。
+   */
+  melds: Array<{ tile: Tile }> = [],
 ): Yaku[] {
   const yakuList: Yaku[] = [];
 
@@ -237,7 +242,9 @@ export function detectYaku(
     yakuList.push({ type: 'DI_HU', fan: 4, description: '地胡' });
   }
 
-  if (pattern.groups.length === 7 && pattern.groups.every(g => g.type === 'JIANG')) {
+  // 结构标识：七对子 / 龙七对（龙七对含 4 张同牌，替代七对子，二者互斥）
+  const isQiDui = pattern.groups.length === 7 && pattern.groups.every(g => g.type === 'JIANG');
+  if (isQiDui) {
     const counts = countTiles(hand);
     const hasQuad = Array.from(counts.values()).some((c) => c === 4);
     if (hasQuad) {
@@ -245,20 +252,18 @@ export function detectYaku(
     } else {
       yakuList.push({ type: 'QI_DUI_ZI', fan: 2, description: '七对子' });
     }
-    if (isSelfDraw) yakuList.push({ type: 'ZI_MO', fan: 1, description: '自摸' });
-    if (isGangShangKaiHua) yakuList.push({ type: 'GANG_SHANG_KAI_HUA', fan: 2, description: '杠上开花' });
-    if (isQiangGang) yakuList.push({ type: 'QIANG_GANG_HU', fan: 2, description: '抢杠胡' });
-    if (isHaiDi) yakuList.push({ type: 'HAI_DI_LAO_YUE', fan: 2, description: '海底捞月' });
-    return yakuList;
   }
 
-  const suits = new Set(hand.map(t => t.suit));
+  // QA-P1-005：清一色需把手牌与副露花色一并统计。
+  const suits = new Set([...hand, ...melds.map(m => m.tile)].map(t => t.suit));
   if (suits.size === 1) {
     yakuList.push({ type: 'QING_YI_SE', fan: 2, description: '清一色' });
   }
 
+  // QA-P1-004：七对/龙七对不再提前 return，清一色/对对胡等可正确叠加。
+  // （七对与对对胡天然互斥：七对 pattern 全是 JIANG，allKe 恒为 false。）
   const allKe = pattern.groups.filter(g => g.type !== 'JIANG').every(g => g.type === 'KE');
-  if (allKe) {
+  if (allKe && !isQiDui) {
     yakuList.push({ type: 'DUI_DUI_HU', fan: 2, description: '对对胡' });
   }
 
@@ -290,7 +295,7 @@ export function detectYaku(
   }
 
   if (isGuaFengXiaYu) {
-    yakuList.push({ type: 'GUAFENG_XIАYU', fan: 2, description: '刮风下雨' });
+    yakuList.push({ type: 'GUAFENG_XIAYU', fan: 2, description: '刮风下雨' });
   }
 
   if (yakuList.length === 0) {

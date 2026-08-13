@@ -1,0 +1,75 @@
+{
+  "node": "v22.22.2",
+  "games": 12,
+  "at": "2026-08-13T08:26:49.266Z",
+  "results": [
+    {
+      "id": "S1",
+      "label": "shantenWithMelds 冷缓存(每次清缓存)",
+      "unit": "call",
+      "n": 300,
+      "totalMs": 86.07399999722838,
+      "perOpUs": 286.91333332409465,
+      "opsPerSec": 3485.3730512077996
+    },
+    {
+      "id": "S2",
+      "label": "shantenWithMelds 热缓存(重复局面)",
+      "unit": "call",
+      "n": 12000,
+      "totalMs": 20.83500000089407,
+      "perOpUs": 1.7362500000745058,
+      "opsPerSec": 575953.9236613899,
+      "extra": {
+        "shantenSize": 300,
+        "ukeireSize": 0
+      }
+    },
+    {
+      "id": "S3",
+      "label": "ukeireTilesWithMelds 冷缓存",
+      "unit": "call",
+      "n": 120,
+      "totalMs": 975.8029999919236,
+      "perOpUs": 8131.691666599362,
+      "opsPerSec": 122.97564160080796,
+      "extra": {
+        "ukeireChecksum": 5592
+      }
+    },
+    {
+      "id": "S4",
+      "label": "decideHigh 单步决策(真实中盘)",
+      "unit": "decision",
+      "n": 29,
+      "totalMs": 46.54600000008941,
+      "p50Ms": 0.8629999998956919,
+      "p95Ms": 1.4690000005066395,
+      "maxMs": 2.3770000003278255,
+      "extra": {
+        "meanMs": 1.605
+      }
+    },
+    {
+      "id": "S5",
+      "label": "自博弈端到端 (high×4, 12局)",
+      "unit": "game",
+      "n": 12,
+      "totalMs": 48891.552999999374,
+      "p50Ms": 3514.2400000002235,
+      "p95Ms": 9723.16599999927,
+      "maxMs": 9723.16599999927,
+      "extra": {
+        "meanMsPerGame": 4074.3,
+        "totalSteps": 2066,
+        "usPerStep": 23664.8,
+        "huTotal": 20,
+        "violations": 0,
+        "cache": {
+          "shantenSize": 100000,
+          "ukeireSize": 0
+        }
+      }
+    }
+  ]
+}

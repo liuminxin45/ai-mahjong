@@ -111,11 +111,21 @@ function fastDiscardDecision(
   return { type: 'DISCARD', tile: cands[0].tile };
 }
 
+export interface DecisionOpts {
+  /** 危险度权重倍率（<1 更冒进/更弱防守），默认 1 */
+  dangerWeightMul?: number;
+  /** 效率权重倍率（<1 更弱进攻），默认 1 */
+  efficiencyWeightMul?: number;
+  /** 随机失误概率（0~1），在候选池中按概率任选，模拟新手失误，默认 0 */
+  randomness?: number;
+}
+
 export function decideHigh(
   state: GameState,
   playerId: PlayerId,
   legal: Action[],
   ctx?: AgentDecisionContext,
+  opts?: DecisionOpts,
 ): Action {
   // 全局兜底：确保永远不返回PASS当有其他合法动作时
   const safeReturn = (action: Action): Action => {
@@ -337,8 +347,10 @@ export function decideHigh(
 
   const metaParams = ctx?.metaParams ?? { efficiencyWeight: 1.0, dangerWeight: 1.0, threatWeight: 1.0 };
 
-  const efficiencyWeight = baseWeights.efficiencyWeight * metaParams.efficiencyWeight;
-  const dangerWeight = baseWeights.dangerWeight * metaParams.dangerWeight;
+  const dangerWeightMul = opts?.dangerWeightMul ?? 1;
+  const efficiencyWeightMul = opts?.efficiencyWeightMul ?? 1;
+  const efficiencyWeight = baseWeights.efficiencyWeight * metaParams.efficiencyWeight * efficiencyWeightMul;
+  const dangerWeight = baseWeights.dangerWeight * metaParams.dangerWeight * dangerWeightMul;
 
   const topThreat = ctx?.opponentSnapshot ? findMostDangerousOpponent(ctx.opponentSnapshot, playerId) : null;
   const baseThreatWeight = topThreat && topThreat.threatLevel === 'HIGH' ? 3.0 : topThreat && topThreat.threatLevel === 'MEDIUM' ? 1.2 : 0.3;
@@ -469,5 +481,41 @@ export function decideHigh(
     reasoning: `Stage ${bestEV.stage.stage}${bestEV.stage.shouldDefend ? ' [防守]' : ''}: 向听${bestEV.Pwin.xiangting} | P(win)=${(bestEV.Pwin.Pwin * 100).toFixed(1)}% Score=${bestEV.Score.Score.toFixed(0)} | P(lose)=${(bestEV.Plose.Plose * 100).toFixed(1)}% Loss=${bestEV.Loss.Loss.toFixed(0)} | EV=${bestEV.EV.toFixed(0)}`,
   };
 
+  // 低难度随机性：以一定概率从候选池中挑选，模拟新手失误（形成挑战梯度）
+  if (opts?.randomness && opts.randomness > 0 && pool.length > 1 && Math.random() < opts.randomness) {
+    const r = pool[Math.floor(Math.random() * pool.length)];
+    return { type: 'DISCARD', tile: r.tile };
+  }
+
   return { type: 'DISCARD', tile };
+}
+
+/**
+ * 中等难度策略：降低防守（危险度）权重，更倾向进攻，但仍使用完整 EV 计算。
+ * 与 decideHigh 形成明显但可控的挑战梯度。
+ */
+export function decideMid(
+  state: GameState,
+  playerId: PlayerId,
+  legal: Action[],
+  ctx?: AgentDecisionContext,
+): Action {
+  return decideHigh(state, playerId, legal, ctx, { dangerWeightMul: 0.5 });
+}
+
+/**
+ * 低难度策略：进一步降低防守与效率权重，并引入随机失误。
+ * 用于新手/休闲场景，避免「挑战梯度」名存实亡。
+ */
+export function decideLow(
+  state: GameState,
+  playerId: PlayerId,
+  legal: Action[],
+  ctx?: AgentDecisionContext,
+): Action {
+  return decideHigh(state, playerId, legal, ctx, {
+    dangerWeightMul: 0.3,
+    efficiencyWeightMul: 0.7,
+    randomness: 0.3,
+  });
 }

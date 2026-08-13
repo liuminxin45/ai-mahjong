@@ -1,5 +1,7 @@
 # Chengdu 麻将新功能实现总结
 
+> ⚠️ **文档准确性声明**：本文为早期「新功能」实现总结，其中番值与计分示例部分基于旧草稿（如底分 500、清一色 6 番），**与当前代码 `src/core/rules/packs/chengdu/patterns.ts` 不一致**。权威真相源：清一色=2、七对子=2、龙七对=3、底分=5、计分 `5×2^(总番-1)`，详见 `RULES_CHENGDU.md`。下文已修正显式错误项。
+
 ## ✅ 已完成的 4 大新功能
 
 ### 1. 缺一门（Que Yi Men）⭐⭐⭐
@@ -44,7 +46,7 @@
 - 2根: 2000  (500 * 2^2)
 - 3根: 4000  (500 * 2^3)
 
-清一色+对对胡（8番）基础分 4000
+清一色+对对胡（4番：清一色2 + 对对胡2）基础分 4000（注：本段 500 基数为旧草稿示例，真实底分=5，见顶部声明）
 - 0根: 4000
 - 1根: 8000  (4000 * 2^1)
 ```
@@ -261,7 +263,7 @@ if (hasQueYiMen(hand, melds)) {
 import { calculateScore } from './patterns';
 
 const yakuList = [
-  { type: 'QING_YI_SE', fan: 6, description: '清一色' },
+  { type: 'QING_YI_SE', fan: 2, description: '清一色' },
   { type: 'DUI_DUI_HU', fan: 2, description: '对对胡' },
 ];
 
