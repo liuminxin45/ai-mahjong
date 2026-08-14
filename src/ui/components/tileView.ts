@@ -1,6 +1,7 @@
 import type { Tile } from '../../core/model/tile';
 import { tileToString } from '../../core/model/tile';
 import { languageStore } from '../../store/languageStore';
+import { getActivePaletteLut, getTileColorMode } from '../tilePalette';
 import w1Icon from '../../../resource/mahjong_tiles/Characters1.png';
 import w2Icon from '../../../resource/mahjong_tiles/Characters2.png';
 import w3Icon from '../../../resource/mahjong_tiles/Characters3.png';
@@ -31,11 +32,13 @@ import b9Icon from '../../../resource/mahjong_tiles/Bamboo9.png';
 
 export type TileVariant = 'hand' | 'drawn' | 'discard' | 'discard-focus' | 'meld' | 'wall' | 'back';
 
+// Source tiles are 20x28 px (aspect 20:28 = 0.7143). Every size step keeps that
+// exact ratio so the bitmap is never anisotropically stretched (ASSET_AUDIT §2.3).
 const pixelTileTargetSize: Record<'xs' | 'sm' | 'md' | 'lg', { width: number; height: number }> = {
-  xs: { width: 10, height: 16 },
-  sm: { width: 14, height: 22 },
-  md: { width: 20, height: 30 },
-  lg: { width: 28, height: 42 },
+  xs: { width: 10, height: 14 },
+  sm: { width: 14, height: 20 },
+  md: { width: 20, height: 28 },
+  lg: { width: 28, height: 40 },
 };
 
 const pixelTileRenderScale: Record<'xs' | 'sm' | 'md' | 'lg', number> = {
@@ -46,13 +49,9 @@ const pixelTileRenderScale: Record<'xs' | 'sm' | 'md' | 'lg', number> = {
   lg: 1,
 };
 
-const pixelTileSharpenAmount: Record<'xs' | 'sm' | 'md' | 'lg', number> = {
-  xs: 0.55,
-  sm: 0.45,
-  md: 0.32,
-  lg: 0.28,
-};
-
+// (src, size, mode) -> processed dataURL. Bounded LRU: at most 27 assets x 4
+// sizes x 5 color modes = 540 possible keys; evict oldest beyond the cap.
+const PIXEL_TILE_CACHE_LIMIT = 320;
 const pixelTileCache = new Map<string, string>();
 const pixelTilePending = new Map<string, Promise<string>>();
 
@@ -93,54 +92,35 @@ const suitIconMap: Record<Tile['suit'], Record<Tile['rank'], string>> = {
 };
 
 function getPixelTileCacheKey(src: string, size: keyof typeof pixelTileTargetSize): string {
-  return `${src}::${size}`;
+  return `${src}::${size}::${getTileColorMode()}`;
 }
 
-function clampByte(value: number): number {
-  if (value < 0) return 0;
-  if (value > 255) return 255;
-  return value;
-}
-
-function applySharpen(context: CanvasRenderingContext2D, width: number, height: number, amount: number): void {
-  if (amount <= 0) return;
-
-  const source = context.getImageData(0, 0, width, height);
-  const src = source.data;
-  const output = context.createImageData(width, height);
-  const dst = output.data;
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-
-      const leftX = x > 0 ? x - 1 : x;
-      const rightX = x < width - 1 ? x + 1 : x;
-      const upY = y > 0 ? y - 1 : y;
-      const downY = y < height - 1 ? y + 1 : y;
-
-      const leftIdx = (y * width + leftX) * 4;
-      const rightIdx = (y * width + rightX) * 4;
-      const upIdx = (upY * width + x) * 4;
-      const downIdx = (downY * width + x) * 4;
-
-      for (let c = 0; c < 3; c++) {
-        const current = src[idx + c];
-        const sharpened =
-          current * 5 -
-          src[leftIdx + c] -
-          src[rightIdx + c] -
-          src[upIdx + c] -
-          src[downIdx + c];
-        const mixed = current + (sharpened - current) * amount;
-        dst[idx + c] = clampByte(mixed);
-      }
-
-      dst[idx + 3] = src[idx + 3];
-    }
+function rememberPixelTile(cacheKey: string, dataUrl: string): void {
+  pixelTileCache.delete(cacheKey);
+  pixelTileCache.set(cacheKey, dataUrl);
+  while (pixelTileCache.size > PIXEL_TILE_CACHE_LIMIT) {
+    const oldest = pixelTileCache.keys().next().value;
+    if (oldest === undefined) break;
+    pixelTileCache.delete(oldest);
   }
+}
 
-  context.putImageData(output, 0, 0);
+// Remap every pixel through the active 6-color LUT (identity in 'normal' mode).
+function applyPaletteLut(context: CanvasRenderingContext2D, width: number, height: number): void {
+  const lut = getActivePaletteLut();
+  if (!lut) return;
+
+  const imageData = context.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] === 0) continue;
+    const mapped = lut.get((data[i] << 16) | (data[i + 1] << 8) | data[i + 2]);
+    if (mapped === undefined) continue;
+    data[i] = (mapped >> 16) & 0xff;
+    data[i + 1] = (mapped >> 8) & 0xff;
+    data[i + 2] = mapped & 0xff;
+  }
+  context.putImageData(imageData, 0, 0);
 }
 
 function createPixelatedTile(src: string, size: keyof typeof pixelTileTargetSize): Promise<string> {
@@ -153,7 +133,6 @@ function createPixelatedTile(src: string, size: keyof typeof pixelTileTargetSize
 
   const { width, height } = pixelTileTargetSize[size];
   const renderScale = pixelTileRenderScale[size];
-  const sharpenAmount = pixelTileSharpenAmount[size];
   const renderWidth = width * renderScale;
   const renderHeight = height * renderScale;
   const job = new Promise<string>((resolve, reject) => {
@@ -170,14 +149,15 @@ function createPixelatedTile(src: string, size: keyof typeof pixelTileTargetSize
           return;
         }
 
-        context.imageSmoothingEnabled = true;
-        context.imageSmoothingQuality = 'high';
+        // Pixel art: never smooth. Nearest-neighbor keeps hard edges; the LUT
+        // then remaps the 6-color palette for the active color mode.
+        context.imageSmoothingEnabled = false;
         context.clearRect(0, 0, renderWidth, renderHeight);
         context.drawImage(image, 0, 0, renderWidth, renderHeight);
-        applySharpen(context, renderWidth, renderHeight, sharpenAmount);
+        applyPaletteLut(context, renderWidth, renderHeight);
 
         const pixelated = canvas.toDataURL('image/png');
-        pixelTileCache.set(cacheKey, pixelated);
+        rememberPixelTile(cacheKey, pixelated);
         resolve(pixelated);
       } catch (error) {
         reject(error);

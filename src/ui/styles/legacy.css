@@ -484,8 +484,8 @@ h4 {
 }
 
 .mj-tile--xs img {
-    width: 12px;
-    height: 16px;
+    width: 10px;
+    height: 14px;
 }
 
 .mj-tile--sideways.mj-tile--xs {
@@ -519,13 +519,13 @@ h4 {
 }
 
 .mj-tile--sm img {
-    width: 13px;
-    height: 19px;
+    width: 14px;
+    height: 20px;
 }
 
 .mj-tile--md img {
-    width: 26px;
-    height: 36px;
+    width: 20px;
+    height: 28px;
 }
 
 .mj-tile--lg {
@@ -536,7 +536,7 @@ h4 {
 
 .mj-tile--lg img {
     width: 28px;
-    height: 42px;
+    height: 40px;
 }
 
 .mj-tile--drawn {
@@ -3149,25 +3149,21 @@ h4 {
 .phase-screen .mj-tile--xs img,
 .result-panel .mj-tile--xs img {
     width: 10px;
-    height: 16px;
-    image-rendering: auto;
-    image-rendering: smooth;
+    height: 14px;
 }
 
 .pixel-table .mj-tile--sm img,
 .phase-screen .mj-tile--sm img,
 .result-panel .mj-tile--sm img {
     width: 14px;
-    height: 22px;
-    image-rendering: auto;
-    image-rendering: smooth;
+    height: 20px;
 }
 
 .pixel-table .mj-tile--md img,
 .phase-screen .mj-tile--md img,
 .result-panel .mj-tile--md img {
     width: 20px;
-    height: 30px;
+    height: 28px;
 }
 
 .pixel-table .mj-tile--lg,
@@ -3179,8 +3175,8 @@ h4 {
 
 .pixel-table .mj-tile--lg img,
 .phase-screen .mj-tile--lg img {
-    width: 32px;
-    height: 46px;
+    width: 28px;
+    height: 40px;
 }
 
 .pixel-table .mj-tile--back {
@@ -3428,6 +3424,12 @@ h4 {
         height: 14px;
     }
 
+    .pixel-table .mj-tile--lg img,
+    .phase-screen .mj-tile--lg img {
+        width: 20px;
+        height: 28px;
+    }
+
     .mj-tile--sideways.mj-tile--xs {
         min-width: 14px;
         min-height: 20px;
@@ -3667,8 +3669,8 @@ h4 {
     .pixel-meld-strip--self-tray .mj-tile--xs img,
     .pixel-meld-strip--seat-left .mj-tile--xs img,
     .pixel-meld-strip--seat-right .mj-tile--xs img {
-        width: 9px;
-        height: 13px;
+        width: 10px;
+        height: 14px;
     }
 
     .pixel-actions {
