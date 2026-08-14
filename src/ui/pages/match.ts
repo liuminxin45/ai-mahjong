@@ -11,10 +11,13 @@ import {
 } from '../components/LLMChatAssistant';
 import { dismissPixelAlertDialog, showPixelAlertDialog } from '../components/pixelDialog';
 import { languageStore } from '../../store/languageStore';
+import { attachAudioBridge, playFeedback } from '../../audio/audioBridge';
 
 export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   root.innerHTML = '';
   ctx.orchestrator.setUiAlertHandler((payload) => {
+    // T4 错误反馈：与错误弹窗（role=alert 视觉孪生）严格同步（AUDIO_DESIGN §3.3）。
+    playFeedback(false);
     showPixelAlertDialog(payload);
   });
 
@@ -40,6 +43,9 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
   page.appendChild(toolbar);
   page.appendChild(contentArea);
   root.appendChild(page);
+
+  // 音频桥接：事件→SFX + aria-live 播报区（AUDIO_DESIGN §5.2/§7.2）。
+  const audioBridge = attachAudioBridge(page, ctx.gameStore);
 
   const appendToolbarButton = (label: string, onClick: () => void, emphasis = false) => {
     const btn = document.createElement('button');
@@ -97,7 +103,11 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
       ? {
         gameState: ctx.gameStore.state,
         legalActions: ctx.orchestrator.getLegalActions('P0'),
-        dispatchAction: (action: Action) => ctx.orchestrator.dispatchHumanAction(action),
+        dispatchAction: (action: Action) => {
+          // T3 正确反馈：人类动作通过编排器合法校验并成功派发（AUDIO_DESIGN §3.3）。
+          playFeedback(true);
+          ctx.orchestrator.dispatchHumanAction(action);
+        },
       }
       : {};
 
@@ -121,6 +131,7 @@ export function renderMatch(root: HTMLElement, ctx: UiCtx): () => void {
     disposed = true;
     ctx.orchestrator.setUiAlertHandler(null);
     dismissPixelAlertDialog();
+    audioBridge.dispose();
     aiLauncher?.remove();
     removeChatAssistantSurface();
     unsub();

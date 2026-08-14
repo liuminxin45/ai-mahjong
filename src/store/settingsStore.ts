@@ -4,6 +4,20 @@ export type UiMode = 'DEBUG' | 'TABLE';
 
 type Listener = () => void;
 
+/** 音频设置子对象（AUDIO_DESIGN.md §4.5）。 */
+export interface AudioSettings {
+  /** 总开关（默认 true，但首屏手势前实际静默） */
+  enabled: boolean;
+  /** 音效音量 0..1，默认 0.80 */
+  sfxVolume: number;
+  /** 音乐音量 0..1，默认 0.35（BGM 不进 MVP，仅预留总线） */
+  bgmVolume: number;
+  /** 语音音量 0..1，默认 1.00（A11Y-C3 预留） */
+  voiceVolume: number;
+  /** 减弱模式：缩短 sting 尾音、降亮度（呼应 prefers-reduced-motion） */
+  reduceIntensity: boolean;
+}
+
 export interface PersistedSettings {
   difficulty: Difficulty;
   ruleId: RuleId;
@@ -18,9 +32,18 @@ export interface PersistedSettings {
   trainingVerbose: boolean;
   uiScale: number;
   hudSafeZonePercent: number;
+  audio: AudioSettings;
 }
 
 export const SETTINGS_STORAGE_KEY = 'ai-mahjong:settings';
+
+const DEFAULT_AUDIO: AudioSettings = {
+  enabled: true,
+  sfxVolume: 0.8,
+  bgmVolume: 0.35,
+  voiceVolume: 1,
+  reduceIntensity: false,
+};
 
 const DEFAULT_SETTINGS: PersistedSettings = {
   difficulty: 'high',
@@ -36,7 +59,39 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   trainingVerbose: false,
   uiScale: 1,
   hudSafeZonePercent: 3,
+  audio: DEFAULT_AUDIO,
 };
+
+/** 尊重 prefers-reduced-motion：作为 reduceIntensity 的默认来源（AUDIO_DESIGN §4.5）。 */
+function detectReduceMotionDefault(): boolean {
+  try {
+    return typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    return false;
+  }
+}
+
+function clampVolume(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function sanitizeAudio(audio?: Partial<AudioSettings>): AudioSettings {
+  // 只接受真正的 number（null / 字符串 / NaN 均回落默认）
+  const sfxVolume = typeof audio?.sfxVolume === 'number' ? audio.sfxVolume : NaN;
+  const bgmVolume = typeof audio?.bgmVolume === 'number' ? audio.bgmVolume : NaN;
+  const voiceVolume = typeof audio?.voiceVolume === 'number' ? audio.voiceVolume : NaN;
+  return {
+    enabled: typeof audio?.enabled === 'boolean' ? audio.enabled : DEFAULT_AUDIO.enabled,
+    sfxVolume: Number.isFinite(sfxVolume) ? clampVolume(sfxVolume) : DEFAULT_AUDIO.sfxVolume,
+    bgmVolume: Number.isFinite(bgmVolume) ? clampVolume(bgmVolume) : DEFAULT_AUDIO.bgmVolume,
+    voiceVolume: Number.isFinite(voiceVolume) ? clampVolume(voiceVolume) : DEFAULT_AUDIO.voiceVolume,
+    reduceIntensity: typeof audio?.reduceIntensity === 'boolean'
+      ? audio.reduceIntensity
+      : detectReduceMotionDefault(),
+  };
+}
 
 function hasLocalStorage(): boolean {
   try {
@@ -75,6 +130,7 @@ function sanitizeSettings(settings?: Partial<PersistedSettings>): PersistedSetti
     hudSafeZonePercent: Number.isFinite(hudSafeZonePercent)
       ? Math.max(0, Math.min(8, Math.round(hudSafeZonePercent)))
       : DEFAULT_SETTINGS.hudSafeZonePercent,
+    audio: sanitizeAudio(settings?.audio),
   };
 }
 
@@ -138,6 +194,18 @@ class SettingsStore {
   get hudSafeZonePercent(): number { return this.state.hudSafeZonePercent; }
   set hudSafeZonePercent(hudSafeZonePercent: number) { this.update({ hudSafeZonePercent }); }
 
+  get audio(): AudioSettings { return { ...this.state.audio }; }
+  get audioEnabled(): boolean { return this.state.audio.enabled; }
+  set audioEnabled(enabled: boolean) { this.updateAudio({ enabled }); }
+  get sfxVolume(): number { return this.state.audio.sfxVolume; }
+  set sfxVolume(sfxVolume: number) { this.updateAudio({ sfxVolume }); }
+  get bgmVolume(): number { return this.state.audio.bgmVolume; }
+  set bgmVolume(bgmVolume: number) { this.updateAudio({ bgmVolume }); }
+  get voiceVolume(): number { return this.state.audio.voiceVolume; }
+  set voiceVolume(voiceVolume: number) { this.updateAudio({ voiceVolume }); }
+  get reduceAudioIntensity(): boolean { return this.state.audio.reduceIntensity; }
+  set reduceAudioIntensity(reduceIntensity: boolean) { this.updateAudio({ reduceIntensity }); }
+
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -162,6 +230,10 @@ class SettingsStore {
     this.state = next;
     this.persist();
     this.emit();
+  }
+
+  private updateAudio(patch: Partial<AudioSettings>): void {
+    this.update({ audio: { ...this.state.audio, ...patch } });
   }
 
   setDifficulty(difficulty: Difficulty): void {
@@ -214,6 +286,26 @@ class SettingsStore {
 
   setHudSafeZonePercent(percent: number): void {
     this.hudSafeZonePercent = percent;
+  }
+
+  setAudioEnabled(enabled: boolean): void {
+    this.audioEnabled = enabled;
+  }
+
+  setSfxVolume(volume: number): void {
+    this.sfxVolume = volume;
+  }
+
+  setBgmVolume(volume: number): void {
+    this.bgmVolume = volume;
+  }
+
+  setVoiceVolume(volume: number): void {
+    this.voiceVolume = volume;
+  }
+
+  setReduceAudioIntensity(enabled: boolean): void {
+    this.reduceAudioIntensity = enabled;
   }
 }
 

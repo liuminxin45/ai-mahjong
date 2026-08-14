@@ -81,6 +81,15 @@ export interface Translations {
     toolsHistory: string;
     toolsProfile: string;
     toolsAIParams: string;
+
+    // 音频设置（AUDIO_DESIGN §4.5）
+    audioTitle: string;
+    audioSubtitle: string;
+    audioEnabled: string;
+    audioSfxVolume: string;
+    audioBgmVolume: string;
+    audioVoiceVolume: string;
+    audioReduceIntensity: string;
   };
   
   // 游戏界面
@@ -440,6 +449,13 @@ export const translations: Record<Language, Translations> = {
       toolsHistory: '历史',
       toolsProfile: '画像',
       toolsAIParams: '参数',
+      audioTitle: '音频',
+      audioSubtitle: 'SOUND / VOLUME / INTENSITY',
+      audioEnabled: '音效总开关：',
+      audioSfxVolume: '音效音量',
+      audioBgmVolume: '音乐音量（预留）',
+      audioVoiceVolume: '语音音量（预留）',
+      audioReduceIntensity: '减弱动效与音效强度：',
     },
     
     game: {
@@ -794,6 +810,13 @@ export const translations: Record<Language, Translations> = {
       toolsHistory: 'History',
       toolsProfile: 'Profile',
       toolsAIParams: 'AI Params',
+      audioTitle: 'Audio',
+      audioSubtitle: 'SOUND / VOLUME / INTENSITY',
+      audioEnabled: 'Sound enabled:',
+      audioSfxVolume: 'SFX volume',
+      audioBgmVolume: 'Music volume (reserved)',
+      audioVoiceVolume: 'Voice volume (reserved)',
+      audioReduceIntensity: 'Reduce motion & sound intensity:',
     },
     
     game: {

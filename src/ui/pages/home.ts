@@ -1,6 +1,7 @@
 import type { UiCtx } from '../context';
 import { languageStore } from '../../store/languageStore';
 import { createPixelButton } from '../components/pixelFrame';
+import { resumeAudioOnGesture } from '../../audio/audioBridge';
 
 export function renderHome(root: HTMLElement, ctx: UiCtx): void {
   root.innerHTML = '';
@@ -32,6 +33,8 @@ export function renderHome(root: HTMLElement, ctx: UiCtx): void {
 
   const start = createPixelButton(t.home.newGame, 'accent');
   start.onclick = () => {
+    // 首次手势：创建/恢复 AudioContext（无自动播放合规，AUDIO_DESIGN §4.1）。
+    resumeAudioOnGesture();
     ctx.orchestrator.startNewMatch(ctx.settingsStore.ruleId);
     ctx.navigate('#/match');
   };

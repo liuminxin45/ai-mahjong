@@ -49,6 +49,7 @@ export function renderSettings(root: HTMLElement, ctx: UiCtx): void {
 
   body.appendChild(renderSettingsSection(ctx));
   body.appendChild(renderDisplaySection(ctx));
+  body.appendChild(renderAudioSection(ctx));
   body.appendChild(renderAISection(ctx, () => renderSettings(root, ctx)));
   body.appendChild(renderTrainingSection(ctx));
   body.appendChild(renderToolsSection(ctx));
@@ -194,6 +195,79 @@ function renderDisplaySection(ctx: UiCtx): HTMLElement {
   safeZoneField.appendChild(safeZone);
   safeZoneField.appendChild(safeZoneHint);
   body.appendChild(safeZoneField);
+
+  return section;
+}
+
+/** 音频分区（AUDIO_DESIGN §4.5）：总开关 + 三路音量 + 减弱动效，中文界面。 */
+function renderAudioSection(ctx: UiCtx): HTMLElement {
+  const t = languageStore.t().settings;
+  const section = createSection(t.audioTitle, t.audioSubtitle);
+  const body = section.querySelector('.pixel-page-section__body') as HTMLElement;
+
+  const enabled = document.createElement('input');
+  enabled.type = 'checkbox';
+  enabled.className = 'pixel-checkbox';
+  enabled.checked = ctx.settingsStore.audioEnabled;
+  enabled.setAttribute('aria-label', t.audioEnabled);
+  enabled.onchange = () => ctx.settingsStore.setAudioEnabled(enabled.checked);
+  body.appendChild(createInlineField(t.audioEnabled, enabled));
+
+  const createVolumeField = (
+    label: string,
+    getValue: () => number,
+    setValue: (v: number) => void,
+  ): HTMLElement => {
+    const field = document.createElement('div');
+    field.className = 'pixel-field';
+    const labelEl = document.createElement('div');
+    labelEl.className = 'pixel-field__label';
+    labelEl.textContent = label;
+    const hint = document.createElement('div');
+    hint.className = 'pixel-field__desc';
+    hint.textContent = `${Math.round(getValue() * 100)}%`;
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'pixel-range';
+    slider.min = '0';
+    slider.max = '1';
+    slider.step = '0.05';
+    slider.value = String(getValue());
+    slider.setAttribute('aria-label', label);
+    slider.oninput = () => {
+      const next = Number(slider.value);
+      setValue(next);
+      hint.textContent = `${Math.round(next * 100)}%`;
+    };
+    field.appendChild(labelEl);
+    field.appendChild(slider);
+    field.appendChild(hint);
+    return field;
+  };
+
+  body.appendChild(createVolumeField(
+    t.audioSfxVolume,
+    () => ctx.settingsStore.sfxVolume,
+    (v) => ctx.settingsStore.setSfxVolume(v),
+  ));
+  body.appendChild(createVolumeField(
+    t.audioBgmVolume,
+    () => ctx.settingsStore.bgmVolume,
+    (v) => ctx.settingsStore.setBgmVolume(v),
+  ));
+  body.appendChild(createVolumeField(
+    t.audioVoiceVolume,
+    () => ctx.settingsStore.voiceVolume,
+    (v) => ctx.settingsStore.setVoiceVolume(v),
+  ));
+
+  const reduce = document.createElement('input');
+  reduce.type = 'checkbox';
+  reduce.className = 'pixel-checkbox';
+  reduce.checked = ctx.settingsStore.reduceAudioIntensity;
+  reduce.setAttribute('aria-label', t.audioReduceIntensity);
+  reduce.onchange = () => ctx.settingsStore.setReduceAudioIntensity(reduce.checked);
+  body.appendChild(createInlineField(t.audioReduceIntensity, reduce));
 
   return section;
 }
