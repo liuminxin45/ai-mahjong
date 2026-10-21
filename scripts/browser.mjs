@@ -18,7 +18,7 @@ for(const [name,launcher] of [['chromium',chromium],['webkit',webkit]]){
  }
  await page.setViewportSize({width:1280,height:900});await page.goto(base+'/practice');await page.getByRole('heading',{level:1}).waitFor();await page.locator('.mj-hand').first().getByRole('button',{name:'九条',exact:true}).click();await page.getByRole('button',{name:'提交答案',exact:true}).click();await page.getByText('判断正确',{exact:true}).waitFor();await page.reload();await page.getByText('判断正确',{exact:true}).waitFor();await page.getByRole('button',{name:'下一题',exact:true}).click();assert.equal(await page.getByRole('button',{name:'提交答案',exact:true}).count(),1);
  await page.goto(base+'/manual/lesson-01');await page.getByRole('link',{name:'把例子送到分析器 →'}).click();await page.getByRole('heading',{name:'手牌分析',exact:true}).waitFor();assert.ok(page.url().includes('/analysis?hand='));
- await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('dialog').waitFor();await page.keyboard.press('Escape');assert.equal(await page.getByRole('dialog').count(),0);
+ await page.getByRole('button',{name:'数据与设置',exact:true}).click();await page.getByRole('dialog').waitFor();await page.keyboard.press('Escape');assert.equal(await page.getByRole('dialog').count(),0);
  await page.setViewportSize({width:390,height:844});await page.goto(base+'/practice');await page.getByRole('button',{name:'切换导航',exact:true}).click();await page.getByRole('link',{name:'手牌分析',exact:true}).click();await page.getByRole('heading',{name:'手牌分析',exact:true}).waitFor();
  assert.deepEqual(errors,[],`${name}: uncaught browser errors`);await browser.close();
 }

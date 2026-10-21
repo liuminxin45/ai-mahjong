@@ -68,6 +68,7 @@
     "test": "vitest run",
     "test:run": "vitest run",
     "test:browser": "node scripts/browser.mjs",
+    "test:editor": "node scripts/analysis-browser.mjs",
     "check:ui": "node node_modules/chatgpt-desktop-kit/dist/check-consumer.mjs",
     "preview": "vite preview --host 127.0.0.1"
   }

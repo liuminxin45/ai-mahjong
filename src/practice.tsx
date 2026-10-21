@@ -11,8 +11,11 @@ export function ResultDetails({refValue}:{refValue:ExerciseRef}){
   const q=useMemo(()=>exercise(refValue),[refValue.mode,refValue.seed]);const r=useMemo(()=>analyze(q.context),[q]);
   return <section className="mj-explanation"><h2>拆开看这一手</h2><p>{solutionText(q)}</p><p className="mj-muted">可接受答案</p><Hand tiles={answers(q)}/>{r.discards.length>0&&<details><summary>比较全部舍牌方案</summary><DiscardTable result={r}/></details>}<AppLink to={'../manual/'+q.lessonId}>阅读关联课程 →</AppLink></section>;
 }
-export function DiscardTable({result}:{result:ReturnType<typeof analyze>}){
-  return <div className="mj-table-wrap"><Table density="compact"><TableHead><TableRow><TableHeaderCell>舍牌</TableHeaderCell><TableHeaderCell>向听</TableHeaderCell><TableHeaderCell>进张</TableHeaderCell><TableHeaderCell>有效牌种</TableHeaderCell></TableRow></TableHead><TableBody>{result.discards.map(d=><TableRow key={d.tile}><TableCell>{tileName(d.tile)}{d.best?' · 最优':''}</TableCell><TableCell>{d.shanten}</TableCell><TableCell>{d.ukeire}张</TableCell><TableCell>{d.improvements.map(t=>tileName(t.tile)+'×'+t.remaining).join('、')||'无'}</TableCell></TableRow>)}</TableBody></Table></div>;
+export function HandMetricsHelp(){
+  return <details className="mj-metrics-help"><summary>向听、进张是什么意思？</summary><p>向听越小，离胡牌越近：0是已经听牌，1是还需改善一次才能听牌，-1是已经成牌。</p><p>进张是能降低向听的牌，扣除手牌和已知牌后还剩多少张。已经听牌时，进张就是剩余的胡牌张数。</p><p>先比较向听，再比较进张。1向听的50张改善机会，不能直接与0向听的8张胡牌机会比较。</p></details>;
+}
+export function DiscardTable({result,explainTerms=true}:{result:ReturnType<typeof analyze>;explainTerms?:boolean}){
+  return <>{explainTerms&&<HandMetricsHelp/>}<div className="mj-table-wrap"><Table density="compact"><TableHead><TableRow><TableHeaderCell>舍牌</TableHeaderCell><TableHeaderCell>向听</TableHeaderCell><TableHeaderCell>进张</TableHeaderCell><TableHeaderCell>有效牌种 × 剩余数</TableHeaderCell></TableRow></TableHead><TableBody>{result.discards.map(d=><TableRow key={d.tile}><TableCell>{tileName(d.tile)}{d.best?' · 最优':''}</TableCell><TableCell>{d.shanten}</TableCell><TableCell>{d.ukeire}张</TableCell><TableCell>{d.improvements.map(t=>tileName(t.tile)+'×'+t.remaining).join('、')||'无'}</TableCell></TableRow>)}</TableBody></Table></div></>;
 }
 export function PracticePage(){
   const [params,setParams]=useSearchParams();const raw=params.get('mode');const mode:Mode=MODES.includes(raw as Mode)?raw as Mode:'discard';

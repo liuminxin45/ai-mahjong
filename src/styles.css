@@ -60,6 +60,26 @@
 .mj-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:16px 0; }
 .mj-analysis-layout { display:grid; grid-template-columns:minmax(0,1fr); gap:38px; }
 .mj-analysis-layout>section { min-width:0; }
+.mj-editor-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; }
+.mj-editor-heading h2 { margin:0; }
+.mj-editor-commands { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.mj-hand-empty { display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-height:120px; padding:16px 0; }
+.mj-hand-empty p { color:var(--desktop-color-text-muted); font-size:13px; }
+.mj-editor-panel>p { margin:16px 0; }
+.mj-tile-picker { display:flex; flex-direction:column; gap:16px; margin:16px 0 24px; max-width:620px; }
+.mj-picker-suit>span { display:block; margin-bottom:8px; }
+.mj-picker-row { display:grid; grid-template-columns:repeat(9,minmax(0,1fr)); gap:8px 4px; }
+.mj-picker-row .mj-tile { width:100%; min-height:44px; }
+.mj-tile-detail { display:block; font-size:11px; line-height:18px; color:var(--desktop-color-text-muted); white-space:nowrap; }
+.mj-set-preview { display:flex; align-items:center; flex-wrap:wrap; gap:16px; }
+.mj-set-preview .mj-hand { display:flex; width:auto; }
+.mj-analysis-layout .mj-set-preview .mj-hand .mj-tile { width:44px; }
+.mj-fixed-list { margin-bottom:20px; }
+.mj-fixed-actions { display:flex; gap:6px; flex-wrap:wrap; }
+.mj-visible-tiles { display:flex; flex-wrap:wrap; gap:12px; padding:12px 0; }
+.mj-visible-tiles .mj-tile { width:52px; }
+.mj-metrics-help { font-size:12px; color:var(--desktop-color-text-subtle); margin:12px 0 20px; }
+.mj-metrics-help summary { font-weight:400; }
 .mj-field { display:flex; flex-direction:column; gap:8px; margin:12px 0; }
 .mj-field>span { font-size:13px; color:var(--desktop-color-text-subtle); }
 .mj-editor-details { padding:16px 0; border-bottom:1px solid var(--desktop-color-border); }
@@ -116,6 +136,7 @@
  .mj-hand { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; width:100%; padding:16px 0; }
  .mj-hand .mj-tile { width:100%; min-height:44px; }
  .mj-analysis-layout .mj-hand .mj-tile { width:100%; }
+ .mj-picker-row { grid-template-columns:repeat(6,minmax(0,1fr)); }
  .mj-palette { grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px 3px; }
  .mj-palette .mj-tile { min-height:44px; }
  .mj-stat-line { gap:24px; }
