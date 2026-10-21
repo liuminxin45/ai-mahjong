@@ -4,7 +4,8 @@ import { useNavigate, useResolvedPath } from 'react-router';
 import { analyze, tileName, type AnalysisResult, type HandContext, type TileId } from './engine/index.js';
 import type { LearningData, LearningRepository } from './learning/storage.js';
 import type { ProfileClient } from './client.js';
-export type AppContext={data:LearningData;update:(fn:(data:LearningData)=>LearningData)=>void;assets:string;profileClient:ProfileClient;repository:LearningRepository;notice:(message:string)=>void};
+import type { CompetitionClient } from './learning/competition.js';
+export type AppContext={data:LearningData;update:(fn:(data:LearningData)=>LearningData)=>void;assets:string;profileClient:ProfileClient;competitionClient:CompetitionClient;repository:LearningRepository;notice:(message:string)=>void};
 export const LearningContext=createContext<AppContext>(null!);
 export const useLearning=()=>useContext(LearningContext);
 export function AppLink({to,children,...props}:{to:string;children:ReactNode;actionId?:string;className?:string}){
@@ -36,6 +37,14 @@ export function useAnalysis(context:HandContext,createWorker?:()=>Worker,enabled
 }
 export function useActiveTime(key:string){
   const total=useRef(0),start=useRef<number|null>(null);
-  useEffect(()=>{total.current=0;start.current=document.hidden?null:performance.now();const visibility=()=>{if(document.hidden&&start.current!==null){total.current+=performance.now()-start.current;start.current=null;}else if(!document.hidden&&start.current===null)start.current=performance.now();};document.addEventListener('visibilitychange',visibility);return()=>document.removeEventListener('visibilitychange',visibility);},[key]);
+  useEffect(()=>{
+   const storageKey='neo-mahjong-active:'+key;
+   try{const saved=Number(sessionStorage.getItem(storageKey));total.current=Number.isFinite(saved)&&saved>=0&&saved<=1800000?saved:0;}catch{total.current=0;}
+   start.current=document.hidden?null:performance.now();
+   const persist=()=>{try{sessionStorage.setItem(storageKey,String(Math.min(1800000,total.current+(start.current===null?0:performance.now()-start.current))));}catch{}};
+   const visibility=()=>{if(document.hidden&&start.current!==null){total.current+=performance.now()-start.current;start.current=null;}else if(!document.hidden&&start.current===null)start.current=performance.now();persist();};
+   const interval=setInterval(persist,1000);document.addEventListener('visibilitychange',visibility);window.addEventListener('pagehide',persist);
+   return()=>{persist();clearInterval(interval);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('pagehide',persist);};
+  },[key]);
   return ()=>Math.min(1800000,Math.round(total.current+(start.current===null?0:performance.now()-start.current)));
 }

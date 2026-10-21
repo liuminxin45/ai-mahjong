@@ -37,9 +37,25 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run tests
-        run: pnpm test:run
+        run: pnpm test:coverage
+      - name: Verify versioned question bank
+        run: pnpm bank:verify
+      - name: Compare ten thousand hands with the independent oracle
+        run: pnpm test:oracle
 
       - name: Build (typecheck + bundle)
         run: pnpm build
       - name: Verify shared UI and package exports
         run: pnpm build:package && pnpm check:ui
+      - name: Install test browsers
+        run: pnpm exec playwright install --with-deps chromium webkit
+      - name: Verify responsive learning and legacy records
+        env:
+          MAHJONG_PREVIEW_URL: http://127.0.0.1:5188
+        run: |
+          pnpm preview --port 5188 > /tmp/mahjong-preview.log 2>&1 &
+          for i in $(seq 1 40); do curl --fail --silent http://127.0.0.1:5188/ >/dev/null && break; sleep 1; done
+          pnpm test:upgrade-browser
+          node scripts/selection-browser.mjs
+          node scripts/home-browser.mjs
+          node scripts/profile-browser.mjs

@@ -1,4 +1,5 @@
-export type Lesson = { id:string; unit:number; title:string; paragraphs:string[]; example:string; question:string; mistake:string; mode:string };
+import { BANK_VERSION, SKILLS } from './curriculum.js';
+export type Lesson = { id:string; unit:number; title:string; paragraphs:string[]; example:string; question:string; mistake:string; mode:string;version:string;prerequisites:string[];skillIds:string[];sources:string[];steps:string[];mastery:string };
 const rows:[string,string,string,string,string,string][] = [
  ['双花色牌组','筒子与条子各有一至九，每种四张，共72张。p代表筒，s代表条。没有万子、字牌、花牌或赤牌。|先辨认花色，再数清每种牌的张数。一个牌种在手牌、固定组合与公开区的合计不能超过四张。','123456789p1234s','在选牌器中找出五筒与五条。','把图案数量看错，或只按颜色区分花色。','discard'],
  ['普通和型','普通和型由四组面子加一对将组成。面子可以是同花色连续三张，或三张相同牌；将是两张相同牌。|拆牌时每张只能用一次。已经固定的组合算一组面子；杠虽然有四张，结构上仍只占一组。','123456789p11122s','把这副牌拆成四组与一对。','同一张牌既放进顺子，又重复放进对子。','waits'],
@@ -16,7 +17,7 @@ const rows:[string,string,string,string,string,string][] = [
  ['清一色拆解','清一色在这里指只用一种花色的学习题，不附加番数。相同数字密集时，更容易把同一张牌重复使用。|按最小剩余牌依次尝试刻子、顺子与将。多种拆法都应验证张数，不能仅凭图案相似。','1122334455667s','找出这副单花色手牌的全部听口。','把一种拆法找不到答案当成整副牌不能和。','waits'],
  ['普通型与七对路线','对子很多时，普通型和七对可能竞争。四张相同牌在本工具可以贡献两对，但拆掉其中一张可能同时改变两条路线。|先分别记录两个向听，再比较舍牌。短期保住七对不一定总是最高效，普通型也可能更快。','1111223344p5567s','比较每种舍牌后的普通型和七对向听。','看到五个对子就完全忽略顺子路线。','seven-pairs'],
  ['从牌河读信息','牌河是公开信息，不是对手完整手牌。它可以排除某些组合，却通常不能唯一确定对手听口。|情境题会标出哪些是题设已知事实，哪些只是线索。对手弃过某牌不意味着他之后永远不会等待这张牌。','123456789p12345s','区分题面中的确定信息与推测。','把弃牌记录当作永久安全保证。','defense'],
- ['公开组合与题设','固定刻子、顺子或杠子会缩小剩余手牌的结构空间。分析时要把公开组合也纳入四张上限。|本工具没有完整地区规则。情境题直接给出有效事实，例如已确认的等待集合，不要求学习者猜测未定义的行动规则。','123456789p12345s','查看公开区后再作选择。','漏扣公开组合，或把其他规则的限制默认为题设。','defense'],
+ ['公开组合与题设','成都麻将不能吃牌，公开组合仅碰牌、杠牌；手牌内部仍然可以组成顺子。分析时要把公开组合纳入四张上限。|本工具训练缺门后的条筒牌形。情境题标明已知等待、判断目标和未提供的信息；进张余量不是完整108张实战的摸牌概率。','123456789p12345s','查看公开区后再作选择。','把内部顺子误认为允许吃牌，或漏扣公开组合。','defense'],
  ['危险判断的边界','危险度估计依赖规则、信息和对手模型。只看一条线索不能得出精确放铳率。|本工具攻防题按已声明的假设与目标评分，不把题目正确率称为实战防守能力。没有已知等待时，也不声称某牌绝对安全。','123456789p12345s','找出哪些结论超出了给定信息。','给推测附上看似精确、实际没有依据的概率。','defense'],
  ['效率优先','题目要求效率优先时，按向听与进张比较舍牌。确定的危险信息仍会在解析中展示，但不偷偷改变题目的评分目标。|这类练习用来观察：保留效率可能承受什么代价。它不鼓励把所有真实局面都按同一种目标处理。','123456789p12459s','先按效率选牌，再阅读风险说明。','在题目尚未明确目标时自行假定必须防守。','defense'],
  ['安全优先','题目要求安全优先且已公开对手等待时，先排除确定危险牌。对剩下的选择，再比较牌效。|如果所有选项都在已知等待中，题目必须明确说明没有安全项，不能硬造一个安全答案。本题库在出题时校验可接受选项。','123456789p12459s','找出已知等待以外的候选，再比较效率。','只挑进张最多的一张，忽略已明确的危险。','defense'],
@@ -26,4 +27,4 @@ const rows:[string,string,string,string,string,string][] = [
  ['理解学习画像','画像只描述这批练习中的表现。答题时间与正确率受熟悉程度、设备和提示影响，不能直接推断性格或实战胜率。|每个判断应能回到具体题目。某一维度不足五道独立作答就标记证据不足；AI建议只引用现有课程，不虚构学习经历。','1111223344p5567s','查看报告证据，确认它是否支持文字结论。','把少量练习结果当成稳定能力或人格标签。','seven-pairs'],
 ];
 export const UNIT_TITLES=['认牌与成牌','牌形拆解','向听与进张','何切基础','复杂牌形','防守信息','攻防选择','学习与复盘'];
-export const lessons:Lesson[]=rows.map((r,i)=>({id:`lesson-${String(i+1).padStart(2,'0')}`,unit:Math.floor(i/3),title:r[0],paragraphs:r[1].split('|'),example:r[2],question:r[3],mistake:r[4],mode:r[5]}));
+export const lessons:Lesson[]=rows.map((r,i)=>{const id=`lesson-${String(i+1).padStart(2,'0')}`;return {id,unit:Math.floor(i/3),title:r[0],paragraphs:r[1].split('|'),example:r[2],question:r[3],mistake:r[4],mode:r[5],version:BANK_VERSION,prerequisites:i?[`lesson-${String(i).padStart(2,'0')}`]:[],skillIds:SKILLS.filter(s=>s.lessonId===id).map(s=>s.id),sources:i<3||i===16?['mil-sbr','tool-two-suits']:i>=21?['tool-two-suits','ies-learning']:['tool-two-suits'],steps:[`观察：${r[3]}`,`验证：${r[1].split('|')[0]}`,`迁移：改变一张手牌或一项可见信息，重新判断；检查是否出现“${r[4]}”的问题。`],mastery:'先独立解释例题，再在对应专项同档20道首次独立作答中答对至少17道；已读不等于掌握。'};});

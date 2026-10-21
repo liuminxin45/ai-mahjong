@@ -174,3 +174,6 @@
 }
 @media(max-width:359px){ .mj-hand,.mj-palette { grid-template-columns:repeat(6,minmax(0,1fr)); } .mj-stat-line { gap:18px; } }
 
+.mahjong-app .mj-public-groups { display:flex; flex-wrap:wrap; gap:16px; margin-block:20px; }
+.mahjong-app .mj-public-groups .mj-hand { grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:44px; width:max-content; }
+.mahjong-app .mj-draw-bag { margin-block:24px; }

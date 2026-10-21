@@ -11,6 +11,7 @@ for(const [name,launcher] of [['chromium',chromium],['webkit',webkit]]){
  const browser=await launcher.launch();
  for(const theme of ['light','dark'])for(const width of [1280,390,320]){
   const context=await browser.newContext({viewport:{width,height:900},deviceScaleFactor:1.25}),page=await context.newPage();let calls=0;const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.route('**/api/assistant/mahjong/session',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({cookieConfirmed:true})}));
   await page.route('**/api/assistant/mahjong/profile',async route=>{calls++;const submitted=validateSnapshot(route.request().postDataJSON().snapshot);assert.equal(submitted.attempts.length,12);assert.equal(submitted.dimensions[0].count,12);await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({reportId:'browser-report',at:new Date().toISOString(),profile:{summary:'已分析全部12道何切。',strengths:[],weaknesses:[],uncertainties:['其他专项证据不足。'],plan:Array.from({length:7},(_,i)=>({day:i+1,lessonId:'lesson-10',mode:'discard',task:'练习舍牌判断。'}))}})});});
   await page.goto(base+path);await page.getByRole('heading',{level:1,name:'学习画像',exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'生成学习报告',exact:true}).isDisabled(),true);

@@ -1,21 +1,23 @@
 import { TILES } from '../engine/index.js';
 import { answers, exercise, MODES, uniqueAttempts, type Attempt, type Evidence, type LearningSnapshot, type Mode } from './index.js';
+import { learningFacts } from './facts.js';
 
 // Lossless transport: IDs and answers remain available for server regrading and audit.
-type PackedSnapshot=Omit<LearningSnapshot,'attempts'> & {encoding:'mahjong-history-v1';baseAt:number;attempts:[string,number,number,number,number,number,number][]};
+type PackedSnapshot=Omit<LearningSnapshot,'attempts'> & {encoding:'mahjong-history-v1'|'mahjong-history-v2';baseAt:number;attempts:[string,number,number,number,number,number,number,string?,string?,string?][]};
 export function packSnapshot(s:LearningSnapshot):PackedSnapshot {
   const baseAt=s.attempts.length?Date.parse(s.attempts[0].at):0;
-  return {...s,encoding:'mahjong-history-v1',baseAt,attempts:s.attempts.map(a=>[a.id,MODES.indexOf(a.ref.mode),a.ref.seed,a.answer.reduce((mask,t)=>mask|1<<TILES.indexOf(t),0),(a.assisted?1:0)|(a.review?2:0),a.durationMs,Date.parse(a.at)-baseAt])};
+  return {...s,encoding:s.schemaVersion===3?'mahjong-history-v2':'mahjong-history-v1',baseAt,attempts:s.attempts.map(a=>s.schemaVersion===3?[a.id,MODES.indexOf(a.ref.mode),a.ref.seed,a.answer.reduce((mask,t)=>mask|1<<TILES.indexOf(t),0),(a.assisted?1:0)|(a.review?2:0),a.durationMs,Date.parse(a.at)-baseAt,a.ref.version??'',a.source??'',a.competitionRunId??'']:[a.id,MODES.indexOf(a.ref.mode),a.ref.seed,a.answer.reduce((mask,t)=>mask|1<<TILES.indexOf(t),0),(a.assisted?1:0)|(a.review?2:0),a.durationMs,Date.parse(a.at)-baseAt])};
 }
 export function unpackSnapshot(raw:unknown):LearningSnapshot {
   const s=raw as PackedSnapshot;
   if(!s||!('encoding' in s))return raw as LearningSnapshot;
-  if(s.encoding!=='mahjong-history-v1'||!Number.isSafeInteger(s.baseAt)||!Array.isArray(s.attempts)||s.attempts.length>50000)throw new Error('压缩记录格式无效。');
+  if(!['mahjong-history-v1','mahjong-history-v2'].includes(s.encoding)||s.encoding==='mahjong-history-v2'&&s.schemaVersion!==3||!Number.isSafeInteger(s.baseAt)||!Array.isArray(s.attempts)||s.attempts.length>50000)throw new Error('压缩记录格式无效。');
   const attempts:Evidence[]=s.attempts.map(row=>{
-    if(!Array.isArray(row)||row.length!==7)throw new Error('压缩记录格式无效。');
-    const [id,mode,seed,mask,flags,durationMs,delta]=row;
+    if(!Array.isArray(row)||row.length!==(s.encoding==='mahjong-history-v2'?10:7))throw new Error('压缩记录格式无效。');
+    const [id,mode,seed,mask,flags,durationMs,delta,version,source,competitionRunId]=row;
     if(!Number.isInteger(mode)||mode<0||mode>=MODES.length||!Number.isInteger(mask)||mask<0||mask>262143||!Number.isInteger(flags)||flags<0||flags>3||!Number.isSafeInteger(delta)||!Number.isSafeInteger(s.baseAt+delta)||!Number.isFinite(new Date(s.baseAt+delta).getTime()))throw new Error('压缩记录数据无效。');
-    return {id,ref:{mode:MODES[mode],seed},answer:TILES.filter((_,i)=>(mask&(1<<i))!==0),assisted:!!(flags&1),review:!!(flags&2),durationMs,at:new Date(s.baseAt+delta).toISOString()};
+    if(version&&version!=='2.0.0'||source&&!['practice','competition'].includes(source))throw new Error('压缩记录版本或来源无效。');
+    return {id,ref:{mode:MODES[mode],seed,...(version?{version:'2.0.0' as const}:{})},answer:TILES.filter((_,i)=>(mask&(1<<i))!==0),assisted:!!(flags&1),review:!!(flags&2),durationMs,at:new Date(s.baseAt+delta).toISOString(),...(source?{source:source as 'practice'|'competition'}:{}),...(competitionRunId?{competitionRunId}:{})};
   });
   return {schemaVersion:s.schemaVersion,rulesVersion:s.rulesVersion,engineVersion:s.engineVersion,contentVersion:s.contentVersion,attempts};
 }
@@ -52,5 +54,5 @@ export function compressLearningEvidence(attempts:Attempt[]) {
     const q=exercise(a.ref);
     return {id:a.id,mode:a.ref.mode,ref:a.ref,hand:q.context.hand,...(q.scenario?{goal:q.scenario.goal,facts:q.scenario.facts,knownWaits:q.scenario.waits}:{}),answer:a.answer,correctAnswer:answers(q),correct:a.correct,assisted:a.assisted,review:a.review,durationMs:a.durationMs,at:a.at};
   });
-  return {scope:'all-history',compressionVersion:1,totals:{...statistics(all),distinctQuestions:questionGroups.size,from:all[0]?.at??null,to:all.at(-1)?.at??null},byMode,periods,repeatedErrors,evidence};
+  return {scope:'all-history',compressionVersion:2,totals:{...statistics(all),distinctQuestions:questionGroups.size,from:all[0]?.at??null,to:all.at(-1)?.at??null},byMode,bySkillAndDifficulty:learningFacts(all),periods,repeatedErrors,evidence};
 }

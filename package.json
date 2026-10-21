@@ -1,6 +1,6 @@
 {
   "name": "@neo/mahjong-learning",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.0",
@@ -30,7 +30,8 @@
     "assets/tiles/web",
     "assets/tiles/manifest.json",
     "assets/tiles/prompts.json",
-    "README.md"
+    "README.md",
+    "docs"
   ],
   "sideEffects": [
     "**/*.css"
@@ -48,16 +49,17 @@
     "@types/react": "19.2.5",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.1.1",
-    "vite": "7.2.4",
-    "typescript": "5.9.3",
-    "vitest": "3.2.4",
-    "tsx": "4.21.0",
+    "@vitest/coverage-v8": "3.2.4",
+    "fake-indexeddb": "6.2.4",
+    "playwright": "1.56.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-router": "7.6.1",
-    "playwright": "1.56.1",
     "sharp": "0.34.4",
-    "fake-indexeddb": "6.2.4"
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vite": "7.2.4",
+    "vitest": "3.2.4"
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -70,6 +72,11 @@
     "test:browser": "node scripts/browser.mjs",
     "test:editor": "node scripts/analysis-browser.mjs",
     "check:ui": "node node_modules/chatgpt-desktop-kit/dist/check-consumer.mjs",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 127.0.0.1",
+    "test:coverage": "vitest run --coverage",
+    "test:oracle": "node scripts/run-oracle.mjs",
+    "test:upgrade-browser": "node scripts/upgrade-browser.mjs",
+    "bank:build": "tsx scripts/build-bank.ts",
+    "bank:verify": "tsx scripts/verify-bank.ts"
   }
 }
