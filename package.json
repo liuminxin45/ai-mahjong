@@ -22,13 +22,15 @@
     },
     "./worker": "./lib/engine/worker.js",
     "./styles.css": "./lib/styles.css",
-    "./assets/*": "./assets/*"
+    "./assets/*": "./assets/*",
+    "./build-info": "./lib/build-info.json"
   },
   "files": [
     "lib",
-    "assets",
-    "README.md",
-    "LICENSE"
+    "assets/tiles/web",
+    "assets/tiles/manifest.json",
+    "assets/tiles/prompts.json",
+    "README.md"
   ],
   "sideEffects": [
     "**/*.css"
