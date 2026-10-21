@@ -16,8 +16,8 @@ for(const [name,launcher] of [['chromium',chromium],['webkit',webkit]]){
   await page.goto(base+path);await page.getByRole('heading',{level:1,name:'学习画像',exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'生成学习报告',exact:true}).isDisabled(),true);
   await page.evaluate(async({data,theme})=>{localStorage.setItem('neo-mahjong-theme-v1',theme);const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('neo-mahjong-learning-v1',1);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});await new Promise((resolve,reject)=>{const tx=db.transaction('state','readwrite');tx.objectStore('state').put(data,'learning');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();},{data,theme});
-  await page.reload();const button=page.getByRole('button',{name:'生成学习报告',exact:true});await button.waitFor();assert.equal(await button.isEnabled(),true);assert.equal(calls,0);await page.getByText('本次包含12次作答',{exact:false}).waitFor();
-  assert.ok(await page.getByText('不足5道独立作答',{exact:false}).count());
+  await page.reload();const button=page.getByRole('button',{name:'生成学习报告',exact:true});await button.waitFor();assert.equal(await button.isEnabled(),true);assert.equal(calls,0);await page.getByText('统计说明',{exact:true}).click();await page.getByText('共12次作答',{exact:false}).waitFor();
+  assert.ok(await page.getByText('不足5道独立作答',{exact:false}).count());await page.getByText('统计说明',{exact:true}).click();
   await button.click();const dialog=page.getByRole('dialog');await dialog.waitFor();assert.ok(await dialog.getByText('全部12次答题记录',{exact:false}).count());assert.equal(calls,0);
   await page.keyboard.press('Escape');assert.equal(await dialog.count(),0);assert.equal(calls,0);assert.equal(await button.evaluate(el=>document.activeElement===el),true);
   await button.click();await dialog.getByRole('button',{name:'提交并生成',exact:true}).click();await page.getByRole('heading',{name:'你的学习报告',exact:true}).waitFor();assert.equal(calls,1);

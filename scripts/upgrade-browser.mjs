@@ -28,22 +28,22 @@ for(const [engine,launcher] of [['chromium',chromium],['webkit',webkit]]){
   await page.goto(origin+base+'/practice');await page.getByRole('heading',{name:'专项练习',exact:true}).waitFor();await page.getByRole('combobox',{name:'练习难度'}).waitFor();assert.ok(await page.locator('.mj-public-groups .mj-hand').count()>0);await checkPage();
   const q=practiceQuestions('discard',1)[0];await page.locator('.mj-question > .mj-hand').getByRole('button',{name:tileName(answers(q)[0]),exact:true}).first().click();await page.getByRole('button',{name:'提交答案',exact:true}).click();await page.getByText('判断正确',{exact:true}).waitFor();
   await page.reload();await page.getByText('判断正确',{exact:true}).waitFor();
-  await page.goto(origin+base+'/practice?mode=discard&level=6');await page.getByText('地狱级 · 高计算量挑战',{exact:true}).waitFor();await page.locator('.mj-draw-bag').waitFor();const hard=practiceQuestions('discard',6)[0];await page.locator('.mj-question > .mj-hand').getByRole('button',{name:tileName(answers(hard)[0]),exact:true}).first().click();await page.getByRole('button',{name:'提交答案',exact:true}).click();await page.getByText('判断正确',{exact:true}).waitFor();await page.getByText('最优方案的关键后续分支',{exact:true}).click();await checkPage();
-  await page.goto(origin+base+'/practice?mode=discard&level=1&skill=discard.planning');await page.getByRole('heading',{name:'这个知识点从更高难度开始',exact:true}).waitFor();await page.getByRole('button',{name:'大师',exact:true}).click();await page.locator('.mj-question').waitFor();await checkPage();
+  await page.goto(origin+base+'/practice?mode=discard&level=6');await page.locator('.mj-draw-bag').waitFor();const hard=practiceQuestions('discard',6)[0];await page.locator('.mj-question > .mj-hand').getByRole('button',{name:tileName(answers(hard)[0]),exact:true}).first().click();await page.getByRole('button',{name:'提交答案',exact:true}).click();await page.getByText('判断正确',{exact:true}).waitFor();await page.getByText('后续怎么选',{exact:true}).click();await checkPage();
+  await page.goto(origin+base+'/practice?mode=discard&level=1&skill=discard.planning');await page.getByRole('heading',{name:'换一个难度继续',exact:true}).waitFor();await page.getByRole('button',{name:'大师',exact:true}).click();await page.locator('.mj-question').waitFor();await checkPage();
   await page.goto(origin+base+'/manual/lesson-17');await page.getByRole('heading',{name:'公开组合与题设',exact:true}).waitFor();assert.ok((await page.locator('main').innerText()).includes('不能吃牌'));await page.getByText('规则来源与工具约定',{exact:true}).click();await page.getByRole('link',{name:'MIL 四川麻将规则纲要',exact:true}).waitFor();await checkPage();
-  await page.goto(origin+base+'/profile');await page.getByRole('heading',{name:'知识点与难度分别观察'}).waitFor();assert.equal(await page.getByRole('button',{name:'生成学习报告',exact:true}).isEnabled(),true);assert.equal(uploads.length,0);await checkPage();
-  await page.goto(origin+base+'/quiz');await page.getByRole('heading',{name:'排行榜',exact:true}).waitFor();assert.ok(page.url().endsWith('/leaderboard'));await page.getByRole('button',{name:'开始挑战',exact:true}).click();await page.getByRole('button',{name:'开始并计时',exact:true}).click();await page.getByRole('button',{name:'提交并进入下一题',exact:true}).waitFor();
+  await page.goto(origin+base+'/profile');await page.getByRole('heading',{name:'专项表现'}).waitFor();assert.equal(await page.getByRole('button',{name:'生成学习报告',exact:true}).isEnabled(),true);assert.equal(uploads.length,0);await checkPage();
+  await page.goto(origin+base+'/quiz');await page.getByRole('heading',{name:'排位赛',exact:true}).waitFor();assert.ok(page.url().endsWith('/leaderboard'));await page.getByRole('button',{name:'开始排位',exact:true}).click();await page.getByRole('button',{name:'开始比赛',exact:true}).click();await page.getByRole('button',{name:'提交答案',exact:true}).waitFor();
   const full=(width===1280&&theme==='light')||(width===390&&theme==='dark');const count=full?20:2;
   for(let i=0;i<count;i++){
    const q=exercise(competitionPapers[0].refs[i]),expected=answers(q),multi=['waits','ukeire'].includes(q.ref.mode);
    if(q.metadata?.response==='judgment'){await page.getByRole('button',{name:expected.length?'题设足以保证':'信息不足，无法保证',exact:true}).click();}
    else if(multi){for(const tile of expected)await page.locator('.mj-palette').getByRole('button',{name:tileName(tile),exact:true}).click();}
    else await page.locator('.mj-question > .mj-hand').getByRole('button',{name:tileName(expected[0]),exact:true}).first().click();
-   await page.getByRole('button',{name:i===19?'提交并交卷':'提交并进入下一题',exact:true}).click();
-   if(i<19)await page.getByRole('heading',{name:new RegExp(`· ${i+2}/20$`)}).waitFor();
-   if(i===0){await page.reload();await page.getByRole('heading',{name:/· 2\/20$/}).waitFor();assert.equal(await page.locator('button[aria-pressed="true"]').count(),0);}
+   await page.getByRole('button',{name:i===19?'提交并交卷':'提交答案',exact:true}).click();
+   if(i<19)await page.getByText(new RegExp(`· ${i+2}/20$`)).waitFor();
+   if(i===0){await page.reload();await page.getByText('入门 · 2/20',{exact:true}).waitFor();assert.equal(await page.locator('button[aria-pressed="true"]').count(),0);}
   }
-  if(full){await page.getByRole('heading',{name:'本次挑战完成 · 100分',exact:true}).waitFor();await page.getByText(/本浏览器最好成绩/).waitFor();assert.ok((await page.locator('main').innerText()).includes('本人'));}
+  if(full){await page.getByRole('heading',{name:'本次成绩 · 100分',exact:true}).waitFor();await page.getByText('最好成绩',{exact:true}).waitFor();assert.ok((await page.locator('main').innerText()).includes('本人'));}
   await checkPage();await page.screenshot({path:`${dir}/${engine}-${theme}-${width}.png`});results.push({engine,theme,width,practice:true,hell:true,manualSource:true,profile:true,legacyRedirect:true,serverResume:true,completedFullPaper:full});await context.close();
  }
  await browser.close();

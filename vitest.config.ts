@@ -1,2 +1,2 @@
 import { defineConfig } from 'vitest/config';
-export default defineConfig({test:{include:['tests/**/*.test.ts'],testTimeout:60000,coverage:{provider:'v8',include:['src/engine/index.ts','src/engine/deep.ts','src/learning/index.ts','src/learning/facts.ts','src/learning/curriculum.ts'],reporter:['text','json','json-summary'],thresholds:{branches:95,lines:95,functions:95,statements:95}}}});
+export default defineConfig({test:{include:['tests/**/*.test.ts'],testTimeout:60000,coverage:{provider:'v8',include:['src/engine/index.ts','src/engine/deep.ts','src/learning/index.ts','src/learning/facts.ts','src/learning/curriculum.ts','src/competition-session.ts'],reporter:['text','json','json-summary'],thresholds:{branches:95,lines:95,functions:95,statements:95}}}});

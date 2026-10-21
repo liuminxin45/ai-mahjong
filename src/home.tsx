@@ -21,18 +21,18 @@ export function HomePage(){
   const startLabel=continuingQuiz?'继续旧版测验':latest?'继续练习':read.length?'继续学习':'从认牌开始';
   return <div className="mj-page mj-home">
     <section className="mj-home-intro" aria-labelledby="mj-home-title">
-      <div><h1 id="mj-home-title">麻将研习</h1><p className="mj-home-lead">围绕成都麻将缺门后的条与筒，从牌形、向听和进张学起，逐级练习有依据的选择。</p>
+      <div><h1 id="mj-home-title">麻将研习</h1><p className="mj-home-lead">从认牌到攻防，循序练好每一次选择。</p>
         <div className="mj-actions"><Button variant="primary" onClick={()=>navigate(start.pathname+start.search)}>{startLabel}</Button><AppLink to={latest||continuingQuiz?`manual/${nextLesson.id}`:'practice'}>{latest||continuingQuiz?'继续阅读手册':'直接开始练习'}</AppLink></div>
-        {continuingQuiz?<p className="mj-muted">上次测验停在第{quizIndex+1}题，继续完成这次检查。</p>:latest?<p className="mj-muted">上次练习：{MODE_NAMES[latest.ref.mode]}。从已有进度继续。</p>:<p className="mj-muted">不用赶时间，先读一节，再试几道题。</p>}
+        {continuingQuiz?<p className="mj-muted">上次测验：第{quizIndex+1}题。</p>:latest?<p className="mj-muted">上次练习：{MODE_NAMES[latest.ref.mode]}。</p>:null}
       </div>
       <div className="mj-home-tiles" aria-hidden="true"><Hand tiles={['1p','2p','3p','1s','2s','3s']}/></div>
     </section>
     {hasProgress&&<section className="mj-home-progress" aria-labelledby="mj-progress-title"><h2 id="mj-progress-title">你的学习进度</h2><div className="mj-stat-line"><div><span>已读课程</span><strong>{read.length}/24</strong></div><div><span>独立作答</span><strong>{independent.length}</strong></div><div><span>今日待复习</span><strong>{due}</strong></div></div><div className="mj-actions"><AppLink to="review">{due?'复习今天的错题':'查看错题本'}</AppLink><AppLink to="profile">查看学习画像</AppLink></div></section>}
-    <section aria-labelledby="mj-path-title"><h2 id="mj-path-title">按自己的节奏学</h2><ol className="mj-home-path">
-      <li><RecordRow className="mj-home-step" separator><span className="mj-home-number">01</span><div><strong>先认识牌和牌形</strong><p>8个单元、24节课程，例题可以送进分析器，边读边试。</p></div><AppLink to="manual">学习手册</AppLink></RecordRow></li>
-      <li><RecordRow className="mj-home-step" separator><span className="mj-home-number">02</span><div><strong>一次练好一个判断</strong><p>从何切、有效进张到听牌与攻防，答题后对照解析。</p></div><AppLink to="practice">专项练习</AppLink></RecordRow></li>
-      <li><RecordRow className="mj-home-step"><span className="mj-home-number">03</span><div><strong>把错题变成下一步</strong><p>按复习安排再做一遍，用答题证据看看自己哪里还需要练。</p></div><AppLink to="review">错题复习</AppLink></RecordRow></li>
+    <section aria-labelledby="mj-path-title"><h2 id="mj-path-title">开始学习</h2><ol className="mj-home-path">
+      <li><RecordRow className="mj-home-step" separator><span className="mj-home-number">01</span><div><strong>先认识牌和牌形</strong><p>24节课程，从牌形学起。</p></div><AppLink to="manual">学习手册</AppLink></RecordRow></li>
+      <li><RecordRow className="mj-home-step" separator><span className="mj-home-number">02</span><div><strong>一次练好一个判断</strong><p>按难度练习，答后看解析。</p></div><AppLink to="practice">专项练习</AppLink></RecordRow></li>
+      <li><RecordRow className="mj-home-step"><span className="mj-home-number">03</span><div><strong>把错题变成下一步</strong><p>重练错题，巩固薄弱处。</p></div><AppLink to="review">错题复习</AppLink></RecordRow></li>
     </ol></section>
-    <section aria-labelledby="mj-tools-title"><h2 id="mj-tools-title">分析与检验</h2><RecordRow className="mj-home-tool" separator><div><strong>手里有一副牌？</strong><p>选入手牌，比较向听、进张和每种舍牌的差别。</p></div><AppLink to="analysis">手牌分析</AppLink></RecordRow><RecordRow className="mj-home-tool"><div><strong>想挑战同一份试卷？</strong><p>六档难度，每卷20题。匿名参赛，用分数和服务端总用时比较。</p></div><AppLink to="leaderboard">排行榜</AppLink></RecordRow></section>
+    <section aria-labelledby="mj-tools-title"><h2 id="mj-tools-title">工具与挑战</h2><RecordRow className="mj-home-tool" separator><div><strong>比较一手牌的选择</strong><p>选入手牌，比较向听、进张和每种舍牌的差别。</p></div><AppLink to="analysis">手牌分析</AppLink></RecordRow><RecordRow className="mj-home-tool"><div><strong>挑战个人最佳</strong><p>六档难度，每轮20题。</p></div><AppLink to="leaderboard">排位赛</AppLink></RecordRow></section>
   </div>;
 }

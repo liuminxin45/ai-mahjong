@@ -1,11 +1,7 @@
 .mahjong-app { font-family: system-ui, sans-serif; height:100dvh; min-height:0; color:var(--desktop-color-text); background:var(--desktop-color-background); font-size:14px; line-height:1.65; }
 .mahjong-app *, .mahjong-app *::before, .mahjong-app *::after { box-sizing:border-box; }
 .mj-workspace { height:100%; min-height:0; }
-.mj-sidebar { display:flex; flex-direction:column; height:100%; padding:24px 18px 20px; gap:32px; }
-.mj-sidebar-brand { display:flex; align-items:center; gap:12px; }
-.mj-sidebar-brand strong { display:block; font-size:17px; font-weight:600; letter-spacing:.04em; }
-.mj-sidebar-brand span:not(.mj-brand-mark) { display:block; color:var(--desktop-color-text-muted); font-size:11px; margin-top:3px; }
-.mj-brand-mark { display:grid; place-items:center; width:34px; height:44px; flex:none; color:var(--desktop-color-success); background:var(--desktop-color-surface); border:1px solid var(--desktop-color-border); border-radius:5px; font-family:serif; font-size:23px; }
+.mj-sidebar { display:flex; flex-direction:column; height:100%; padding:20px 14px; gap:24px; }
 .mj-sidebar nav { display:flex; flex-direction:column; gap:8px; }
 .mj-sidebar nav a { display:block; padding:9px 14px; text-decoration:none; }
 .mj-sidebar .mj-nav-active { color:var(--desktop-color-text); background:var(--desktop-color-navigation-selected); }
@@ -177,3 +173,52 @@
 .mahjong-app .mj-public-groups { display:flex; flex-wrap:wrap; gap:16px; margin-block:20px; }
 .mahjong-app .mj-public-groups .mj-hand { grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:44px; width:max-content; }
 .mahjong-app .mj-draw-bag { margin-block:24px; }
+
+/* Product layouts: shared controls retain their own appearance. */
+.mj-app-title { display:inline-flex; align-items:center; gap:6px; }
+.mj-practice-controls,.mj-filter-row { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:24px; }
+.mj-practice-controls>.desktop-select,.mj-filter-row>.desktop-select { min-width:140px; max-width:100%; }
+.mj-practice-settings { min-width:0; }
+.mj-practice-settings[open] { flex-basis:100%; }
+.mj-practice-settings .mj-field { max-width:320px; }
+.mj-secondary-details { color:var(--desktop-color-text-muted); margin-top:20px; font-size:12px; }
+.mj-secondary-details p { line-height:1.8; }
+.mj-competition { max-width:1080px; }
+.mj-match-progress { display:flex; align-items:center; gap:16px; flex-wrap:wrap; color:var(--desktop-color-text-muted); font-variant-numeric:tabular-nums; }
+.mj-match-progress>button { margin-left:auto; }
+.mj-match-start { display:flex; align-items:center; justify-content:space-between; gap:20px; margin:20px 0 32px; }
+.mj-match-start p { margin:0; }
+.mj-match-result { margin-bottom:28px; }
+.mj-ranking { margin-top:32px; }
+.mj-ranking-labels,.mj-ranking-entry { display:grid; grid-template-columns:32px minmax(0,1fr) auto; align-items:center; gap:12px; font-variant-numeric:tabular-nums; }
+.mj-ranking-labels { color:var(--desktop-color-text-muted); font-size:12px; }
+.mj-ranking-score { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+.mj-ranking-score strong { font-weight:500; }
+.mj-ranking-identity { display:flex; align-items:center; flex-wrap:wrap; gap:8px; min-width:0; }
+.mj-stat-line strong.mj-personal-time { font-size:20px; line-height:1.95; }
+.mj-stat-line small { font-size:14px; margin-left:4px; }
+.mj-section-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+.mj-section-heading h2 { margin-top:0; }
+.mj-section-heading p { color:var(--desktop-color-text-muted); font-size:13px; }
+.mj-profile-generate { margin-top:0; }
+.mj-profile-facts { margin-top:36px; }
+.mj-skill-heading { display:flex; justify-content:space-between; align-items:baseline; gap:16px; }
+.mj-evidence summary { color:var(--desktop-color-text-muted); font-size:12px; }
+.mj-plan-day { display:grid; grid-template-columns:48px minmax(0,1fr) auto; gap:16px; align-items:baseline; }
+.mj-plan-day p { margin:0; }
+@media(max-width:767px){
+ .mj-match-progress { gap:8px 12px; }
+ .mj-match-start { flex-direction:column; align-items:stretch; gap:16px; }
+ .mj-practice-controls>.desktop-select,.mj-filter-row>.desktop-select { min-width:0; flex:1 1 120px; }
+ .mj-practice-settings { flex-basis:100%; }
+ .mj-plan-day { grid-template-columns:40px minmax(0,1fr); gap:8px 12px; }
+ .mj-plan-day>a { grid-column:2; justify-self:start; }
+ .mj-stat-line strong.mj-personal-time { font-size:18px; line-height:1.95; }
+}
+
+.mj-initial-loading { min-height:240px; height:100%; display:grid; place-items:center; }
+.mahjong-app .mj-public-groups { gap:12px; margin-block:16px; }
+.mahjong-app .mj-public-groups .mj-hand { display:grid; grid-auto-columns:36px; gap:2px; padding:4px 0; }
+@media(max-width:767px){ .mahjong-app .mj-public-groups .mj-hand { grid-auto-columns:clamp(28px,8vw,32px); } }
+
+@media(max-width:767px){ .mj-sidebar { padding-top:64px; } }
