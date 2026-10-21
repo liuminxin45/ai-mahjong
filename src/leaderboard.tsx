@@ -50,7 +50,7 @@ export function LeaderboardPage(){
  };
  const recover=async(foreground=false)=>{
   if(recovering.current||session.busy||!navigator.onLine)return;
-  const draft=pending.current,id=saved.current;if(!draft&&!id)return;
+  const draft=pending.current,id=saved.current;if(!draft&&(!id||runRef.current?.status==='complete'))return;
   const blocking=foreground||!!draft;recovering.current=true;if(blocking)setBusy(true);
   try{const next=draft?await session.start(draft):await session.restore(id!);if(next)accept(next);}
   catch(e){fail(e);}finally{recovering.current=false;if(mounted.current&&blocking)setBusy(false);}
@@ -84,7 +84,7 @@ export function LeaderboardPage(){
  const elapsed=run?Math.max(0,clock.current.server-Date.parse(run.startedAt)+performance.now()-clock.current.received):0;
  const completed=run?.status==='complete'&&run.paperId===paperId;
  return <div className="mj-page mj-competition">
-  <div className="mj-page-heading"><h1>排位赛</h1>{!active&&<Select aria-label="比赛难度" value={paperId} options={papers.map(p=>({value:p.id,label:DIFFICULTY_NAMES[p.difficulty]+(p.archived?' · 已归档':'')}))} onValueChange={id=>{setPaperId(id);setOffset(0);setError('');}}/>}</div>
+  <div className="mj-page-heading"><h1>排位赛</h1>{!active&&<Select aria-label="比赛难度" disabled={busy} value={paperId} options={papers.map(p=>({value:p.id,label:DIFFICULTY_NAMES[p.difficulty]+(p.archived?' · 已归档':'')}))} onValueChange={id=>{setPaperId(id);setOffset(0);setError('');}}/>}</div>
   <ErrorNotice message={error||(!active?boardError:'')}/>{!network&&<InlineNotice title="已离线，联网后自动继续。"/>}
   {active&&q&&run?<section className="mj-question">
    <div className="mj-match-progress"><span>{DIFFICULTY_NAMES[papers.find(p=>p.id===run.paperId)?.difficulty??1]} · {run.index+1}/20</span><span role="timer" aria-label="本轮用时" aria-live="off">{durationLabel(elapsed)}</span><Button size="sm" variant="ghost" disabled={busy} onClick={()=>setRestart(true)}>重新挑战</Button></div>
@@ -100,7 +100,7 @@ export function LeaderboardPage(){
   </section>:<>
    {completed&&run&&<section className="mj-match-result"><h2>本次成绩 · {run.score}分</h2><p>用时 {durationLabel(run.durationMs??0,true)}</p><details><summary>查看答案与解析</summary>{run.attempts?.map((a,i)=><details key={a.id}><summary>第{i+1}题 · {a.correct?'正确':'待复习'}</summary><ResultDetails refValue={a.ref}/></details>)}</details><AppLink to="../profile">查看学习画像</AppLink></section>}
    {run&&['expired','abandoned'].includes(run.status)&&<p className="mj-muted">上次比赛已结束，开始新一轮吧。</p>}
-   <div className="mj-match-start"><p>20题一轮，挑战你的最好成绩。</p><Button variant="primary" disabled={busy||!online||!network||papers.find(p=>p.id===paperId)?.archived} onClick={()=>setConsent(true)}>{busy?'连接中…':run?'重新挑战':'开始排位'}</Button></div>
+   <div className="mj-match-start"><p>20题一轮，挑战你的最好成绩。</p><Button variant="primary" disabled={busy||!online||!network||papers.find(p=>p.id===paperId)?.archived} onClick={()=>setConsent(true)}>{busy?'连接中…':run?.paperId===paperId?'重新挑战':'开始排位'}</Button></div>
    {!online&&<p className="mj-muted"><AppLink to="../practice">去专项练习</AppLink></p>}
   </>}
   {!active&&<section className="mj-ranking"><h2>成绩榜</h2>{board?.archived&&<p className="mj-muted">已归档，仅供回看。</p>}
