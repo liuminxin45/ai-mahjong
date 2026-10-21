@@ -231,7 +231,7 @@
 .mj-guide-content section+section { margin-top:24px; }
 .mj-guide-content h3 { font-size:var(--desktop-font-size-section); font-weight:var(--desktop-font-weight-emphasis); line-height:var(--desktop-line-height-heading); margin:0 0 10px; }
 .mj-guide-content p { margin:10px 0; }
-.mj-guide-content ol { margin:0; padding-left:20px; }
+.mj-guide-content ol { list-style:decimal; margin:0; padding-left:20px; }
 .mj-guide-content li+li { margin-top:8px; }
 .mj-guide-hand { display:flex; flex-wrap:wrap; gap:12px; margin:14px 0; }
 .mj-guide-hand .mj-hand,.mj-guide-answer .mj-hand { display:flex; flex-wrap:nowrap; gap:2px; padding:0; }

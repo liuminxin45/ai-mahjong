@@ -23,11 +23,12 @@ for(const [engine,launcher] of [['chromium',chromium],['webkit',webkit]]){
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
    const bounds=await dialog.boundingBox();assert.ok(bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=width+1&&bounds.y+bounds.height<=height+1,JSON.stringify(bounds));
    assert.equal(await dialog.locator('.desktop-dialog__body').evaluate(el=>el.scrollWidth>el.clientWidth),false);assert.deepEqual(errors,[]);
+   assert.equal(await dialog.locator('ol').first().evaluate(el=>getComputedStyle(el).listStyleType),'decimal');
    const footer=await dialog.locator('footer').boundingBox();assert.ok(footer.y+footer.height<=height+1);
   };
   try{
    await page.goto(origin+base+'/practice?mode=ukeire&level=1');await dialog.getByRole('heading',{name:'有效进张 · 规则与示例',exact:true}).waitFor();await check();assert.equal(await dialog.locator('.desktop-dialog__body').evaluate(el=>el.scrollTop),0);
-   assert.ok((await dialog.innerText()).includes('综合向听'));assert.ok((await dialog.innerText()).includes('1向听 → 0向听'));
+   assert.ok((await dialog.innerText()).includes('综合向听'));assert.ok((await dialog.innerText()).includes('1向听 → 0向听'));await page.waitForFunction(()=>[...document.querySelectorAll('[role="dialog"] img')].every(img=>img.complete&&img.naturalWidth>0));
    await page.screenshot({path:`${dir}/${engine}-${theme}-${width}-ukeire.png`});
    const seen=dialog.getByRole('combobox',{name:'示例已见四条'});await seen.click();await page.keyboard.press('Escape');assert.equal(await dialog.count(),1);assert.equal(await page.getByRole('option').count(),0);
    await seen.click();await page.getByRole('option',{name:'3张',exact:true}).click();await dialog.getByRole('status').getByText('四条还剩1张，七条还剩4张：应选两种，共5张。',{exact:true}).waitFor();
