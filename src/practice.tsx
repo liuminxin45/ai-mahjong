@@ -5,7 +5,7 @@ import { analyze, sorted, TILES, tileName, type TileId } from './engine/index.js
 import { answers, exercise, grade, lessons, MODE_NAMES, MODES, QUIZ_MODES, solutionText, type Attempt, type ExerciseRef, type Mode } from './learning/index.js';
 import { localDate, recordAttempt } from './learning/storage.js';
 import { AppLink, Hand, Tile, useActiveTime, useLearning } from './ui.js';
-type Draft={seed:number;selected:TileId[];submitted:boolean;hint:boolean};
+type Draft={seed:number;selected:TileId[];selectedIndex?:number;submitted:boolean;hint:boolean};
 const fresh=(seed=0):Draft=>({seed,selected:[],submitted:false,hint:false});
 export function ResultDetails({refValue}:{refValue:ExerciseRef}){
   const q=useMemo(()=>exercise(refValue),[refValue.mode,refValue.seed]);const r=useMemo(()=>analyze(q.context),[q]);
@@ -22,14 +22,17 @@ export function PracticePage(){
   return <div className="mj-page"><div className="mj-page-heading"><div><p className="mj-eyebrow">一次练好一个判断</p><h1>专项练习</h1></div><Select aria-label="练习类型" value={mode} options={MODES.map(value=>({value,label:MODE_NAMES[value]}))} onValueChange={v=>setParams({mode:v})}/></div><Practice key={mode+params.get('seed')} mode={mode} seedOverride={params.has('seed')?Number(params.get('seed')):undefined} review={params.get('review')==='1'}/></div>;
 }
 export function Practice({mode,seedOverride,review=false,quizRef,onQuizAnswer}:{mode:Mode;seedOverride?:number;review?:boolean;quizRef?:ExerciseRef;onQuizAnswer?:(a:Attempt)=>void}){
-  const {data,update}=useLearning();const key=review?'review:'+mode+':'+seedOverride:'practice:'+mode;
-  const initial=seedOverride!==undefined?fresh(seedOverride):(data.drafts[key] as Draft|undefined)??fresh();
+  const {data,update}=useLearning();const key=quizRef?'quiz-selection':review?'review:'+mode+':'+seedOverride:'practice:'+mode;
+  const saved=data.drafts[key] as (Draft&{mode?:Mode})|undefined;
+  const initial=quizRef?(saved?.mode===mode&&saved.seed===quizRef.seed?saved:fresh(quizRef.seed)):seedOverride!==undefined?fresh(seedOverride):saved??fresh();
   const quizSaved=(data.drafts.quiz as QuizState|undefined)?.answers.find(a=>quizRef&&a.ref.mode===quizRef.mode&&a.ref.seed===quizRef.seed);
-  const [draft,setDraft]=useState<Draft>(quizRef?{...fresh(quizRef.seed),...(quizSaved?{selected:quizSaved.answer,submitted:true}:{})}:initial);
+  const [draft,setDraft]=useState<Draft>(quizRef?{...initial,...(quizSaved?{selected:quizSaved.answer,submitted:true}:{})}:initial);
   const refValue=quizRef??{mode,seed:draft.seed};const q=useMemo(()=>exercise(refValue),[refValue.mode,refValue.seed]);const elapsed=useActiveTime(q.id);
-  const change=(next:Draft)=>{setDraft(next);if(!quizRef)update(d=>({...d,drafts:{...d.drafts,[key]:next}}));};
+  const change=(next:Draft)=>{setDraft(next);update(d=>({...d,drafts:{...d.drafts,[key]:quizRef?{...next,mode}:next}}));};
   const multi=mode==='waits'||mode==='ukeire';const correct=draft.submitted&&grade(q,draft.selected);
-  const select=(t:TileId)=>{if(draft.submitted)return;change({...draft,selected:multi?(draft.selected.includes(t)?draft.selected.filter(x=>x!==t):[...draft.selected,t]):[t]});};
+  const hand=useMemo(()=>sorted(q.context.hand),[q]);
+  const selectedIndex=draft.selectedIndex!==undefined&&hand[draft.selectedIndex]===draft.selected[0]?draft.selectedIndex:hand.findIndex(t=>t===draft.selected[0]);
+  const select=(t:TileId,index?:number)=>{if(draft.submitted)return;change({...draft,selected:multi?(draft.selected.includes(t)?draft.selected.filter(x=>x!==t):[...draft.selected,t]):[t],...(!multi?{selectedIndex:index}:{})});};
   const submit=()=>{
     if(draft.submitted)return;
     const a:Attempt={id:crypto.randomUUID(),ref:refValue,answer:draft.selected,assisted:draft.hint,durationMs:elapsed(),at:new Date().toISOString(),correct:grade(q,draft.selected),exerciseId:q.id,review:review||data.attempts.some(x=>x.exerciseId===q.id)};
@@ -37,7 +40,7 @@ export function Practice({mode,seedOverride,review=false,quizRef,onQuizAnswer}:{
   };
   const favorite=data.mistakes.some(m=>m.exerciseId===q.id&&m.favorite);
   return <><div className="mj-practice-layout"><section className="mj-question"><div className="mj-question-heading"><span className="mj-muted">{review?'错题复习':MODE_NAMES[mode]} · {quizRef?'测验':String(refValue.seed+1).padStart(2,'0')}</span>{!quizRef&&<Button size="sm" variant="ghost" onClick={()=>update(d=>({...d,mistakes:d.mistakes.some(m=>m.exerciseId===q.id)?d.mistakes.map(m=>m.exerciseId===q.id?{...m,favorite:!m.favorite}:m):[...d.mistakes,{ref:refValue,exerciseId:q.id,stage:0,due:localDate(),favorite:true}]}))}>{favorite?'取消收藏':'收藏这题'}</Button>}</div>
-    <h2>{q.scenario?q.title:'你会怎样处理这手牌？'}</h2><p>{q.prompt}</p><Hand tiles={sorted(q.context.hand)} onSelect={!multi?select:undefined} selected={draft.selected} disabled={draft.submitted}/>
+    <h2>{q.scenario?q.title:'你会怎样处理这手牌？'}</h2><p>{q.prompt}</p><Hand tiles={hand} onSelect={!multi?select:undefined} selected={draft.selected} selectedIndex={!multi?selectedIndex:undefined} disabled={draft.submitted}/>
     {q.scenario&&<div className="mj-scenario"><h3>本题已知信息</h3>{q.scenario.facts.map(f=><p key={f}>{f}</p>)}<div className="mj-scenario-board">{q.scenario.rivers.map(r=><div className="mj-river" key={r.label}><span>{r.label}</span><Hand tiles={r.tiles}/></div>)}{q.scenario.publicSets.map(r=><div className="mj-river" key={r.label}><span>{r.label}</span><Hand tiles={r.tiles}/></div>)}</div><p className="mj-muted">等待集合是题设事实，不是根据牌河推算出的精确概率。</p></div>}
     {multi&&<><h3>选择全部答案</h3><div className="mj-palette">{TILES.map(t=><Tile key={t} tile={t} selected={draft.selected.includes(t)} onClick={()=>select(t)} disabled={draft.submitted}/>)}</div></>}
     {draft.hint&&!quizRef&&<InlineNotice title="提示" description={mode==='seven-pairs'?'四张相同牌算两对，分别比较丢掉单张与拆掉对子。':mode==='defense'?'先读题目目标，再检查已知等待，最后比较向听与进张。':multi?'逐一加入候选牌，尝试拆出完整和型或降低向听。':'先检查舍牌是否增加向听，再比较有效进张。'}/>}

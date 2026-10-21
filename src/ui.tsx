@@ -15,8 +15,8 @@ export function Tile({tile,onClick,selected=false,disabled=false,small=false,det
   const picture=<><img src={`${assets}/${tile}-96.webp`} srcSet={`${assets}/${tile}-96.webp 96w, ${assets}/${tile}-192.webp 192w, ${assets}/${tile}-384.webp 384w`} sizes={small?'32px':'64px'} alt={tileName(tile)} draggable={false} onError={()=>setFailed(true)} hidden={failed}/>{failed&&<span className="mj-missing-tile">{tileName(tile)}</span>}<span className="mj-tile-caption" aria-hidden="true">{tileName(tile)}</span>{selected&&<span className="mj-tile-selection" aria-hidden="true">✓</span>}</>;
   return onClick?<Button layout="surface" className={`mj-tile ${small?'mj-tile--small':''}`} aria-label={tileName(tile)} aria-pressed={selected} onClick={onClick} disabled={disabled}>{picture}{detail&&<span className="mj-tile-detail" aria-hidden="true">{detail}</span>}</Button>:<span className={`mj-tile mj-tile-static ${small?'mj-tile--small':''}`}>{picture}{detail&&<span className="mj-tile-detail">{detail}</span>}</span>;
 }
-export function Hand({tiles,onSelect,selected=[],disabled=false}:{tiles:TileId[];onSelect?:(tile:TileId,index:number)=>void;selected?:TileId[];disabled?:boolean}){
-  return <div className="mj-hand" aria-label="手牌">{tiles.map((t,i)=><Tile key={`${t}-${i}`} tile={t} onClick={onSelect?()=>onSelect(t,i):undefined} selected={selected.includes(t)} disabled={disabled}/>)}</div>;
+export function Hand({tiles,onSelect,selected=[],selectedIndex,disabled=false}:{tiles:TileId[];onSelect?:(tile:TileId,index:number)=>void;selected?:TileId[];selectedIndex?:number;disabled?:boolean}){
+  return <div className="mj-hand" aria-label="手牌">{tiles.map((t,i)=><Tile key={`${t}-${i}`} tile={t} onClick={onSelect?()=>onSelect(t,i):undefined} selected={selectedIndex===undefined?selected.includes(t):selectedIndex===i} disabled={disabled}/>)}</div>;
 }
 export function ErrorNotice({message}:{message:string}){return message?<InlineNotice tone="danger" title={message}/>:null;}
 export function useAnalysis(context:HandContext,createWorker?:()=>Worker,enabled=true){
