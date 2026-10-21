@@ -5,7 +5,7 @@ describe('双花色精确分析',()=>{
  it('普通成牌与四张算两对',()=>{expect(analyze({hand:parseHand('123456789p11122s')}).shanten).toBe(-1);expect(sevenPairsShanten(countsOf(parseHand('1111223344p5566s')))).toBe(-1);expect(decompose(parseHand('1111223344p5566s'))).not.toBeNull();});
  it('固定组合的物理四张与结构三张分开',()=>{expect(analyze({hand:parseHand('123456789p22s'),fixedSets:[{kind:'quad',tile:'1s'}]}).shanten).toBe(-1);expect(()=>analyze({hand:parseHand('123456789p12s'),fixedSets:[{kind:'quad',tile:'1s'}]})).toThrow(/四张/);expect(()=>setTiles({kind:'sequence',tile:'8p'})).toThrow();});
  it('见尽的合法听口保留为零张',()=>{const r=analyze({hand:parseHand('123456789p1112s'),visible:{'2s':3}});expect(r.waits.find(t=>t.tile==='2s')?.remaining).toBe(0);expect(r.improvements).not.toContainEqual({tile:'2s',remaining:0});});
- it('固定刻子不能再制造第五张等待',()=>{const r=analyze({hand:parseHand('123456789p1s'),fixedSets:[{kind:'triplet',tile:'1s'}]});expect(r.waits.map(t=>t.tile)).not.toContain('1s');});
+ it('固定刻子不能再制造第五张等待或虚假听牌',()=>{const r=analyze({hand:parseHand('123456789p1s'),fixedSets:[{kind:'triplet',tile:'1s'}]});expect(r.waits.map(t=>t.tile)).not.toContain('1s');expect(r.shanten).toBe(1);});
  it('舍出的牌不会重新加入未知牌',()=>{const hand=parseHand('123456789p12459s'),r=analyze({hand});for(const d of r.discards)for(const t of d.improvements)expect(t.remaining).toBe(4-hand.filter(x=>x===t.tile).length);expect(r.discards[0].tile).toBe('9s');});
  it('拒绝非法第五张与错误张数',()=>{expect(()=>analyze({hand:parseHand('1111123456789p')})).toThrow(/四张/);expect(()=>validateContext({hand:parseHand('123p')})).toThrow(/13/);expect(()=>analyze({hand:parseHand('123456789p1112s'),visible:{'1s':2}})).toThrow(/四张/);});
  it('与独立单花色完整和型枚举器对照',()=>{
