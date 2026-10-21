@@ -1,4 +1,4 @@
-import { exercise, grade, MODES, validateProfile, validateSnapshot, type Attempt, type ExerciseRef, type LearningProfile } from './index.js';
+import { exercise, grade, MODES, packSnapshot, validateProfile, validateSnapshot, type Attempt, type ExerciseRef, type LearningProfile } from './index.js';
 import { TILES, type TileId } from '../engine/index.js';
 export type Mistake={ref:ExerciseRef;exerciseId:string;stage:number;due:string;favorite:boolean};
 export type SavedProfile={reportId:string;profile:LearningProfile;at:string;snapshot?:unknown};
@@ -28,7 +28,7 @@ export function importData(raw:unknown):LearningData{
     return {...m};
   });
   // Imported reports are intentionally kept as plain user data, never injected into HTML or uploaded as evidence.
-  clean.profiles=d.profiles.slice(-30).map(p=>{if(!p||typeof p.reportId!=='string'||!Number.isFinite(Date.parse(p.at))||!p.snapshot)throw new Error('画像备份不完整。');const s=validateSnapshot(p.snapshot).snapshot;return {...p,profile:validateProfile(p.profile,s),snapshot:s};});
+  clean.profiles=d.profiles.slice(-30).map(p=>{if(!p||typeof p.reportId!=='string'||!Number.isFinite(Date.parse(p.at))||!p.snapshot)throw new Error('画像备份不完整。');const s=validateSnapshot(p.snapshot).snapshot;return {...p,profile:validateProfile(p.profile,s),snapshot:packSnapshot(s)};});
   return clean;
 }
 export class LearningRepository{

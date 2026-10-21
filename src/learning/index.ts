@@ -1,6 +1,7 @@
 import { analyze, countsOf, decompose, parseHand, RULES_VERSION, ENGINE_VERSION, sevenPairsShanten, shanten, sorted, TILES, tileIndex, type HandContext, type TileId } from '../engine/index.js';
 import { lessons } from './lessons.js';
 import { scenarios, scenarioAnswers, type Scenario } from './scenarios.js';
+import { unpackSnapshot } from './history.js';
 export { lessons, UNIT_TITLES } from './lessons.js';
 export { scenarios, scenarioAnswers } from './scenarios.js';
 export const CONTENT_VERSION='1.0.1';
@@ -10,8 +11,9 @@ export const MODE_NAMES:Record<Mode,string>={discard:'何切',ukeire:'有效进�
 export type ExerciseRef={mode:Mode;seed:number};
 export type Exercise={id:string;ref:ExerciseRef;context:HandContext;title:string;prompt:string;lessonId:string;scenario?:Scenario};
 export type Attempt={id:string;ref:ExerciseRef;answer:TileId[];assisted:boolean;durationMs:number;at:string;correct:boolean;exerciseId:string;review:boolean};
-export type Evidence={id:string;ref:ExerciseRef;answer:TileId[];assisted:boolean;durationMs:number;at:string};
-export type LearningSnapshot={schemaVersion:1;rulesVersion:string;engineVersion:string;contentVersion:string;attempts:Evidence[]};
+export type Evidence={id:string;ref:ExerciseRef;answer:TileId[];assisted:boolean;durationMs:number;at:string;review?:boolean};
+export type LearningSnapshot={schemaVersion:1|2;rulesVersion:string;engineVersion:string;contentVersion:string;attempts:Evidence[]};
+export { packSnapshot, compressLearningEvidence } from './history.js';
 export type Dimension={mode:Mode;count:number;correct:number;accuracy:number|null;medianMs:number|null};
 export type ProfileClaim={mode:Mode;text:string;evidenceIds:string[]};
 export type LearningProfile={summary:string;strengths:ProfileClaim[];weaknesses:ProfileClaim[];uncertainties:string[];plan:{day:number;lessonId:string;mode:Mode;task:string}[]};
@@ -83,27 +85,30 @@ export function dimensions(attempts:Attempt[]):Dimension[]{
   return MODES.map(mode=>{const xs=first.filter(a=>a.ref.mode===mode),times=xs.map(a=>a.durationMs).sort((a,b)=>a-b);return{mode,count:xs.length,correct:xs.filter(a=>a.correct).length,accuracy:xs.length>=5?xs.filter(a=>a.correct).length/xs.length:null,medianMs:times.length>=5?times[Math.floor(times.length/2)]:null};});
 }
 export function snapshot(attempts:Attempt[]):LearningSnapshot{
-  const first=uniqueAttempts(attempts).slice(-100);
-  if(first.length<20)throw new Error('完成至少20道独立作答后才能生成画像。');
-  return {schemaVersion:1,rulesVersion:RULES_VERSION,engineVersion:ENGINE_VERSION,contentVersion:CONTENT_VERSION,attempts:first.map(({id,ref,answer,assisted,durationMs,at})=>({id,ref,answer,assisted,durationMs,at}))};
+  if(!attempts.length)throw new Error('完成一次作答后即可生成初步报告。');
+  return {schemaVersion:2,rulesVersion:RULES_VERSION,engineVersion:ENGINE_VERSION,contentVersion:CONTENT_VERSION,attempts:[...attempts].sort((a,b)=>Date.parse(a.at)-Date.parse(b.at)).map(({id,ref,answer,assisted,durationMs,at,review})=>({id,ref,answer,assisted,durationMs,at:new Date(at).toISOString(),review}))};
 }
 export function validateSnapshot(raw:unknown):{snapshot:LearningSnapshot;attempts:Attempt[];dimensions:Dimension[]}{
-  const s=raw as LearningSnapshot;
-  if(!s||s.schemaVersion!==1||s.rulesVersion!==RULES_VERSION||s.engineVersion!==ENGINE_VERSION||s.contentVersion!==CONTENT_VERSION||!Array.isArray(s.attempts)||s.attempts.length<20||s.attempts.length>100)throw new Error('画像快照版本或样本数量无效。');
-  const ids=new Set<string>(),keys=new Set<string>();
-  const checked=s.attempts.map(a=>{
-    if(!a||typeof a.id!=='string'||!/^[a-zA-Z0-9_-]{8,80}$/.test(a.id)||ids.has(a.id)||!Array.isArray(a.answer)||a.answer.length>18||new Set(a.answer).size!==a.answer.length||a.answer.some(t=>!TILES.includes(t))||a.assisted!==false||!Number.isInteger(a.durationMs)||a.durationMs<0||a.durationMs>1800000||typeof a.at!=='string'||!Number.isFinite(Date.parse(a.at)))throw new Error('答题证据无效。');
-    const q=exercise(a.ref);if(keys.has(q.id))throw new Error('快照不能重复计算同一道题。');
-    ids.add(a.id);keys.add(q.id);
-    return {id:a.id,ref:q.ref,answer:a.answer,assisted:false,durationMs:a.durationMs,at:a.at,correct:grade(q,a.answer),exerciseId:q.id,review:false};
+  const s=unpackSnapshot(raw);
+  if(!s||![1,2].includes(s.schemaVersion)||s.rulesVersion!==RULES_VERSION||s.engineVersion!==ENGINE_VERSION||s.contentVersion!==CONTENT_VERSION||!Array.isArray(s.attempts)||!s.attempts.length||s.attempts.length>50000)throw new Error('画像快照版本或样本数量无效。');
+  const ids=new Set<string>(),keys=new Set<string>(),questions=new Map<string,Exercise>(),expected=new Map<string,TileId[]>();
+  const checked:Attempt[]=[...s.attempts].sort((a,b)=>Date.parse(a?.at)-Date.parse(b?.at)).map(a=>{
+    if(!a||typeof a.id!=='string'||!/^[a-zA-Z0-9_-]{8,80}$/.test(a.id)||ids.has(a.id)||!Array.isArray(a.answer)||a.answer.length>18||new Set(a.answer).size!==a.answer.length||a.answer.some(t=>!TILES.includes(t))||typeof a.assisted!=='boolean'||(s.schemaVersion===1?a.assisted:typeof a.review!=='boolean')||!Number.isInteger(a.durationMs)||a.durationMs<0||a.durationMs>1800000||typeof a.at!=='string'||!Number.isFinite(Date.parse(a.at)))throw new Error('答题证据无效。');
+    const key=JSON.stringify(a.ref),q=questions.get(key)??exercise(a.ref);questions.set(key,q);
+    if(s.schemaVersion===1&&keys.has(q.id))throw new Error('旧版快照不能重复计算同一道题。');
+    const correctAnswer=expected.get(q.id)??answers(q);expected.set(q.id,correctAnswer);
+    const correct=q.ref.mode==='waits'||q.ref.mode==='ukeire'?a.answer.length===correctAnswer.length&&a.answer.every(t=>correctAnswer.includes(t)):a.answer.length===1&&correctAnswer.includes(a.answer[0]);
+    const review=!!a.review||keys.has(q.id);ids.add(a.id);keys.add(q.id);
+    return {id:a.id,ref:q.ref,answer:sorted(a.answer),assisted:a.assisted,durationMs:a.durationMs,at:new Date(a.at).toISOString(),correct,exerciseId:q.id,review};
   });
   return {snapshot:snapshot(checked),attempts:checked,dimensions:dimensions(checked)};
 }
 export function validateProfile(raw:unknown,s:LearningSnapshot):LearningProfile{
-  const p=raw as LearningProfile,ids=new Set(s.attempts.map(a=>a.id));
+  const p=raw as LearningProfile,ids=new Map(s.attempts.map(a=>[a.id,a]));
+  const first=uniqueAttempts(s.attempts.map(a=>({...a,review:!!a.review,correct:false,exerciseId:a.ref.mode==='defense'?`${CONTENT_VERSION}:${scenarios[a.ref.seed%scenarios.length].id}`:`${CONTENT_VERSION}:${a.ref.mode}:${a.ref.seed}`}))),counts=new Map(MODES.map(mode=>[mode,first.filter(a=>a.ref.mode===mode).length]));
   const text=(x:unknown,max=600)=>typeof x==='string'&&x.length>0&&x.length<=max;
   if(!p||!text(p.summary)||![p.strengths,p.weaknesses,p.uncertainties,p.plan].every(Array.isArray)||p.strengths.length>7||p.weaknesses.length>7||p.uncertainties.length>10||p.plan.length!==7)throw new Error('画像格式不完整。');
-  for(const claim of [...p.strengths,...p.weaknesses])if(!claim||!MODES.includes(claim.mode)||s.attempts.filter(a=>a.ref.mode===claim.mode).length<5||!text(claim.text)||!Array.isArray(claim.evidenceIds)||claim.evidenceIds.length<1||claim.evidenceIds.length>5||claim.evidenceIds.some(id=>!ids.has(id)||s.attempts.find(a=>a.id===id)?.ref.mode!==claim.mode))throw new Error('画像引用了不存在或不足的答题证据。');
+  for(const claim of [...p.strengths,...p.weaknesses])if(!claim||!MODES.includes(claim.mode)||(counts.get(claim.mode)??0)<5||!text(claim.text)||!Array.isArray(claim.evidenceIds)||claim.evidenceIds.length<1||claim.evidenceIds.length>5||claim.evidenceIds.some(id=>ids.get(id)?.ref.mode!==claim.mode))throw new Error('画像引用了不存在或不足的答题证据。');
   if(!p.uncertainties.every(x=>text(x)))throw new Error('画像未知项无效。');
   p.plan.forEach((d,i)=>{if(d.day!==i+1||!lessons.some(l=>l.id===d.lessonId)||!MODES.includes(d.mode)||!text(d.task,300))throw new Error('学习计划引用无效。');});
   return p;
