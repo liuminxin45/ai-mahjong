@@ -14,7 +14,7 @@ for(const [name,launcher] of [['chromium',chromium],['webkit',webkit]]){
  await editor.locator('.mj-hand').first().getByRole('button',{name:'一筒',exact:true}).first().click();assert.equal(await picker.getByRole('button',{name:'一筒',exact:true}).isEnabled(),true);
  await page.getByRole('button',{name:'撤销',exact:true}).click();assert.equal(await picker.getByRole('button',{name:'一筒',exact:true}).isDisabled(),true);
  await page.getByRole('button',{name:'清空手牌',exact:true}).click();
- await page.getByRole('button',{name:'粘贴牌谱',exact:true}).click();await page.getByRole('textbox',{name:'手牌牌谱'}).fill('123万');await page.getByRole('button',{name:'应用手牌',exact:true}).click();assert.equal(await page.getByRole('dialog').count(),1);await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'粘贴牌谱',exact:true}).click();await page.getByRole('textbox',{name:'手牌牌谱'}).fill('123万');await page.getByRole('button',{name:'应用手牌',exact:true}).click();assert.equal(await page.getByRole('dialog').count(),1);await page.keyboard.press('Escape');await page.waitForFunction(()=>document.activeElement?.textContent==='粘贴牌谱');
  await page.getByRole('button',{name:'粘贴牌谱',exact:true}).click();await page.getByRole('textbox',{name:'手牌牌谱'}).fill('123456789筒12459条');await page.getByRole('button',{name:'应用手牌',exact:true}).click();await page.getByRole('heading',{name:'舍牌比较',exact:true}).waitFor();
  assert.equal(await picker.locator('button:enabled').count(),0);await page.getByText('向听、进张是什么意思？',{exact:true}).click();await page.getByText('向听越小，离胡牌越近：',{exact:false}).waitFor();
  await editor.locator('.mj-hand').first().getByRole('button',{name:'九条',exact:true}).click();

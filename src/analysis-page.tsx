@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button, Dialog, Input, Tabs } from 'chatgpt-desktop-kit';
 import { useSearchParams } from 'react-router';
 import { formatHand, setTiles, sorted, TILES, type FixedSet, type HandContext, type TileId } from './engine/index.js';
@@ -17,6 +17,7 @@ export function AnalysisPage({createWorker}:{createWorker?:()=>Worker}){
   const [history,setHistory]=useState<HandContext[]>([]),[inputError,setInputError]=useState('');
   const [target,setTarget]=useState('hand'),[kind,setKind]=useState<FixedSet['kind']>('sequence'),[base,setBase]=useState<TileId>('1p');
   const [textOpen,setTextOpen]=useState(false),[text,setText]=useState(''),[textError,setTextError]=useState('');
+  const textTrigger=useRef<HTMLButtonElement>(null);
   const limit=handLimit(context),complete=[limit-1,limit].includes(context.hand.length),remaining=availableTiles(context);
   const {result,error,busy}=useAnalysis(context,createWorker,complete);
   const store=(next:HandContext)=>{setContext(next);setInputError('');update(d=>({...d,drafts:{...d.drafts,analysis:{context:next,text:formatHand(next.hand)}}}));};
@@ -30,7 +31,7 @@ export function AnalysisPage({createWorker}:{createWorker?:()=>Worker}){
   return <div className="mj-page"><div className="mj-page-heading"><h1>手牌分析</h1></div>
     <div className="mj-analysis-layout"><section className="mj-hand-editor" aria-label="手牌编辑器">
       <div className="mj-editor-heading"><h2>我的手牌</h2><span role="status" className="mj-muted">{context.hand.length} / {limit}张{context.fixedSets?.length?` · 已固定${context.fixedSets.length}组`:''}</span></div>
-      <div className="mj-editor-commands"><Button size="sm" variant="ghost" disabled={!history.length} onClick={undo}>撤销</Button><Button size="sm" variant="ghost" disabled={!context.hand.length} onClick={()=>save({...context,hand:[]})}>清空手牌</Button><Button size="sm" variant="ghost" onClick={()=>{setText(formatHand(context.hand).replaceAll('p','筒').replaceAll('s','条'));setTextError('');setTextOpen(true);}}>粘贴牌谱</Button></div>
+      <div className="mj-editor-commands"><Button size="sm" variant="ghost" disabled={!history.length} onClick={undo}>撤销</Button><Button size="sm" variant="ghost" disabled={!context.hand.length} onClick={()=>save({...context,hand:[]})}>清空手牌</Button><Button ref={textTrigger} size="sm" variant="ghost" onClick={()=>{setText(formatHand(context.hand).replaceAll('p','筒').replaceAll('s','条'));setTextError('');setTextOpen(true);}}>粘贴牌谱</Button></div>
       {context.hand.length?<Hand tiles={sorted(context.hand)} onSelect={remove}/>:<div className="mj-hand-empty"><p>从下方点选牌，组成你的手牌。</p><Button size="sm" onClick={()=>save({hand:parseEditorHand('123456789筒12459条')})}>试用示例牌</Button></div>}
       {!!context.fixedSets?.length&&<div className="mj-fixed-list" aria-label="已固定组合">{context.fixedSets.map((set,index)=>{let restore=true;try{unfixSet(context,index,true);}catch{restore=false;}return <div className="mj-fixed-set" key={index}><div><span className="mj-muted">{setNames[set.kind]}</span><Hand tiles={setTiles(set)}/></div><div className="mj-fixed-actions"><Button size="sm" variant="ghost" disabled={!restore} onClick={()=>save(unfixSet(context,index,true))}>还原手牌</Button><Button size="sm" variant="ghost" onClick={()=>save(unfixSet(context,index,false))}>移除组合</Button></div></div>;})}</div>}
       <Tabs value={target} onValueChange={setTarget} ariaLabel="编辑内容" items={[{value:'hand',label:'手牌'},{value:'sets',label:'固定组合'},{value:'visible',label:'可见牌'}]}/>
@@ -44,6 +45,6 @@ export function AnalysisPage({createWorker}:{createWorker?:()=>Worker}){
       {result.discards.length>0&&<><h3>舍牌比较</h3><DiscardTable result={result} explainTerms={false}/></>}
       {result.decomposition&&<><h3>一种完整拆法</h3><div className="mj-decomposition">{result.decomposition.map((group,index)=><Hand key={index} tiles={group}/>)}</div></>}
       <AppLink to="../manual/lesson-09">了解可见牌如何影响结果 →</AppLink></>:!busy&&<p className="mj-muted">{context.hand.length<limit-1?`已选${context.hand.length}张手牌，再选${limit-1-context.hand.length}张即可查看听口；选到${limit}张可比较舍牌方案。`:'请调整手牌后查看分析。'}</p>}</section></div>
-    <Dialog open={textOpen} onClose={()=>setTextOpen(false)} title="粘贴牌谱" description="已有文字牌谱时可以粘贴；日常选牌直接点牌面即可。" footer={<><Button onClick={()=>setTextOpen(false)}>取消</Button><Button variant="primary" onClick={applyText}>应用手牌</Button></>}><label className="mj-field"><span>手牌牌谱</span><Input aria-label="手牌牌谱" value={text} onChange={event=>{setText(event.target.value);setTextError('');}} placeholder="例如123456789筒12459条" aria-invalid={!!textError}/></label><p className="mj-muted">用“筒”“条”区分花色，例如123筒456条；也支持已有的p、s牌谱。只替换手牌，保留当前固定组合与可见牌。</p><ErrorNotice message={textError}/></Dialog>
+    <Dialog open={textOpen} onClose={()=>setTextOpen(false)} onCloseAutoFocus={event=>{if(textTrigger.current?.isConnected){event.preventDefault();textTrigger.current.focus();}}} title="粘贴牌谱" description="已有文字牌谱时可以粘贴；日常选牌直接点牌面即可。" footer={<><Button onClick={()=>setTextOpen(false)}>取消</Button><Button variant="primary" onClick={applyText}>应用手牌</Button></>}><label className="mj-field"><span>手牌牌谱</span><Input aria-label="手牌牌谱" value={text} onChange={event=>{setText(event.target.value);setTextError('');}} placeholder="例如123456789筒12459条" aria-invalid={!!textError}/></label><p className="mj-muted">用“筒”“条”区分花色，例如123筒456条；也支持已有的p、s牌谱。只替换手牌，保留当前固定组合与可见牌。</p><ErrorNotice message={textError}/></Dialog>
   </div>;
 }
