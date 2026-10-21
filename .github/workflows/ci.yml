@@ -30,6 +30,9 @@ jobs:
           node-version: 24.19.0
           cache: pnpm
 
+      - name: Use a portable dependency preparation directory
+        run: pnpm config set store-dir '${{ runner.temp }}/mahjong-pnpm-store'
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
