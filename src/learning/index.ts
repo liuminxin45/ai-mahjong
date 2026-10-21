@@ -3,7 +3,7 @@ import { lessons } from './lessons.js';
 import { scenarios, scenarioAnswers, type Scenario } from './scenarios.js';
 export { lessons, UNIT_TITLES } from './lessons.js';
 export { scenarios, scenarioAnswers } from './scenarios.js';
-export const CONTENT_VERSION='1.0.0';
+export const CONTENT_VERSION='1.0.1';
 export const MODES=['discard','ukeire','waits','seven-pairs','defense'] as const;
 export type Mode=typeof MODES[number];
 export const MODE_NAMES:Record<Mode,string>={discard:'何切',ukeire:'有效进张',waits:'听牌与多面听','seven-pairs':'七对路线',defense:'攻防情境'};
@@ -52,7 +52,9 @@ export function exercise(ref:ExerciseRef):Exercise {
   const group=mode==='discard'?0:mode==='ukeire'?1:mode==='waits'?2:3;
   let hand=seed<10?parseHand(CURATED_HANDS[group*10+seed]):mode==='waits'?waitingHand(seed):randomHand(seed,mode==='ukeire'?13:14);
   if(mode==='seven-pairs'&&seed>=10){
-    const random=rng(seed),pool=[...TILES].sort(()=>random()-.5);hand=[...pool.slice(0,6).flatMap(t=>[t,t]),pool[6],pool[7]];
+    const random=rng(seed),pool=[...TILES];
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+    hand=sorted([...pool.slice(0,6).flatMap(t=>[t,t]),pool[6],pool[7]]);
   }
   return {id:`${CONTENT_VERSION}:${mode}:${seed}`,ref,context:{hand},title:MODE_NAMES[mode],prompt:mode==='waits'?'选出所有能和牌的牌种，再提交。':mode==='ukeire'?'选出所有仍有剩余张数、能降低综合向听的进张。':mode==='seven-pairs'?'以七对路线为目标：先比较向听，再比较七对进张。':'先比较舍牌后的向听，再比较有效进张，选择一张舍牌。',lessonId:mode==='waits'?'lesson-13':mode==='ukeire'?'lesson-08':mode==='seven-pairs'?'lesson-15':'lesson-10'};
 }
