@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Button, Select, InlineNotice, Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from 'chatgpt-desktop-kit';
 import { useSearchParams } from 'react-router';
 import { analyze, sorted, TILES, tileName, type TileId } from './engine/index.js';
-import { answers, exercise, grade, MODE_NAMES, MODES, QUIZ_MODES, solutionText, type Attempt, type ExerciseRef, type Mode } from './learning/index.js';
+import { answers, exercise, grade, lessons, MODE_NAMES, MODES, QUIZ_MODES, solutionText, type Attempt, type ExerciseRef, type Mode } from './learning/index.js';
 import { localDate, recordAttempt } from './learning/storage.js';
 import { AppLink, Hand, Tile, useActiveTime, useLearning } from './ui.js';
 type Draft={seed:number;selected:TileId[];submitted:boolean;hint:boolean};
@@ -47,12 +47,17 @@ export function QuizPage(){
   const {data,update}=useLearning();const [session,setSession]=useState<QuizState|null>((data.drafts.quiz as QuizState)??null);
   const save=(s:QuizState)=>{setSession(s);update(d=>({...d,drafts:{...d.drafts,quiz:s}}));};
   if(!session)return <div className="mj-page mj-reading"><p className="mj-eyebrow">看看知识能否连起来</p><h1>20题阶段测验</h1><p>10道何切、4道听牌、2道七对、4道攻防。过程中不显示解析，不设置倒计时。</p><Button variant="primary" onClick={()=>save({seed:Math.floor(Date.now()/1000)%1000000,index:0,answers:[]})}>开始测验</Button></div>;
-  if(session.index>=20)return <div className="mj-page"><h1>本次测验完成</h1><p>答对{session.answers.filter(a=>a.correct).length} / 20题。题型与首次作答记录可在学习画像中查看。</p><div className="mj-actions"><AppLink to="../profile">查看学习统计</AppLink><Button onClick={()=>{setSession(null);update(d=>({...d,drafts:{...d.drafts,quiz:null}}));}}>重新测验</Button></div>{session.answers.map((a,i)=><details key={a.id}><summary>第{i+1}题 · {MODE_NAMES[a.ref.mode]} · {a.correct?'正确':'待复习'}</summary><Hand tiles={exercise(a.ref).context.hand}/><ResultDetails refValue={a.ref}/></details>)}</div>;
+  if(session.index>=20){
+    const missed=session.answers.filter(a=>!a.correct),recommended=[...new Set(missed.map(a=>exercise(a.ref).lessonId))];
+    return <div className="mj-page"><h1>本次测验完成</h1><p>答对{session.answers.filter(a=>a.correct).length} / 20题。</p><h2>这次需要巩固的判断</h2>{MODES.filter(mode=>session.answers.some(a=>a.ref.mode===mode)).map(mode=>{const xs=session.answers.filter(a=>a.ref.mode===mode);return <div className="mj-record" key={mode}><div><strong>{MODE_NAMES[mode]}</strong><p>{xs.filter(a=>a.correct).length} / {xs.length}题正确 · {xs.every(a=>a.correct)?'本次均答对':'建议结合错题再练习'}</p></div><AppLink to={'../practice?mode='+mode}>专项练习 →</AppLink></div>;})}
+      {recommended.length>0&&<><h2>从这些课程开始复习</h2><div className="mj-actions">{recommended.map(id=><AppLink key={id} to={'../manual/'+id}>{lessons.find(l=>l.id===id)?.title} →</AppLink>)}</div></>}
+      <div className="mj-actions"><AppLink to="../profile">查看学习统计</AppLink><Button onClick={()=>{setSession(null);update(d=>({...d,drafts:{...d.drafts,quiz:null}}));}}>重新测验</Button></div>{session.answers.map((a,i)=><details key={a.id}><summary>第{i+1}题 · {MODE_NAMES[a.ref.mode]} · {a.correct?'正确':'待复习'}</summary><Hand tiles={exercise(a.ref).context.hand}/><ResultDetails refValue={a.ref}/></details>)}</div>;
+  }
   const refValue={mode:QUIZ_MODES[session.index],seed:session.seed+session.index*23};const answered=session.answers.length>session.index;
   return <div className="mj-page"><div className="mj-page-heading"><h1>阶段测验</h1><span>{session.index+1} / 20</span></div><Practice key={session.index} mode={refValue.mode} quizRef={refValue} onQuizAnswer={a=>save({...session,answers:[...session.answers,a]})}/>{answered&&<Button variant="primary" onClick={()=>save({...session,index:session.index+1})}>{session.index===19?'查看测验结果':'下一题'}</Button>}</div>;
 }
 export function ReviewPage(){
-  const {data}=useLearning();const [filter,setFilter]=useState('due');const list=data.mistakes.filter(m=>filter==='all'||filter==='favorite'&&m.favorite||filter==='due'&&m.due<=localDate());
-  return <div className="mj-page mj-reading"><div className="mj-page-heading"><div><p className="mj-eyebrow">把知道变成会用</p><h1>错题复习</h1></div><Select aria-label="复习范围" value={filter} onValueChange={setFilter} options={[{value:'due',label:'今天待复习'},{value:'all',label:'全部记录'},{value:'favorite',label:'收藏题'}]}/></div><p>答对后按1、3、7天安排复习，重做不增加独立样本数。</p>{list.length===0?<p className="mj-empty">这里暂时没有题目。完成练习后，错误、提示题和收藏会出现在这里。</p>:list.map(m=><div className="mj-record" key={m.exerciseId}><div><strong>{exercise(m.ref).title}</strong><p>{m.favorite?'已收藏 · ':''}复习阶段{m.stage} · {m.due}</p></div><AppLink to={'../practice?mode='+m.ref.mode+'&seed='+m.ref.seed+'&review=1'}>重新练习</AppLink></div>)}</div>;
+  const {data}=useLearning();const [filter,setFilter]=useState('due'),[topic,setTopic]=useState('all');const list=data.mistakes.filter(m=>(topic==='all'||m.ref.mode===topic)&&(filter==='all'||filter==='favorite'&&m.favorite||filter==='due'&&m.due<=localDate()));
+  return <div className="mj-page mj-reading"><div className="mj-page-heading"><div><p className="mj-eyebrow">把知道变成会用</p><h1>错题复习</h1></div><Select aria-label="复习范围" value={filter} onValueChange={setFilter} options={[{value:'due',label:'今天待复习'},{value:'all',label:'全部记录'},{value:'favorite',label:'收藏题'}]}/></div><div className="mj-actions"><Select aria-label="复习知识点" value={topic} onValueChange={setTopic} options={[{value:'all',label:'全部知识点'},...MODES.map(value=>({value,label:MODE_NAMES[value]}))]}/></div><p>答对后按1、3、7天安排复习，重做不增加独立样本数。</p>{list.length===0?<p className="mj-empty">这里暂时没有题目。完成练习后，错误、提示题和收藏会出现在这里。</p>:list.map(m=><div className="mj-record" key={m.exerciseId}><div><strong>{exercise(m.ref).title}</strong><p>{m.favorite?'已收藏 · ':''}复习阶段{m.stage} · {m.due}</p></div><AppLink to={'../practice?mode='+m.ref.mode+'&seed='+m.ref.seed+'&review=1'}>重新练习</AppLink></div>)}</div>;
 }
 
