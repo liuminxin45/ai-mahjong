@@ -35,16 +35,17 @@ export function useAnalysis(context:HandContext,createWorker?:()=>Worker,enabled
   },[key,enabled]);
   return {result,error,busy};
 }
-export function useActiveTime(key:string){
-  const total=useRef(0),start=useRef<number|null>(null);
+export function useActiveTime(key:string,paused=false){
+  const total=useRef(0),start=useRef<number|null>(null),activeKey=useRef<string|null>(null);
   useEffect(()=>{
    const storageKey='neo-mahjong-active:'+key;
-   try{const saved=Number(sessionStorage.getItem(storageKey));total.current=Number.isFinite(saved)&&saved>=0&&saved<=1800000?saved:0;}catch{total.current=0;}
-   start.current=document.hidden?null:performance.now();
+   if(activeKey.current!==key){activeKey.current=key;try{const saved=Number(sessionStorage.getItem(storageKey));total.current=Number.isFinite(saved)&&saved>=0&&saved<=1800000?saved:0;}catch{total.current=0;}}
+   start.current=document.hidden||paused?null:performance.now();
+   const stop=()=>{if(start.current!==null){total.current=Math.min(1800000,total.current+performance.now()-start.current);start.current=null;}};
    const persist=()=>{try{sessionStorage.setItem(storageKey,String(Math.min(1800000,total.current+(start.current===null?0:performance.now()-start.current))));}catch{}};
-   const visibility=()=>{if(document.hidden&&start.current!==null){total.current+=performance.now()-start.current;start.current=null;}else if(!document.hidden&&start.current===null)start.current=performance.now();persist();};
+   const visibility=()=>{if(document.hidden||paused)stop();else if(start.current===null)start.current=performance.now();persist();};
    const interval=setInterval(persist,1000);document.addEventListener('visibilitychange',visibility);window.addEventListener('pagehide',persist);
-   return()=>{persist();clearInterval(interval);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('pagehide',persist);};
-  },[key]);
+   return()=>{stop();persist();clearInterval(interval);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('pagehide',persist);};
+  },[key,paused]);
   return ()=>Math.min(1800000,Math.round(total.current+(start.current===null?0:performance.now()-start.current)));
 }

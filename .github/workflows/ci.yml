@@ -56,6 +56,7 @@ jobs:
           pnpm preview --port 5188 > /tmp/mahjong-preview.log 2>&1 &
           for i in $(seq 1 40); do curl --fail --silent http://127.0.0.1:5188/ >/dev/null && break; sleep 1; done
           pnpm test:upgrade-browser
+          node scripts/guides-browser.mjs
           node scripts/product-browser.mjs
           node scripts/selection-browser.mjs
           node scripts/home-browser.mjs

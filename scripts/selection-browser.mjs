@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { exercise, grade } from '../lib/learning/index.js';
 import { sorted } from '../lib/engine/index.js';
+import { returningLearner } from './browser-helpers.mjs';
 const origin=process.env.MAHJONG_PREVIEW_URL||'http://127.0.0.1:4177',base=process.env.MAHJONG_ROUTE_BASE||'';
 let seed=10;while(exercise({mode:'discard',seed}).context.hand.filter(t=>t==='9s').length<2)seed++;
 const correct=grade(exercise({mode:'discard',seed}),['9s']);
@@ -15,7 +16,7 @@ for(const [name,launcher] of [['chromium',chromium],['webkit',webkit]]){
  const browser=await launcher.launch();
  for(const theme of ['light','dark'])for(const width of [1920,1280,390,320]){
   const context=await browser.newContext({viewport:{width,height:900},deviceScaleFactor:1.25,hasTouch:width<768}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(origin+base+'/quiz/legacy');await page.getByRole('heading',{level:1}).waitFor();
+  await returningLearner(page);await page.goto(origin+base+'/quiz/legacy');await page.getByRole('heading',{level:1}).waitFor();
   await page.evaluate(theme=>{localStorage.setItem('theme',theme);localStorage.setItem('neo-mahjong-theme-v1',theme);},theme);
   await put(page,{...empty(),drafts:{quiz:{seed,index:0,answers:[]}}});await page.reload();await page.getByRole('heading',{name:'阶段测验',exact:true}).waitFor();
   const hand=page.locator('.mj-question > .mj-hand'),copies=hand.getByRole('button',{name:'九条',exact:true}),pressed=hand.locator('button[aria-pressed="true"]');

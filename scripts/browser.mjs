@@ -1,10 +1,11 @@
 import { chromium, webkit } from 'playwright';
+import { returningLearner } from './browser-helpers.mjs';
 import { mkdir,writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const base=process.env.MAHJONG_PREVIEW_URL||'http://127.0.0.1:5173';
 await mkdir('artifacts/browser',{recursive:true});const results=[];
 for(const [name,launcher] of [['chromium',chromium],['webkit',webkit]]){
- const browser=await launcher.launch({headless:true});const context=await browser.newContext();const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const browser=await launcher.launch({headless:true});const context=await browser.newContext();const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await returningLearner(page);
  for(const theme of ['light','dark'])for(const width of [1920,1280,768,390,360,320]){
   await page.setViewportSize({width,height:width>767?900:844});await page.goto(base+'/practice');await page.evaluate(theme=>localStorage.setItem('neo-mahjong-theme-v1',theme),theme);
   for(const route of ['practice','analysis','manual','quiz','review','profile']){

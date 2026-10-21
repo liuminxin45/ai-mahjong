@@ -8,6 +8,8 @@ import { recordAttempt } from './learning/storage.js';
 import { CompetitionSession, pendingCompetition, restoreCompetitionChoice, sameCompetitionQuestion, type CompetitionChoice, type PendingCompetition } from './competition-session.js';
 import { AppLink, ErrorNotice, Hand, Tile, useLearning } from './ui.js';
 import { ResultDetails } from './practice.js';
+import { CompetitionGuideContent, GuideDocument } from './practice-guide.js';
+import { practicePrompt } from './guide-examples.js';
 
 export const durationLabel=(ms:number,precise=false)=>{const s=Math.max(0,Math.floor(ms/1000)),fraction=precise?'.'+String(Math.max(0,Math.floor(ms))%1000).padStart(3,'0'):'';return `${Math.floor(s/3600)?Math.floor(s/3600)+'小时':''}${Math.floor(s/60)%60}分${s%60}${fraction}秒`;};
 
@@ -19,6 +21,8 @@ export function LeaderboardPage(){
  const [papers,setPapers]=useState<CompetitionPaper[]>(competitionPapers),[paperId,setPaperId]=useState(competitionPapers[0].id),[board,setBoard]=useState<CompetitionBoard|null>(null),[offset,setOffset]=useState(0);
  const [run,setRun]=useState<CompetitionRun|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[online,setOnline]=useState(false),[network,setNetwork]=useState(()=>typeof navigator==='undefined'||navigator.onLine),[consent,setConsent]=useState(false),[restart,setRestart]=useState(false);
  const [boardError,setBoardError]=useState('');
+ const [rules,setRules]=useState(false);
+ const rulesButton=useRef<HTMLButtonElement>(null),guideReturn=useRef<HTMLButtonElement|null>(null);
  const [judgmentSelected,setJudgmentSelected]=useState(false),[selection,setSelection]=useState<TileId[]>([]),[selectedIndex,setSelectedIndex]=useState<number>();
  const [,setTick]=useState(0),clock=useRef({server:0,received:0}),mounted=useRef(true),boardRequest=useRef(0),recovering=useRef(false),runRef=useRef<CompetitionRun|null>(null);
  const saved=useRef(typeof data.drafts['competition-run']==='string'?data.drafts['competition-run']:null),pending=useRef(pendingCompetition(data.drafts['competition-start']));
@@ -84,11 +88,11 @@ export function LeaderboardPage(){
  const elapsed=run?Math.max(0,clock.current.server-Date.parse(run.startedAt)+performance.now()-clock.current.received):0;
  const completed=run?.status==='complete'&&run.paperId===paperId;
  return <div className="mj-page mj-competition">
-  <div className="mj-page-heading"><h1>排位赛</h1>{!active&&<Select aria-label="比赛难度" disabled={busy} value={paperId} options={papers.map(p=>({value:p.id,label:DIFFICULTY_NAMES[p.difficulty]+(p.archived?' · 已归档':'')}))} onValueChange={id=>{setPaperId(id);setOffset(0);setError('');}}/>}</div>
+  <div className="mj-page-heading"><h1>排位赛</h1><div className="mj-competition-tools"><Button ref={rulesButton} size="sm" variant="ghost" onClick={e=>{guideReturn.current=e.currentTarget;setRules(true);}}>规则与示例</Button>{!active&&<Select aria-label="比赛难度" disabled={busy} value={paperId} options={papers.map(p=>({value:p.id,label:DIFFICULTY_NAMES[p.difficulty]+(p.archived?' · 已归档':'')}))} onValueChange={id=>{setPaperId(id);setOffset(0);setError('');}}/>}</div></div>
   <ErrorNotice message={error||(!active?boardError:'')}/>{!network&&<InlineNotice title="已离线，联网后自动继续。"/>}
   {active&&q&&run?<section className="mj-question">
    <div className="mj-match-progress"><span>{DIFFICULTY_NAMES[papers.find(p=>p.id===run.paperId)?.difficulty??1]} · {run.index+1}/20</span><span role="timer" aria-label="本轮用时" aria-live="off">{durationLabel(elapsed)}</span><Button size="sm" variant="ghost" disabled={busy} onClick={()=>setRestart(true)}>重新挑战</Button></div>
-   <h2>{MODE_NAMES[q.ref.mode]}</h2><p>{q.prompt}</p>
+   <h2>{MODE_NAMES[q.ref.mode]}</h2><p>{practicePrompt(q)}</p>
    <Hand tiles={hand} selected={selection} selectedIndex={!multi?selectedIndex??-1:undefined} onSelect={!multi&&!judgment?select:undefined} disabled={busy}/>
    {!!q.context.fixedSets?.length&&<div className="mj-public-groups">{q.context.fixedSets.map((s,i)=><div key={i}><span>{s.kind==='quad'?'已杠':'已碰'}</span><Hand tiles={setTiles(s)}/></div>)}</div>}
    {q.context.visible&&!q.scenario&&<p className="mj-muted">已见牌：{Object.entries(q.context.visible).map(([tile,n])=>`${tileName(tile as TileId)}×${n}`).join('、')}</p>}
@@ -100,7 +104,7 @@ export function LeaderboardPage(){
   </section>:<>
    {completed&&run&&<section className="mj-match-result"><h2>本次成绩 · {run.score}分</h2><p>用时 {durationLabel(run.durationMs??0,true)}</p><details><summary>查看答案与解析</summary>{run.attempts?.map((a,i)=><details key={a.id}><summary>第{i+1}题 · {a.correct?'正确':'待复习'}</summary><ResultDetails refValue={a.ref}/></details>)}</details><AppLink to="../profile">查看学习画像</AppLink></section>}
    {run&&['expired','abandoned'].includes(run.status)&&<p className="mj-muted">上次比赛已结束，开始新一轮吧。</p>}
-   <div className="mj-match-start"><p>20题一轮，挑战你的最好成绩。</p><Button variant="primary" disabled={busy||!online||!network||papers.find(p=>p.id===paperId)?.archived} onClick={()=>setConsent(true)}>{busy?'连接中…':run?.paperId===paperId?'重新挑战':'开始排位'}</Button></div>
+   <div className="mj-match-start"><p>20题一轮，挑战你的最好成绩。</p><Button variant="primary" disabled={busy||!online||!network||papers.find(p=>p.id===paperId)?.archived} onClick={e=>{guideReturn.current=e.currentTarget;setConsent(true);}}>{busy?'连接中…':run?.paperId===paperId?'重新挑战':'开始排位'}</Button></div>
    {!online&&<p className="mj-muted"><AppLink to="../practice">去专项练习</AppLink></p>}
   </>}
   {!active&&<section className="mj-ranking"><h2>成绩榜</h2>{board?.archived&&<p className="mj-muted">已归档，仅供回看。</p>}
@@ -108,7 +112,7 @@ export function LeaderboardPage(){
    {board?.entries.length?<><div className="mj-ranking-labels"><span>名次</span><span>牌友</span><span>得分 / 用时</span></div><div role="list" aria-label="排位成绩">{board.entries.map(entry=><RecordRow key={entry.publicId} role="listitem" separator className="mj-ranking-entry"><span>{entry.rank}</span><div className="mj-ranking-identity"><span>{entry.alias}</span>{entry.mine&&<span className="mj-muted">本人</span>}</div><div className="mj-ranking-score"><strong>{entry.score}分</strong><span className="mj-muted">{rankingTime(entry.durationMs)}</span></div></RecordRow>)}</div>{board.total>50&&<div className="mj-actions"><Button disabled={offset===0} onClick={()=>setOffset(Math.max(0,offset-50))}>上一页</Button><span>{Math.floor(offset/50)+1} / {Math.ceil(board.total/50)}</span><Button disabled={offset+50>=board.total} onClick={()=>setOffset(offset+50)}>下一页</Button></div>}</>:<p className="mj-empty">{board?'暂无成绩':'正在读取成绩…'}</p>}
   </section>}
   {!active&&<details className="mj-secondary-details"><summary>比赛规则</summary><p>每轮20题，五类训练各4题，每题5分。得分高的优先；同分按用时短、达到成绩早的顺序排名，只保留个人最佳。</p><p>开始后持续计时，切换页面或断网也计入；24小时内可自动续接。每题提交后锁定答案，交卷后查看解析。</p><p>参赛会上传答卷，公开匿名代号、最好成绩与用时。身份随浏览器保存，清理Cookie或更换浏览器会成为新访客。允许重复挑战，榜单不保证真人唯一性或排除外部工具。</p></details>}
-  <Dialog open={consent} onClose={()=>setConsent(false)} title="开始排位赛" description="20题，满分100分。开始后持续计时，24小时内可以继续。答卷将上传，并以匿名代号上榜。" footer={<><Button onClick={()=>setConsent(false)}>取消</Button><Button variant="primary" onClick={()=>void begin()}>开始比赛</Button></>}/>
+  <Dialog open={consent||rules} onClose={()=>{setConsent(false);setRules(false);}} onCloseAutoFocus={e=>{const target=guideReturn.current?.isConnected&&!guideReturn.current.disabled?guideReturn.current:rulesButton.current;if(target){e.preventDefault();target.focus();}}} title="排位赛 · 规则与示例" description={active?'比赛计时仍在继续。这里的例子独立于本轮题目。':'看懂规则，再开始这一轮。点击「开始比赛」后才会计时。'} footer={consent?<><Button onClick={()=>setConsent(false)}>取消</Button><Button variant="primary" onClick={()=>void begin()}>开始比赛</Button></>:<Button variant="primary" onClick={()=>setRules(false)}>明白了</Button>}><GuideDocument><CompetitionGuideContent started={!!active}/></GuideDocument></Dialog>
   <Dialog open={restart} onClose={()=>setRestart(false)} title="重新挑战？" description="当前进度将结束，新一轮从第一题开始计时。此前的最好成绩保留。" footer={<><Button onClick={()=>setRestart(false)}>继续本轮</Button><Button variant="primary" onClick={()=>void begin(true)} disabled={busy}>重新挑战</Button></>}/>
  </div>;
 }

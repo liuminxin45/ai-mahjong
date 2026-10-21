@@ -2,6 +2,7 @@ import { chromium,webkit } from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdir,writeFile } from 'node:fs/promises';
 import { answers,exercise } from '../lib/learning/index.js';
+import { returningLearner } from './browser-helpers.mjs';
 const origin=process.env.MAHJONG_PREVIEW_URL||'http://127.0.0.1:4177',base=process.env.MAHJONG_ROUTE_BASE||'';
 const widths=(process.env.MAHJONG_HOME_WIDTHS||'1920,1280,768,390,360,320').split(',').map(Number);
 const dir=process.env.MAHJONG_HOME_ARTIFACTS||'artifacts/home-browser';await mkdir(dir,{recursive:true});const results=[];
@@ -11,7 +12,7 @@ for(const [name,launcher] of [['chromium',chromium],['webkit',webkit]]){
  const browser=await launcher.launch();
  for(const theme of ['light','dark'])for(const width of widths){
   const context=await browser.newContext({viewport:{width,height:width===320?568:900},deviceScaleFactor:1.25}),page=await context.newPage(),errors=[],requests=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push(r.url()));
-  await page.addInitScript(theme=>{localStorage.setItem('theme',theme);localStorage.setItem('neo-mahjong-theme-v1',theme);},theme);
+  await page.addInitScript(theme=>{localStorage.setItem('theme',theme);localStorage.setItem('neo-mahjong-theme-v1',theme);},theme);await returningLearner(page);
   if(base){
    await page.goto(origin+'/');await page.locator('.home-page').waitFor();assert.equal(await page.locator('.home-page .thought-row').count(),1);assert.equal(await page.locator('.home-page .work-preview').count(),1);assert.equal(await page.locator('.home-page .work-preview').getAttribute('href'),'/works/mahjong');assert.ok(!requests.some(url=>/\/assets\/Mahjong-[^/]+\.js/.test(url)),'Site home must not eagerly load the learning tool');
    await page.locator('.home-page .work-preview').scrollIntoViewIfNeeded();await page.screenshot({path:`${dir}/site-${name}-${theme}-${width}.png`});await page.getByRole('link',{name:'全部造物 →',exact:true}).click();await page.locator('.works-page').waitFor();const cards=page.locator('.works-page .work-preview');assert.equal(await cards.count(),4);const boxes=await cards.evaluateAll(xs=>xs.map(x=>{const r=x.getBoundingClientRect();return{top:r.top,bottom:r.bottom};}));for(let i=1;i<boxes.length;i++)assert.ok(boxes[i].top-boxes[i-1].bottom>=16,'Works entries must have space between them');

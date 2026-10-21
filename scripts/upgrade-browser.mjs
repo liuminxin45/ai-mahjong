@@ -2,6 +2,7 @@ import { chromium,webkit } from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdir,writeFile } from 'node:fs/promises';
 import { competitionPapers,publicQuestion,exercise,answers,grade,practiceQuestions,MODE_NAMES } from '../lib/learning/index.js';
+import { returningLearner } from './browser-helpers.mjs';
 import { tileName } from '../lib/engine/index.js';
 const origin=process.env.MAHJONG_PREVIEW_URL||'http://127.0.0.1:5188',base=process.env.MAHJONG_ROUTE_BASE||'';
 const widths=(process.env.MAHJONG_UPGRADE_WIDTHS||'1920,1280,768,390,360,320').split(',').map(Number);
@@ -10,7 +11,7 @@ for(const [engine,launcher] of [['chromium',chromium],['webkit',webkit]]){
  const browser=await launcher.launch();
  for(const theme of ['light','dark'])for(const width of widths){
   const context=await browser.newContext({viewport:{width,height:width===320?568:900},hasTouch:width<768}),page=await context.newPage(),errors=[],uploads=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.addInitScript(theme=>{localStorage.setItem('theme',theme);localStorage.setItem('neo-mahjong-theme-v1',theme);},theme);
+  await page.addInitScript(theme=>{localStorage.setItem('theme',theme);localStorage.setItem('neo-mahjong-theme-v1',theme);},theme);await returningLearner(page);
   let run=null;const view=()=>{const v={runId:run.id,paperId:run.paper.id,startedAt:new Date(run.started).toISOString(),expiresAt:new Date(run.started+86400000).toISOString(),serverNow:new Date().toISOString(),index:run.items.length,status:run.items.length===20?'complete':'active'};
    if(v.status==='active')v.question=publicQuestion(exercise(run.paper.refs[v.index]));else{v.score=run.items.filter(a=>a.correct).length*5;v.durationMs=Date.now()-run.started;v.attempts=run.items;}return v;};
   await page.route('**/api/assistant/mahjong/**',async route=>{
