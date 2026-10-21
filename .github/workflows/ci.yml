@@ -9,6 +9,12 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      GIT_CONFIG_COUNT: 2
+      GIT_CONFIG_KEY_0: url.https://github.com/.insteadOf
+      GIT_CONFIG_VALUE_0: ssh://git@github.com/
+      GIT_CONFIG_KEY_1: url.https://github.com/.insteadOf
+      GIT_CONFIG_VALUE_1: 'git@github.com:'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,7 +27,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24.19.0
           cache: pnpm
 
       - name: Install dependencies
@@ -32,3 +38,5 @@ jobs:
 
       - name: Build (typecheck + bundle)
         run: pnpm build
+      - name: Verify shared UI and package exports
+        run: pnpm build:package && pnpm check:ui
