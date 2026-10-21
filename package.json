@@ -1,28 +1,72 @@
 {
-  "name": "neo-mahjong",
+  "name": "@neo/mahjong-learning",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.1.0",
+  "type": "module",
   "packageManager": "pnpm@9.15.0",
   "engines": {
-    "node": "20.x"
+    "node": "24.19.0"
   },
-  "type": "module",
-  "scripts": {
-    "dev": "vite --host",
-    "build": "tsc -p tsconfig.json --noEmit && vite build",
-    "preview": "vite preview",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:watch": "vitest",
-    "train": "tsx scripts/train-selfplay.ts",
-    "ai-eval": "tsx scripts/ai-eval.ts"
+  "exports": {
+    ".": {
+      "types": "./lib/app.d.ts",
+      "import": "./lib/app.js"
+    },
+    "./engine": {
+      "types": "./lib/engine/index.d.ts",
+      "import": "./lib/engine/index.js"
+    },
+    "./learning": {
+      "types": "./lib/learning/index.d.ts",
+      "import": "./lib/learning/index.js"
+    },
+    "./worker": "./lib/engine/worker.js",
+    "./styles.css": "./lib/styles.css",
+    "./assets/*": "./assets/*"
+  },
+  "files": [
+    "lib",
+    "assets",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "peerDependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router": "^7.6.1"
+  },
+  "dependencies": {
+    "chatgpt-desktop-kit": "git+https://github.com/liuminxin45/ChatGPT-Desktop-UI.git#1845915f76e6cc5834f053d5666517650960aa89"
   },
   "devDependencies": {
-    "@types/node": "^25.0.3",
-    "tsx": "^4.21.0",
-    "typescript": "^5.6.3",
-    "vite": "^6.0.0",
-    "vitest": "^2.1.8"
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.5",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.1.1",
+    "vite": "7.2.4",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4",
+    "tsx": "4.21.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-router": "7.6.1",
+    "playwright": "1.56.1",
+    "sharp": "0.34.4",
+    "fake-indexeddb": "6.2.4"
   },
-  "dependencies": {}
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "build": "pnpm typecheck && node scripts/stage-assets.mjs && vite build",
+    "build:package": "tsc -p tsconfig.lib.json && node scripts/package.mjs",
+    "prepare": "npm run build:package",
+    "test": "vitest run",
+    "test:run": "vitest run",
+    "test:browser": "node scripts/browser.mjs",
+    "check:ui": "node node_modules/chatgpt-desktop-kit/dist/check-consumer.mjs",
+    "preview": "vite preview --host 127.0.0.1"
+  }
 }

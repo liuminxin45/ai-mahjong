@@ -1,5 +1,12 @@
 # Dependencies
 node_modules/
+lib/
+work/
+artifacts/
+playwright-report/
+test-results/
+*.tgz
+public/tiles/
 
 # Build output
 dist/

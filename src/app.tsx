@@ -1,0 +1,34 @@
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router';
+import { AIResponseProvider, Button, ChatAppSurface, ChatHeader, ChatWorkspace, DesktopProvider, Dialog, InlineNotice, Input, RecordLink, Select, SidebarIcon, UIStringsProvider } from 'chatgpt-desktop-kit';
+import { createProfileClient, type ProfileClient } from './client.js';
+import { emptyData, importData, LearningRepository, type LearningData } from './learning/storage.js';
+import { LearningContext, AppLink } from './ui.js';
+import { PracticePage, QuizPage, ReviewPage } from './practice.js';
+import { AnalysisPage } from './analysis-page.js';
+import { ManualPage } from './manual.js';
+import { ProfilePage } from './profile.js';
+export { createProfileClient } from './client.js';
+export type MahjongAppProps={basePath?:string;assetsBaseUrl?:string;theme?:'light'|'dark'|'system';onThemeChange?:(theme:'light'|'dark'|'system')=>void;profileClient?:ProfileClient;createWorker?:()=>Worker;exitUrl?:string};
+export function MahjongApp({basePath='',assetsBaseUrl='/tiles',theme,onThemeChange,profileClient,createWorker,exitUrl='/works'}:MahjongAppProps){
+  const repo=useRef(new LearningRepository());const [data,setData]=useState<LearningData>(emptyData),[ready,setReady]=useState(false),[notice,setNotice]=useState(''),[settings,setSettings]=useState(false),[clearing,setClearing]=useState(false),[sidebar,setSidebar]=useState(()=>typeof window!=='undefined'&&window.innerWidth>=768);
+  const [localTheme,setLocalTheme]=useState<'light'|'dark'|'system'>(()=>{try{return (localStorage.getItem('neo-mahjong-theme-v1') as 'light'|'dark'|'system')||'system';}catch{return'system';}});
+  const file=useRef<HTMLInputElement>(null);const location=useLocation();const base=basePath.replace(/\/$/,'');
+  const [epoch,setEpoch]=useState(0);
+  const client=useMemo(()=>profileClient??createProfileClient(),[profileClient]);
+  useEffect(()=>{let active=true;repo.current.open().then(d=>{if(active){setData(d);setReady(true);if(repo.current.temporary)setNotice('本地存储不可用，当前为临时练习。离开前请导出备份。');}else repo.current.close();});return()=>{active=false;repo.current.close();};},[]);
+  useEffect(()=>{if(ready)void repo.current.save(data).catch(e=>setNotice(e.message));},[data,ready]);
+  useEffect(()=>{if(window.innerWidth<768)setSidebar(false);},[location.pathname]);
+  const themeChange=(v:string)=>{const next=v as 'light'|'dark'|'system';if(onThemeChange)onThemeChange(next);else{setLocalTheme(next);try{localStorage.setItem('neo-mahjong-theme-v1',next);}catch{}}};
+  const update=(fn:(d:LearningData)=>LearningData)=>setData(fn);
+  const exportBackup=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`麻将研习-${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+  const navigation=[['practice','专项练习'],['analysis','手牌分析'],['quiz','阶段测验'],['review','错题复习'],['manual','学习手册'],['profile','学习画像']];
+  return <DesktopProvider className="mahjong-app" theme={theme??localTheme} onThemeChange={t=>themeChange(t)}><UIStringsProvider locale="zh-CN" translate={key=>key}><AIResponseProvider><LearningContext.Provider value={{data,update,assets:assetsBaseUrl,profileClient:client,repository:repo.current,notice:setNotice}}><ChatAppSurface className="mj-workspace" style={{'--desktop-size-chat-sidebar':'248px'} as CSSProperties}><ChatWorkspace sidebarOpen={sidebar} onSidebarOpenChange={setSidebar} sidebarLabel="学习工具导航" closeSidebarLabel="关闭导航" sidebar={<div className="mj-sidebar"><div className="mj-sidebar-brand"><span className="mj-brand-mark" aria-hidden="true">研</span><div><strong>麻将研习</strong><span>条 · 筒 · 学习与判断</span></div></div><nav aria-label="学习工具">{navigation.map(([path,label])=><AppLink key={path} to={`${base}/${path}`} className={location.pathname.includes('/'+path)?'mj-nav-active':''}>{label}</AppLink>)}</nav><div className="mj-sidebar-bottom"><p>双花色 · 72张<br/>四张同牌可算两对</p><Button variant="ghost" layout="row" onClick={()=>setSettings(true)}>数据与设置</Button><RecordLink actionId="mahjong.exit" href={exitUrl}>← 返回造物</RecordLink></div></div>}
+    header={<ChatHeader presentation="bar" title="麻将研习" leading={<Button icon={<SidebarIcon size={18}/>} iconOnly aria-label="切换导航" variant="ghost" onClick={()=>setSidebar(v=>!v)}/>} actions={<Button size="sm" variant="ghost" onClick={()=>setSettings(true)}>设置</Button>}/>}
+    ><main className="mj-scroll" id="mahjong-main">{notice&&<div className="mj-global-notice"><InlineNotice title={notice} actions={<Button size="sm" onClick={()=>setNotice('')}>关闭提示</Button>}/></div>}{ready?<Routes key={epoch}><Route index element={<Navigate to="practice" replace/>}/><Route path="practice" element={<PracticePage/>}/><Route path="analysis" element={<AnalysisPage createWorker={createWorker}/>}/><Route path="quiz" element={<QuizPage/>}/><Route path="review" element={<ReviewPage/>}/><Route path="manual" element={<ManualPage/>}/><Route path="manual/:lessonId" element={<ManualPage/>}/><Route path="profile" element={<ProfilePage/>}/><Route path="*" element={<Navigate to={`${base}/practice`} replace/>}/></Routes>:<p className="mj-page" role="status">正在读取本地学习记录…</p>}</main></ChatWorkspace></ChatAppSurface>
+    <Dialog open={settings} onClose={()=>setSettings(false)} title="数据与设置" description="练习默认保存在当前浏览器。只有主动生成画像时才提交相关记录。"><div className="mj-settings"><label className="mj-field"><span>主题</span><Select aria-label="主题" value={theme??localTheme} onValueChange={themeChange} options={[{value:'system',label:'跟随系统'},{value:'light',label:'浅色'},{value:'dark',label:'深色'}]}/></label><p>备份包含练习、错题和课程进度。导入会替换当前本地记录；旧版对局与参数不在此范围。</p><div className="mj-actions"><Button onClick={exportBackup}>导出备份</Button><Button onClick={()=>file.current?.click()}>导入备份</Button></div><input hidden ref={file} type="file" accept=".json,application/json" onChange={async e=>{const f=e.target.files?.[0];if(!f)return;try{if(f.size>10000000)throw new Error('备份文件不能超过10MB。');const imported=importData(JSON.parse(await f.text()));setData(imported);setEpoch(v=>v+1);setNotice('已导入备份，正确率按题目重新计算。');}catch(e){setNotice((e as Error).message);}e.target.value='';}}/><Button variant="danger" onClick={()=>setClearing(true)}>清空本地学习记录</Button><p className="mj-muted">清空本地不会删除已提交的云端画像。请先在学习画像页删除相应报告。</p></div></Dialog>
+    <Dialog open={clearing} onClose={()=>setClearing(false)} title="清空本地学习记录？" description="将移除当前浏览器的练习、错题、课程进度和报告副本。此操作不影响旧版麻将数据。" footer={<><Button onClick={()=>setClearing(false)}>取消</Button><Button variant="danger" onClick={()=>{setData(emptyData());setEpoch(v=>v+1);setClearing(false);setSettings(false);setNotice('本地学习记录已清空。');}}>清空记录</Button></>}/>
+  </LearningContext.Provider></AIResponseProvider></UIStringsProvider></DesktopProvider>;
+}
+
+

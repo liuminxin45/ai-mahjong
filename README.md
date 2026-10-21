@@ -1,249 +1,53 @@
-# ai-mahjong · 成都麻将 AI 对局与训练
+# 麻将研习 · ai-mahjong
 
-一个可以打牌、观察 AI 决策并回放复盘的成都血战麻将实验平台，支持自博弈训练、策略评估和可选的大语言模型（LLM）战术讲解。
+条筒双花色麻将学习工具，面向认牌、牌形、向听、进张、何切、多面听、七对与攻防情境训练。
 
-[在线体验](https://ai-mahjong.vercel.app/) · [本地运行](#快速开始) · [规则系统](#规则系统)
+正式入口：[麻将研习](https://www.liuminxin.cn/works/mahjong)。独立仓库维护引擎、题库、课程、React界面和imagegen麻将资源；个人网站通过完整提交SHA引用本包，并提供匿名画像服务。
 
-对局规则由 TypeScript 引擎执行。AI 根据距离听牌的步数（向听数）、能改善手牌的牌（进张）、危险度和对手威胁等特征选择动作。LLM 只负责解释结构化分析，不参与实际出牌；未配置模型密钥时，仍可进行对局、训练和回放。
+## 规则与边界
 
-## 核心能力
+- 一至九筒、一至九条，每种四张，共72张。
+- 普通型为四组面子加一对将；七对允许四张同牌算两对，且无固定组合。
+- 分析支持顺子、刻子、杠子的固定组合；物理张数与结构张数分别校验。
+- 不提供完整对局、地区计分、立直役种或自博弈。攻防题给出明确的教学假设与评分目标，不推断真实放铳概率。
 
-- 成都血战规则：换三张、定缺、碰杠胡响应、血战到底、多家胡牌、流局结算。
-- 规则包架构：`RulePack` 抽象隔离规则，当前包含 `placeholder` 和 `chengdu` 两套规则包。
-- 可解释 AI：结合向听数、有效牌、危险度、局面风格、对手画像和威胁评分选择动作。
-- 像素牌桌 UI：提供首页、设置、对局、回放页面，支持 Table/Debug 两种对局视图。
-- AI 导师：可接入 Kimi Coding 或 OpenAI Compatible 接口，提供局面建议、问答、语音入口和复盘总结。
-- 训练系统：支持自博弈、并行训练、参数持久化、在线学习式参数叠加。
-- 分析系统：包含单局复盘、多局报告、人类玩家画像、错误模式、教学计划、群体洞察和 A/B 教学评估。
-- LLM 评测：内置换三张等阶段的 prompt 评测 CLI，可生成测试用例、调用模型并输出报告。
-- 回放与日志：对局事件流可导出回放，游戏过程可用于复盘和统计。
+## 本地运行
 
-## 技术栈
+使用Node 24.19.0、pnpm 9.15.0：
 
-- Vite + TypeScript
-- PixiJS 牌桌渲染
-- Vitest 单元测试
-- pnpm 包管理
-- Vercel Serverless API 代理
-
-## 快速开始
-
-```bash
+```sh
 pnpm install
 pnpm dev
-```
-
-启动后打开：
-
-```text
-http://localhost:5173/
-```
-
-常用命令：
-
-```bash
-pnpm dev        # 本地开发
-pnpm test:run   # 运行单元测试
-pnpm build      # 构建生产产物
-pnpm preview    # 预览构建结果
-pnpm train      # 自博弈训练
-pnpm ai-eval    # LLM 提示词评测
-```
-
-项目声明了 `pnpm@9.15.0` 和 Node.js `20.x`。如果使用其他包管理器，依赖解析结果可能和锁文件不完全一致。
-
-## LLM 配置
-
-LLM 是可选能力。没有配置 API Key 时，麻将对局、AI 出牌、规则校验、训练和回放都可以正常运行。
-
-本地开发可以复制环境变量模板：
-
-```bash
-cp .env.example .env.local
-```
-
-`.env.local` 示例：
-
-```bash
-KIMI_API_KEY=
-```
-
-然后在应用的设置页打开“LLM 导师”，进入“LLM 设置”配置模型、入口地址和密钥。当前默认提供：
-
-- Kimi Coding / Anthropic 格式：`/api/llm/kimi/messages`
-- OpenAI Compatible 格式：可填写兼容 `/chat/completions` 的服务地址
-
-安全说明：
-
-- 仓库不内置 API Key，`.env.example` 也保持空值。
-- `.env.local` 已被 `.gitignore` 忽略，不应提交到版本控制。
-- 生产环境建议使用后端代理或平台环境变量，不要把真实 Key 打进前端产物。
-
-## 玩法与界面
-
-首页提供三个入口：
-
-- 开始游戏：创建一局成都麻将。
-- 设置：切换规则、语言、UI 模式、超时、P0 AI 模式、训练参数和 LLM 配置。
-- 回放：查看最近导出的对局事件流。
-
-对局页支持两种显示模式：
-
-- Table 模式：像素化四人牌桌，适合实际游玩。
-- Debug 模式：显示手牌分析、推荐出牌、事件日志和调试信息，适合观察 AI 决策。
-
-P0 默认是人类玩家，也可以在设置页切换为 AI 模式，用于快速跑 AI vs AI 对局。
-
-## 规则系统
-
-规则入口位于：
-
-```text
-src/core/rules/
-```
-
-主要模块：
-
-- `RulePack.ts`：规则包接口，约束牌集、初始状态、合法动作、动作应用、响应裁决和结算。
-- `RuleRegistry.ts`：规则包注册与查找。
-- `packs/placeholder`：最小规则包，用于基础轮转和框架验证。
-- `packs/chengdu`：成都血战规则包。
-
-成都规则目前覆盖：
-
-- 换三张、定缺。
-- 缺门出牌校验。
-- 摸牌、出牌、碰、明杠、暗杠、加杠、胡、过。
-- 点炮、自摸、杠上开花、抢杠胡。
-- 多家同时胡牌与血战到底结束条件。
-- 番型与分数计算，包括平胡、对对胡、全带幺、七对子、清一色、龙七对、金钩钓、天胡/地胡等（注：门清、混一色当前未计入番数）。
-
-## AI 决策
-
-AI 相关代码位于：
-
-```text
-src/agents/algo/
-```
-
-核心思路是“可解释的启发式策略”，而不是黑箱模型：
-
-- `shanten.ts`：普通型向听计算。
-- `expectedValue.ts` / `bloodBattleEV.ts`：效率与血战收益评估。
-- `danger.ts`：近似放铳风险评估。
-- `style.ts`：进攻、均衡、防守、拖局等局面风格识别。
-- `opponentModel.ts`：对手画像和威胁估计。
-- `policy_high.ts`：综合效率、风险、风格、威胁和训练参数做最终选择。
-- `aiParams.ts`：AI 参数存取与调参入口。
-
-LLM 不参与这些决策，只在需要时解释“为什么推荐这样打”。
-
-## 教学与分析
-
-分析模块位于：
-
-```text
-src/analysis/
-src/meta/
-```
-
-已实现的分析能力包括：
-
-- 单步手牌分析与推荐。
-- 单局统计、风格级复盘。
-- 多局管理与元策略参数调整。
-- 人类玩家画像：风险承受、效率倾向、防守意识、打法风格、学习阶段。
-- 错误模式检测：贪效率、后巡不防守、过早副露、风格摇摆等。
-- 个性化教学计划：根据玩家阶段选择教学语气和重点。
-- 群体分析：共性错误、学习路径、教学变体 A/B 效果评估。
-
-## 训练与评测
-
-训练模块位于：
-
-```text
-src/training/
-scripts/
-```
-
-支持：
-
-- 前端设置页触发训练。
-- CLI 自博弈训练。
-- 并行 Worker 训练。
-- 参数持久化与在线学习记录。
-      - AI 评测 CLI，对 LLM 在指定阶段的建议进行规则校验。
-
-> ⚠️ **训练系统准确性说明**：`TrainingConfig.mode='baseline'` 当前与 `mirror` 等效（所有玩家共享同一套参数，未独立实现「对手用 best、训练者用候选」的区分，`autoRun.ts` 自承）；`neuralTrainer.ts` 的神经网络训练为示意性实验（`updateWeights` 为随机扰动），`NeuralNetwork` 未被任何出牌决策路径调用。对外宣称「神经网络 AI」「智能训练」均不准确——本项目的 AI 决策为可解释启发式，神经网络仅属实验性探索。
-
-AI 评测示例：
-
-```bash
-pnpm ai-eval --dry-run
-pnpm ai-eval --count 10 --prompts advice
-```
-
-可用环境变量：
-
-```bash
-KIMI_API_KEY=
-AI_EVAL_ENDPOINT=
-AI_EVAL_API_KEY=
-AI_EVAL_MODEL=
-AI_EVAL_FORMAT=anthropic
-AI_EVAL_DELAY=2000
-```
-
-## 测试覆盖
-
-测试位于：
-
-```text
-tests/
-```
-
-覆盖方向包括：
-
-- 成都规则、向听、危险度和高阶策略。
-- 风格差异、威胁差异、对手画像。
-- 多局元策略、玩家画像、错误模式、教学计划、群体分析。
-- LLM 浏览器配置、Kimi 代理、代理路由。
-- 设置存储、策略上下文等基础模块。
-
-运行：
-
-```bash
 pnpm test:run
+pnpm build
+pnpm build:package
+pnpm check:ui
 ```
 
-## 目录速览
+默认地址为http://127.0.0.1:5173。Git依赖需要正常执行prepare，不使用ignore-scripts。Windows的pnpm虚拟目录已限制长度，避免Git依赖中的井号影响Vite资源URL。
 
-```text
-api/                  Vercel API 代理
-docs/                 策略知识与设计文档
-resource/             麻将牌图片资源
-scripts/              训练与评测 CLI
-src/agents/           玩家代理、AI 策略（可解释启发式）、神经网络实验（实验性，未接入决策路径）
-src/analysis/         复盘、画像、教学与群体分析
-src/core/             牌、状态、动作、事件与规则系统
-src/llm/              LLM 服务、Prompt、历史存储与浏览器配置
-src/meta/             多局元策略
-src/orchestration/    对局编排器
-src/persistence/      回放与存储
-src/store/            UI 设置、语言与游戏状态
-src/testing/          AI 评测用例、校验器和报告
-src/training/         自博弈训练、并行训练与参数优化
-src/ui/               页面、组件、Pixi 牌桌与样式
-tests/                Vitest 测试
-```
+## 功能
 
-## 项目定位
+专项练习、13/14张与固定组合手牌分析、20题测验、错题收藏和1/3/7天复习、8单元24节原创手册，以及学习统计和主动生成的画像。
 
-这个项目适合用于：
+题库含40道牌效/听牌/七对种子题与40道原创攻防题设；牌效题另可按种子生成。并列最优答案全部接受。提示、复习与重复题不增加独立样本。
 
-- 研究成都血战麻将规则建模。
-- 观察可解释麻将 AI 的决策过程。
-- 搭建麻将教学、复盘和玩家画像实验。
-- 评测 LLM 在麻将教学提示词上的规则遵循能力。
+练习、错题、进度和报告副本默认存IndexedDB；支持备份导入导出。20道独立作答后可主动提交最近最多100题生成画像。单项不足5题不作能力判断。画像服务位于个人网站/api/assistant/mahjong，独立应用没有内置密钥；未接入服务时，本地学习功能仍可用。
 
-它刻意把“决策”和“表达”分开：规则和 AI 决策保持确定、可测、可复现；LLM 只负责把分析结果讲清楚。
+## 包接口
+
+- 主入口：MahjongApp与createProfileClient。
+- /engine：无DOM依赖的规则校验、向听、听口、进张和拆解。
+- /learning：课程、可复建题库、判分、快照及画像校验。
+- /worker：可由宿主Vite以?worker加载的分析线程。
+- /styles.css：局部业务布局。
+
+MahjongApp使用宿主路由，接收basePath、assetsBaseUrl、主题、Worker工厂与画像客户端。宿主使用/works/mahjong/*，通过懒加载隔离学习工具。基础UI固定使用chatgpt-desktop-kit 0.8.6，提交1845915f76e6cc5834f053d5666517650960aa89。
+
+## 资源与验证
+
+assets/tiles/source保留20张imagegen原始PNG，prompts.json保存提示词；manifest.json绑定SHA与96/192/384px WebP。node scripts/tiles.mjs重新压缩，node scripts/stage-assets.mjs为独立预览分发资源。牌图图案由imagegen生成，压缩脚本不重画符号。
+
+测试包含独立单花色完整和型枚举对照、四张上限、见尽牌、舍牌剩余数、题库重建、证据去重、导入重判和IndexedDB事务。pnpm test:browser检查Chromium/WebKit六种宽度与深浅主题，截图和结果保存在被忽略的artifacts/。浏览器模拟不等同于真机验收。
+
+旧版成都麻将代码保留在Git历史，旧对局、回放与参数不迁入新存储。学习规则和内容使用版本号，升级不兼容时应明确拒绝旧证据，而非静默重判。

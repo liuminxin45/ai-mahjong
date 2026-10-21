@@ -1,0 +1,102 @@
+[
+  {
+    "id": "2p",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 2p. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 2 separate traditional dot/ring emblems: two circles in a centered vertical column. Use dark navy and emerald rings with restrained red accents. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "3p",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 3p. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 3 separate traditional dot/ring emblems: three circles along a diagonal from upper left through center to lower right. Use dark navy and emerald rings with restrained red accents. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "5p",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 5p. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 5 separate traditional dot/ring emblems: five circles, four corners and one center. Use dark navy and emerald rings with restrained red accents. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "6p",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 6p. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 6 separate traditional dot/ring emblems: six circles in two columns and three rows. Use dark navy and emerald rings with restrained red accents. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "4p",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 4p. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 4 separate traditional dot/ring emblems: four circles in a two by two square. Use dark navy and emerald rings with restrained red accents. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "9p",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 9p. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 9 separate traditional dot/ring emblems: nine circles in a three by three grid. Use dark navy and emerald rings with restrained red accents. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "7p",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 7p. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 7 separate traditional dot/ring emblems: seven circles, three along an upper diagonal plus four in a lower two by two square. Use dark navy and emerald rings with restrained red accents. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "8p",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 8p. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 8 separate traditional dot/ring emblems: eight circles in two columns and four rows. Use dark navy and emerald rings with restrained red accents. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "2s",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 2s. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 2 distinct green bamboo stalk symbols in the traditional mahjong layout, symmetrically arranged and easily countable. Two side by side vertical stalks. Sparse red detail is allowed; do not add any extra stalk. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "3s",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 3s. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 3 distinct green bamboo stalk symbols in the traditional mahjong layout, symmetrically arranged and easily countable. One upper center stalk and two lower stalks. Sparse red detail is allowed; do not add any extra stalk. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "6s",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 6s. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 6 distinct green bamboo stalk symbols in the traditional mahjong layout, symmetrically arranged and easily countable. Two columns of three stalks. Sparse red detail is allowed; do not add any extra stalk. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "4s",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 4s. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 4 distinct green bamboo stalk symbols in the traditional mahjong layout, symmetrically arranged and easily countable. Two columns of two stalks. Sparse red detail is allowed; do not add any extra stalk. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "7s",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 7s. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 7 distinct green bamboo stalk symbols in the traditional mahjong layout, symmetrically arranged and easily countable. One upper stalk and two lower rows of three stalks. Sparse red detail is allowed; do not add any extra stalk. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "5s",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 5s. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 5 distinct green bamboo stalk symbols in the traditional mahjong layout, symmetrically arranged and easily countable. Four corners and a center stalk. Sparse red detail is allowed; do not add any extra stalk. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "8s",
+    "tool": "imagegen",
+    "prompt": "Generate a brand NEW Chinese mahjong EIGHT BAMBOO tile. Very important the face is an exact 2-column by 4-row grid of EIGHT separate SMALL GREEN BAMBOO STALK symbols. Layout:\nrow 1: bamboo, bamboo\nrow 2: bamboo, bamboo\nrow 3: bamboo, bamboo\nrow 4: bamboo, bamboo\nThere are FOUR rows, not three. Total EIGHT stalks, NOT six. Make stalks short enough to fit all four rows. Upright frontal orthographic warm white jade tile, full rectangular body, rounded bevel, narrow green bottom edge, centered traditional green graphic, no numbers or text, no shadows beyond tile. 3:4 tile proportion. Truly transparent background, clean smooth alpha edge. No other objects."
+  },
+  {
+    "id": "back",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset back. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. The BACK of a mahjong tile: smooth muted emerald-green jade rectangular back with a subtle inset rectangular border and no symbols. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "9s",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset 9s. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. Exactly 9 distinct green bamboo stalk symbols in the traditional mahjong layout, symmetrically arranged and easily countable. Three columns of three stalks. Sparse red detail is allowed; do not add any extra stalk. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "blank",
+    "tool": "imagegen",
+    "prompt": "Single production mahjong tile asset blank. Match the reference tile's exact frontal upright orthographic ivory-white jade tile body, slight bevel, thin green bottom edge, soft neutral light, 3:4 ratio, complete tile with same margins. Replace only the face graphic. A completely blank warm ivory-white tile face. No emblem, engraving, text, or pattern at all. Design must be instantly legible at 44px wide. Transparent background; clean alpha edges with absolutely no stray fragments, no external shadow, no text, numbers, labels, watermark, other tiles or surrounding props. Count the symbols carefully."
+  },
+  {
+    "id": "1s",
+    "tool": "imagegen",
+    "prompt": "Create ONE matching traditional mahjong ONE BAMBOO (一条, 1s) tile asset. Use the attached ONE DOT tile only as a style and geometry reference. Preserve its upright frontal orthographic ivory-white jade rectangular tile, soft bevel, thin green bottom edge, illumination and transparent outside. Replace the circular emblem with exactly ONE stylized traditional emerald-green sparrow/bird with restrained red accent (幺鸡). Bird is centered, clean, simple and very legible at 44px. Keep full tile visible with consistent generous margins, 3:4 upright proportion. No text, no numerals, no other tiles, no watermark, no external shadow. Use precise clean alpha edges."
+  },
+  {
+    "id": "1p",
+    "tool": "imagegen",
+    "prompt": "Production game asset: ONE traditional Chinese mahjong ONE DOT (一筒, 1p) tile, by itself. Frontal orthographic full white-jade rectangular tile, 3:4 upright aspect ratio, very slight bevel and thin pale-green edge at bottom only, soft neutral illumination, transparent background outside tile, no cast shadow outside tile. Warm ivory white face, exactly ONE large traditional circular ring at center in restrained emerald and navy, delicate red central dot. Clean and readable at 44px wide. No words, no numbers, no other tiles, no labels, no watermark, no decoration outside the circle. Tile fills 90 percent of image height. This is the master style for a consistent web learning set."
+  }
+]
