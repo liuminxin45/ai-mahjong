@@ -1,4 +1,4 @@
-import { analyze, type TileId } from '../engine/index.js';
+import { analyze, type TileId } from '../engine/legacy.js';
 import { answers, exercise, uniqueAttempts, type Attempt, type Mode } from './index.js';
 import { DIFFICULTY_NAMES, skillById } from './curriculum.js';
 

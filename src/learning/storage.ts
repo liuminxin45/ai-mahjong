@@ -1,8 +1,9 @@
 import { exercise, grade, MODES, packSnapshot, validateProfile, validateSnapshot, type Attempt, type ExerciseRef, type LearningProfile } from './index.js';
 import { TILES, type TileId } from '../engine/index.js';
+import { importTraining, type TrainingState } from '../training/core.js';
 export type Mistake={ref:ExerciseRef;exerciseId:string;stage:number;due:string;favorite:boolean};
 export type SavedProfile={reportId:string;profile:LearningProfile;at:string;snapshot?:unknown};
-export type LearningData={version:1;attempts:Attempt[];mistakes:Mistake[];completed:string[];profiles:SavedProfile[];drafts:Record<string,unknown>};
+export type LearningData={version:1;attempts:Attempt[];mistakes:Mistake[];completed:string[];profiles:SavedProfile[];drafts:Record<string,unknown>;training?:TrainingState};
 export const emptyData=():LearningData=>({version:1,attempts:[],mistakes:[],completed:[],profiles:[],drafts:{}});
 export function localDate(date=new Date()):string{return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}
 export function dueDate(days:number,now=new Date()):string{const d=new Date(now);d.setDate(d.getDate()+days);return localDate(d);}
@@ -29,6 +30,9 @@ export function importData(raw:unknown):LearningData{
   });
   // Imported reports are intentionally kept as plain user data, never injected into HTML or uploaded as evidence.
   clean.profiles=d.profiles.slice(-30).map(p=>{if(!p||typeof p.reportId!=='string'||!Number.isFinite(Date.parse(p.at))||!p.snapshot)throw new Error('画像备份不完整。');const s=validateSnapshot(p.snapshot).snapshot;return {...p,profile:validateProfile(p.profile,s),snapshot:packSnapshot(s)};});
+  if(d.training)clean.training=importTraining(d.training);
+  // Legacy drafts are archived as data, never resumed as active training.
+  clean.drafts=structuredClone(d.drafts);
   return clean;
 }
 export class LearningRepository{

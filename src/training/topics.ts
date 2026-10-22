@@ -1,0 +1,16 @@
+export const TRAINING_VERSION='discard-3' as const;
+export const topics=[
+ {id:'shape',stage:1,title:'完整组合与散牌',lead:'先认出已经凑好的三张，再看暂时落单的牌。',concept:'三张相连的同花色牌是顺子，三张相同的牌是刻子。它们都能组成和牌所需的一组。先找完整组合，但最终仍要比较整手牌，不能把任何三张牌永远锁住。',steps:['先圈出完整的顺子或刻子。','再找暂时孤立、难以与其他牌连接的牌。','试着拿掉它，看其他组合能否保留。'],mistake:'看见边张就打。边张也可能已经组成顺子，应先看整手牌。',standard:'能在完整手牌中找出组合，并避免为了留一张散牌而多走一步。'},
+ {id:'pairs',stage:1,title:'对子怎样留',lead:'对子既能做将，也可能发展成三张相同的牌。',concept:'普通和牌需要四组面子和一对将。有多个对子时，并不是所有对子都要保留：留多少，要看其余组合是否够用。四张相同牌在本工具的七对路线里可算两对。',steps:['数一数现有对子。','找出普通和牌需要的那一对将。','比较拆对子和打散牌后，哪一种更接近听牌。'],mistake:'因为对子看起来整齐，就一直不拆。过多对子可能挤掉更有用的连接。',standard:'能根据整手牌决定留对还是拆对。'},
+ {id:'distance',stage:2,title:'舍牌后有没有退步',lead:'先保持离听牌的距离，再比较机会多少。',concept:'听牌是再来一张合适的牌就能和。用“向听”记录距离：0是听牌，1表示还要改善一次才能听牌，-1是已经和牌。比较舍牌时，向听更小的方案优先。',steps:['分别试着打掉候选牌。','比较剩余手牌离听牌还有几步。','不要为了看起来更多的来牌，退回更远的一步。'],mistake:'把1向听的几十张改善机会，与已经听牌的几张和牌机会直接比较。它们处于不同阶段。',standard:'能识别让自己多一步才能听牌的舍牌。'},
+ {id:'connections',stage:2,title:'搭子怎么取舍',lead:'两张还没凑齐的牌，也有不同的连接方式。',concept:'例如四五条可等三条或六条；四六条可等五条。这样的两张组合叫搭子。整手牌里搭子太多时，需要取舍；重叠的牌形可能有多种拆法，不能简单只看一个搭子。',steps:['找出还差一张的连接。','检查不同连接是否共用同一张牌。','在不增加向听的方案中，再比较剩余改善机会。'],mistake:'逐组相加，把重叠的牌算了两遍。一次摸牌只能摸到一张。',standard:'能结合整手牌比较搭子，而不是只背两面优先。'},
+ {id:'chances',stage:3,title:'同样接近时怎样选择',lead:'距离相同时，留下更多能让手牌前进一步的牌。',concept:'“有效进张”就是摸到后能降低向听的牌。每种牌最多四张，扣掉手牌、碰杠和其他已见牌后，才是尚未见到的余量。这是牌数比较，不是实际摸牌概率。',steps:['先筛出向听最小的舍牌。','列出各方案摸到后能前进一步的牌。','扣掉已知牌，比较剩余总张数；并列都可以。'],mistake:'只数牌种，不数张数；或者把只是改善形状、尚未降向听的牌也算进去。',standard:'能解释同样接近听牌时，为什么某一舍牌保留了更多机会。'},
+ {id:'visible',stage:3,title:'已见牌怎样影响选择',lead:'看得见的牌，不会再藏在未知牌里。',concept:'已见牌包括手牌、公开碰杠和题目列出的其他公开牌。每种牌的四张减掉这些数量，才得到余量。刚打掉的那张也已经见到了，不能重新算作可摸牌。',steps:['先看手牌外列出的已见牌。','逐种从四张里扣除，避免重复扣减。','比较扣减后的舍牌结果。见尽的听口仍是牌形听口，但余量为零。'],mistake:'把“听这张”误当作“还有这张能摸”。听口形状与余量是两回事。',standard:'能在相同牌形、不同公开信息下调整选择。'},
+ {id:'seven',stage:4,title:'对子多时考虑七对',lead:'普通和牌与七对都能成牌，选更接近的路线。',concept:'本工具接受四组面子加一对将，以及七对；四张相同牌算两对。没有公开碰杠时两条路线一起比较。题目仍然要求打掉一张，不会临时改成只追求七对。',steps:['数对子，四张相同牌可贡献两对。','同时检查普通和牌路线。','比较综合向听，再比较余量，不为了凑七对而故意退步。'],mistake:'对子多就一定只做七对。相连的对子也可能组成更快的普通和型。',standard:'能在普通型与七对之间比较，接受并列最优选择。'},
+ {id:'combined',stage:4,title:'复合牌形与碰杠后的舍牌',lead:'把前面的比较方法，用在更复杂的一手牌里。',concept:'重叠牌形需要从整手牌拆解。公开碰或杠已经占用一组，不能再当作暗手的一部分；有固定组合时不走七对。成都缺门专项中，手牌内部可以组成顺子，但不把公开吃牌当作题设动作。',steps:['先确认公开组合与暗手张数。','检查重叠结构的不同拆法。','仍按距离优先、余量其次比较；不用猜未知对手会怎样出牌。'],mistake:'把公开碰杠又算进暗手，或给有公开组合的牌计算七对。',standard:'能在复合牌形和碰杠条件下，沿用同一套舍牌判断。'},
+] as const;
+export type TopicId=typeof topics[number]['id'];
+export const topic=(id:string)=>topics.find(t=>t.id===id)??topics[0];
+export const stages=['看懂手牌','避免打退步','留下更多机会','综合运用'];
+export const oldLessonTopics:Record<string,TopicId>={...Object.fromEntries(Array.from({length:24},(_,i)=>[`lesson-${String(i+1).padStart(2,'0')}`,(['shape','shape','seven','connections','pairs','connections','distance','chances','visible','shape','connections','chances','combined','combined','seven','visible','visible','visible','chances','distance','combined','distance','shape','chances'] as TopicId[])[i]]))};
+export const ruleSources=[{title:'MIL 四川麻将规则纲要',url:'https://mahjong-mil.org/wp-content/uploads/2024/08/Brief_Introduction_to_Bloody_Mahjong-1.pdf',scope:'缺门、不能吃、碰杠与基本和型；本工具只训练缺门后的舍牌。'},{title:'IES 学习指南',url:'https://ies.ed.gov/ncee/wwc/PracticeGuide/1',scope:'例题与独立练习交替、提取练习及间隔复习。'}];

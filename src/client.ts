@@ -1,5 +1,7 @@
 import { packSnapshot, type LearningProfile, type LearningSnapshot } from './learning/index.js';
 import type { CompetitionClient } from './learning/competition.js';
+import type { TrainingSnapshot,SavedBrief } from './training/core.js';
+export type TrainingClient={generate(snapshot:TrainingSnapshot):Promise<SavedBrief>;read(id:string):Promise<SavedBrief>;remove(id:string):Promise<void>};
 export type ProfileReport={reportId:string;profile:LearningProfile;at:string};
 export type ProfileClient={generate(snapshot:LearningSnapshot):Promise<ProfileReport>;read(id:string):Promise<ProfileReport>;remove(id:string):Promise<void>};
 const sessions=new Map<string,Promise<void>>();
@@ -10,14 +12,16 @@ export function ensureVisitor(base='/api/assistant/mahjong'):Promise<void>{
  const pending=(typeof navigator!=='undefined'&&navigator.locks?navigator.locks.request('neo-metrics-identity',handshake):handshake()).then(()=>{}).catch(e=>{sessions.delete(base);throw e;});
  sessions.set(base,pending);return pending;
 }
-export function createProfileClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):ProfileClient{
+function profileRequest(base:string,beforeRequest?:()=>Promise<unknown>|void){
   const request=async(path:string,method:string,body?:unknown)=>{
     const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),70000);
     try{await beforeRequest?.();await ensureVisitor(base);const r=await fetch(base+path,{method,credentials:'same-origin',signal:controller.signal,headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});const data=await r.json();if(!r.ok)throw new Error(data.error||'画像服务暂时不可用。');return data;}
     catch(e){if(controller.signal.aborted)throw new Error('画像生成超时，练习记录仍保存在本地。');if(e instanceof SyntaxError)throw new Error('画像需要本站在线服务，普通练习仍可在本地继续。');throw e;}finally{clearTimeout(timeout);}
   };
-  return {generate:s=>request('/profile','POST',{snapshot:packSnapshot(s)}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};
+  return request;
 }
+export function createProfileClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):ProfileClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:packSnapshot(s)}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}
+export function createTrainingClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):TrainingClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}
 export function createCompetitionClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):CompetitionClient{
  const request=async(path:string,method='GET',body?:unknown)=>{
   const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),20000);

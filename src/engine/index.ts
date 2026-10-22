@@ -1,5 +1,5 @@
 export const RULES_VERSION = 'two-suits-1';
-export const ENGINE_VERSION = '1.0.1';
+export const ENGINE_VERSION = '1.0.2';
 export type TileId = `${1|2|3|4|5|6|7|8|9}${'p'|'s'}`;
 export type FixedSet = { kind:'sequence'|'triplet'|'quad'; tile:TileId };
 export type HandContext = { hand:TileId[]; fixedSets?:FixedSet[]; visible?:Partial<Record<TileId,number>>; rulesVersion?:string };
@@ -47,6 +47,21 @@ export function validateContext(ctx:HandContext,complete=true):void {
 }
 const cache=new Map<string,number>();
 const targetCache=new Map<string,Uint8Array>();
+const suitTargetCache=new Map<string,Uint8Array>();
+// A four-of-a-kind may look like a triplet plus the start of a pair.
+// Enumerate physically legal targets to rule out requiring a fifth copy.
+function suitTargets(melds:number,pair:boolean):Uint8Array {
+ const key=`${melds}:${pair}`,old=suitTargetCache.get(key);if(old)return old;
+ const groups:number[][]=[];for(let i=0;i<9;i++){const g=Array(9).fill(0);g[i]=3;groups.push(g);}for(let i=0;i<7;i++){const g=Array(9).fill(0);g[i]=g[i+1]=g[i+2]=1;groups.push(g);}
+ const c=Array(9).fill(0),seen=new Set<string>(),flat:number[]=[];
+ const add=()=>{const k=c.join('');if(!seen.has(k)){seen.add(k);flat.push(...c);}};
+ const visit=(start:number,left:number)=>{if(left===0){if(!pair)add();else for(let i=0;i<9;i++)if(c[i]<=2){c[i]+=2;add();c[i]-=2;}return;}for(let g=start;g<groups.length;g++){if(c.some((n,i)=>n+groups[g][i]>4))continue;for(let i=0;i<9;i++)c[i]+=groups[g][i];visit(g,left-1);for(let i=0;i<9;i++)c[i]-=groups[g][i];}};
+ visit(0,melds);const result=Uint8Array.from(flat);suitTargetCache.set(key,result);return result;
+}
+function physicalQuadShanten(counts:number[],fixed:number):number {
+ const overlap=(start:number,melds:number,pair:boolean)=>{const target=suitTargets(melds,pair);let best=0;for(let at=0;at<target.length;at+=9){let sum=0;for(let i=0;i<9;i++)sum+=Math.min(counts[start+i],target[at+i]);best=Math.max(best,sum);}return best;};
+ let best=0;for(let p=0;p<=4-fixed;p++)for(const pair of [false,true])best=Math.max(best,overlap(0,p,pair)+overlap(9,4-fixed-p,!pair));return 13-fixed*3-best;
+}
 function fixedTargets(fixed:number,fixedCounts:number[]):Uint8Array {
   const key=fixed+':'+fixedCounts.join('');const cached=targetCache.get(key);if(cached)return cached;
   const capacity=fixedCounts.map(n=>4-n),c=Array(18).fill(0),groups:number[][]=[];
@@ -66,6 +81,7 @@ export function normalShanten(counts:number[],fixed=0,fixedCounts?:number[]):num
     outer:for(let offset=0;offset<targets.length;offset+=18){let deficit=0;for(let i=0;i<18;i++){deficit+=Math.max(0,targets[offset+i]-counts[i]);if(deficit>=need)continue outer;}need=Math.min(need,deficit);if(need===lower+1)break;}
     const result=need-1;if(cache.size>30000)cache.clear();cache.set(key,result);return result;
   }
+  if(counts.some(n=>n===4)){const result=physicalQuadShanten(counts,fixed);if(cache.size>30000)cache.clear();cache.set(key,result);return result;}
   const c=[...counts];let best=8;
   function dfs(start:number,m:number,t:number,p:number):void {
     let i=start;while(i<18&&c[i]===0)i++;

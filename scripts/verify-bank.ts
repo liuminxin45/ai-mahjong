@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
-import { validateContext, analyze } from '../src/engine/index.js';
+import { validateContext, analyze } from '../src/engine/legacy.js';
 import { questionBank, canonicalFamily } from '../src/learning/bank.js';
 import { answers, MODES } from '../src/learning/index.js';
 import { DIFFICULTIES, SKILLS } from '../src/learning/curriculum.js';

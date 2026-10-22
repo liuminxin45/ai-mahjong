@@ -3,9 +3,9 @@ import { Button, RecordLink, InlineNotice } from 'chatgpt-desktop-kit';
 import { useNavigate, useResolvedPath } from 'react-router';
 import { analyze, tileName, type AnalysisResult, type HandContext, type TileId } from './engine/index.js';
 import type { LearningData, LearningRepository } from './learning/storage.js';
-import type { ProfileClient } from './client.js';
+import type { ProfileClient,TrainingClient } from './client.js';
 import type { CompetitionClient } from './learning/competition.js';
-export type AppContext={data:LearningData;update:(fn:(data:LearningData)=>LearningData)=>void;assets:string;profileClient:ProfileClient;competitionClient:CompetitionClient;repository:LearningRepository;notice:(message:string)=>void};
+export type AppContext={data:LearningData;update:(fn:(data:LearningData)=>LearningData)=>void;assets:string;profileClient:ProfileClient;competitionClient:CompetitionClient;trainingClient:TrainingClient;base:string;repository:LearningRepository;notice:(message:string)=>void};
 export const LearningContext=createContext<AppContext>(null!);
 export const useLearning=()=>useContext(LearningContext);
 export function AppLink({to,children,...props}:{to:string;children:ReactNode;actionId?:string;className?:string}){

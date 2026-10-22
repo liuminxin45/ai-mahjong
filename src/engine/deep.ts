@@ -1,4 +1,4 @@
-import { countsOf, setTiles, TILES, validateContext, type HandContext, type TileId } from './index.js';
+import { countsOf, setTiles, TILES, validateContext, type HandContext, type TileId } from './legacy.js';
 
 export type DrawModel={version:1;bag:TileId[];horizon:number;target:'win'|'seven-pairs';kind:'discard'|'first-draw';safeDiscards?:TileId[]};
 export type ExactOption={tile:TileId;numerator:string;denominator:string};

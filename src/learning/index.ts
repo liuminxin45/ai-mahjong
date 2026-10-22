@@ -1,4 +1,4 @@
-import { analyze, countsOf, decompose, parseHand, RULES_VERSION, ENGINE_VERSION, sevenPairsShanten, shanten, sorted, TILES, tileIndex, type HandContext, type TileId } from '../engine/index.js';
+import { analyze, countsOf, decompose, parseHand, RULES_VERSION, ENGINE_VERSION, sevenPairsShanten, shanten, sorted, TILES, tileIndex, type HandContext, type TileId } from '../engine/legacy.js';
 import { lessons } from './lessons.js';
 import { scenarios, scenarioAnswers, type Scenario } from './scenarios.js';
 import { unpackSnapshot } from './history.js';
@@ -101,7 +101,7 @@ export function snapshot(attempts:Attempt[]):LearningSnapshot{
 }
 export function validateSnapshot(raw:unknown):{snapshot:LearningSnapshot;attempts:Attempt[];dimensions:Dimension[]}{
   const s=unpackSnapshot(raw);
-  if(!s||![1,2,3].includes(s.schemaVersion)||s.rulesVersion!==RULES_VERSION||s.engineVersion!==ENGINE_VERSION||s.contentVersion!==CONTENT_VERSION||!Array.isArray(s.attempts)||!s.attempts.length||s.attempts.length>50000)throw new Error('画像快照版本或样本数量无效。');
+  if(!s||![1,2,3].includes(s.schemaVersion)||s.rulesVersion!==RULES_VERSION||!['1.0.1',ENGINE_VERSION].includes(s.engineVersion)||s.contentVersion!==CONTENT_VERSION||!Array.isArray(s.attempts)||!s.attempts.length||s.attempts.length>50000)throw new Error('画像快照版本或样本数量无效。');
   const ids=new Set<string>(),keys=new Set<string>(),questions=new Map<string,Exercise>(),expected=new Map<string,TileId[]>();
   const checked:Attempt[]=[...s.attempts].sort((a,b)=>Date.parse(a?.at)-Date.parse(b?.at)).map(a=>{
     if(s.schemaVersion<3&&a?.ref?.version!==undefined)throw new Error('旧版快照不能包含新版题目。');

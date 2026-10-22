@@ -1,6 +1,6 @@
 {
   "name": "@neo/mahjong-learning",
-  "version": "2.0.3",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.0",
@@ -23,7 +23,11 @@
     "./worker": "./lib/engine/worker.js",
     "./styles.css": "./lib/styles.css",
     "./assets/*": "./assets/*",
-    "./build-info": "./lib/build-info.json"
+    "./build-info": "./lib/build-info.json",
+    "./training": {
+      "types": "./lib/training/index.d.ts",
+      "import": "./lib/training/index.js"
+    }
   },
   "files": [
     "lib",
@@ -65,18 +69,19 @@
     "dev": "vite --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "build": "pnpm typecheck && node scripts/stage-assets.mjs && vite build",
-    "build:package": "tsc -p tsconfig.lib.json && node scripts/package.mjs",
+    "build:package": "node scripts/clean-lib.mjs && tsc -p tsconfig.lib.json && node scripts/package.mjs",
     "prepare": "npm run build:package",
     "test": "vitest run",
     "test:run": "vitest run",
-    "test:browser": "node scripts/browser.mjs",
+    "test:browser": "node scripts/training-browser.mjs",
     "test:editor": "node scripts/analysis-browser.mjs",
     "check:ui": "node node_modules/chatgpt-desktop-kit/dist/check-consumer.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test:coverage": "vitest run --coverage",
     "test:oracle": "node scripts/run-oracle.mjs",
-    "test:upgrade-browser": "node scripts/upgrade-browser.mjs",
     "bank:build": "tsx scripts/build-bank.ts",
-    "bank:verify": "tsx scripts/verify-bank.ts"
+    "bank:verify": "tsx scripts/verify-training.ts && tsx scripts/verify-bank.ts",
+    "training:build": "tsx scripts/build-training.ts",
+    "test:training-browser": "node scripts/training-browser.mjs"
   }
 }
