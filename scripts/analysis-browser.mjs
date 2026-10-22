@@ -5,7 +5,7 @@ const origin=process.env.MAHJONG_PREVIEW_URL||'http://127.0.0.1:5189',base=proce
 const expandAdvanced=async page=>{const summary=page.getByText('更多设置：碰杠、已见牌与牌谱',{exact:true});if(!await summary.evaluate(e=>e.parentElement.open))await summary.click();};
 const url=origin+base+'/analysis',dir='artifacts/analysis-editor';await mkdir(dir,{recursive:true});const results=[];
 for(const [name,launcher] of [['chromium',chromium],['webkit',webkit]]){
- const browser=await launcher.launch(),page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const browser=await launcher.launch({headless:name!=='webkit'||process.env.MAHJONG_WEBKIT_HEADED!=='1'}),page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(url);const editor=page.getByRole('region',{name:'手牌编辑器'}),picker=page.getByRole('group',{name:'添加手牌'});
  await picker.waitFor();assert.equal(await page.getByRole('textbox').count(),0,'Typing must be optional');
  assert.equal(await page.getByText('条 · 筒 · 学习与判断',{exact:true}).count(),0);assert.equal(await page.getByText('双花色 · 72张',{exact:false}).count(),0);

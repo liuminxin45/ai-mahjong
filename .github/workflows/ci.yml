@@ -10,9 +10,6 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    container:
-      image: mcr.microsoft.com/playwright:v1.56.1-noble
-      options: --init --ipc=host
     env:
       GIT_CONFIG_COUNT: 2
       GIT_CONFIG_KEY_0: url.https://github.com/.insteadOf
@@ -51,14 +48,52 @@ jobs:
         run: pnpm build
       - name: Verify shared UI and package exports
         run: pnpm build:package && pnpm check:ui
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      options: --init --ipc=host
+    env:
+      GIT_CONFIG_COUNT: 2
+      GIT_CONFIG_KEY_0: url.https://github.com/.insteadOf
+      GIT_CONFIG_VALUE_0: ssh://git@github.com/
+      GIT_CONFIG_KEY_1: url.https://github.com/.insteadOf
+      GIT_CONFIG_VALUE_1: 'git@github.com:'
+      MAHJONG_PREVIEW_URL: http://127.0.0.1:5188
+      MAHJONG_WEBKIT_HEADED: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - name: Use a portable dependency preparation directory
+        run: pnpm config set store-dir '${{ runner.temp }}/mahjong-pnpm-store'
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build browser application
+        run: pnpm build && pnpm build:package
       - name: Verify pinned test browsers
         run: node --input-type=module -e "import {existsSync} from 'node:fs'; import {chromium,webkit} from 'playwright'; for(const browser of [chromium,webkit]) { if(!existsSync(browser.executablePath())) throw Error('Missing pinned browser'); }"
       - name: Verify responsive learning and legacy records
-        env:
-          MAHJONG_PREVIEW_URL: http://127.0.0.1:5188
         run: |
           pnpm preview --port 5188 > /tmp/mahjong-preview.log 2>&1 &
           for i in $(seq 1 40); do curl --fail --silent http://127.0.0.1:5188/ >/dev/null && break; sleep 1; done
-          pnpm test:training-browser
-          node scripts/training-storage-browser.mjs
-          node scripts/analysis-browser.mjs
+          xvfb-run -a pnpm test:training-browser
+          xvfb-run -a node scripts/training-storage-browser.mjs
+          xvfb-run -a node scripts/analysis-browser.mjs
+      - name: Retain browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-evidence
+          path: artifacts/
+          retention-days: 7
