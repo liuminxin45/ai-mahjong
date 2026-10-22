@@ -1,6 +1,6 @@
 {
   "name": "@neo/mahjong-learning",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.0",
@@ -27,6 +27,10 @@
     "./training": {
       "types": "./lib/training/index.d.ts",
       "import": "./lib/training/index.js"
+    },
+    "./decision": {
+      "types": "./lib/decision/index.d.ts",
+      "import": "./lib/decision/index.js"
     }
   },
   "files": [
@@ -80,7 +84,9 @@
     "test:coverage": "vitest run --coverage",
     "test:oracle": "node scripts/run-oracle.mjs",
     "bank:build": "tsx scripts/build-bank.ts",
-    "bank:verify": "tsx scripts/verify-training.ts && tsx scripts/verify-bank.ts",
+    "bank:verify": "tsx scripts/verify-training.ts && tsx scripts/verify-bank.ts && node scripts/verify-decision-all.mjs",
+    "decision:build": "tsx scripts/build-decisions.ts",
+    "decision:verify": "tsx scripts/verify-decisions.ts --exact",
     "training:build": "tsx scripts/build-training.ts",
     "test:training-browser": "node scripts/training-browser.mjs"
   }
