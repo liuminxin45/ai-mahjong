@@ -9,6 +9,10 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      options: --init --ipc=host
     env:
       GIT_CONFIG_COUNT: 2
       GIT_CONFIG_KEY_0: url.https://github.com/.insteadOf
@@ -47,8 +51,8 @@ jobs:
         run: pnpm build
       - name: Verify shared UI and package exports
         run: pnpm build:package && pnpm check:ui
-      - name: Install test browsers
-        run: pnpm exec playwright install --with-deps chromium webkit
+      - name: Verify pinned test browsers
+        run: node --input-type=module -e "import {existsSync} from 'node:fs'; import {chromium,webkit} from 'playwright'; for(const browser of [chromium,webkit]) { if(!existsSync(browser.executablePath())) throw Error('Missing pinned browser'); }"
       - name: Verify responsive learning and legacy records
         env:
           MAHJONG_PREVIEW_URL: http://127.0.0.1:5188
