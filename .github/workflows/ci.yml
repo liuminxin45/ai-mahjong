@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     container:
-      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
       options: --init --ipc=host
     env:
       GIT_CONFIG_COUNT: 2
@@ -63,6 +63,7 @@ jobs:
       GIT_CONFIG_VALUE_1: 'git@github.com:'
       MAHJONG_PREVIEW_URL: http://127.0.0.1:5188
       MAHJONG_WEBKIT_HEADED: '1'
+      DEBUG: pw:browser
     steps:
       - name: Checkout
         uses: actions/checkout@v4
