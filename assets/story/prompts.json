@@ -1,0 +1,35 @@
+{
+  "direction": "原创写意淡彩：暖象牙纸、石墨细线、微微歪斜的日常物件、大面积留白。参考钢琴童话的克制，不复用 DEEMO 人物、场景、音乐或标志。",
+  "files": [
+    {
+      "id": "table",
+      "original": "original/table.png",
+      "generation": "exec-4a6b3fa2-6a15-4bf7-aafe-b9b621f4072d",
+      "description": "Style master. Abstract romantic whimsical watercolor, luminous warm ivory paper, two mismatched tiny chairs, teacup, tangerine peel, notebook and paper bird at peripheral lower corners. Central 75% blank. No people or lettering."
+    },
+    {
+      "id": "notebook",
+      "original": "original/notebook.png",
+      "generation": "exec-7409b2e7-449e-4ee2-a3c6-683b218678c5",
+      "description": "Reference master. Open notebook and long pencil, same peripheral objects, warm playful memory."
+    },
+    {
+      "id": "tea",
+      "original": "original/tea.png",
+      "generation": "exec-b5a92d09-ac31-4ba0-a515-080dbabe20fb",
+      "description": "Reference master. Open notebook, worn pencil, paper bird, faint cup steam, slightly cooler watercolor."
+    },
+    {
+      "id": "door",
+      "original": "original/door.png",
+      "reference": "original/table.png",
+      "prompt": "Create a new illustrated backdrop based on the exact visual family of this reference: abstract romantic whimsical hand-painted watercolor on luminous warm ivory paper, wonky tiny pencil shapes, very sparse cute objects and enormous quiet blank space. Original poetic sibling memory game, no DEEMO characters or recognizable assets. Maintain 16:9 landscape. Keep central 75 percent and upper 70 percent almost empty ivory for readable live text. Lower left: two slightly mismatched tiny wooden chairs drawn a little closer together, a small cup and a tangerine peel. Far lower right: an almost abstract suggestion of a doorway with a little ochre jacket hanging from a single hook, and a folded paper bird on a plain notebook. No realistic room, no perspective architecture, no humans, no text, no funeral symbols, no piano, no giant tree. Soft graphite lines, muted apricot and pale cornflower washes, unfinished edges, warm mischievous tenderness. Everything small and peripheral. Flat storybook illustration, not photorealism. Preserve the reference's paper color and object scale."
+    },
+    {
+      "id": "present",
+      "original": "original/present.png",
+      "reference": "original/table.png",
+      "prompt": "Create a companion scene in exactly this reference's visual family. Abstract romantic whimsical watercolor on luminous warm ivory paper, delicate slightly wonky graphite lines, very sparse objects and expansive empty space. 16:9 landscape. Keep central 75 percent and upper 70 percent essentially blank ivory for live story text. Bottom left two tiny mismatched wooden chairs now gently tucked in, a small tangerine and curled peel. Bottom right a closed plain little notebook half resting inside an ordinary blue-gray cloth shoulder bag; a folded paper bird beside it. Palette warm ivory with the faintest blue-gray wash and a touch of apricot, quiet daytime calm, loving and cute not spooky or mournful. No humans, lettering, funeral objects, graves, candles, photographic furniture, complex room, piano, or recognizable DEEMO assets. Original visual metaphor of taking an everyday object home. Same object scale, brushwork and paper tone as reference."
+    }
+  ]
+}

@@ -2,8 +2,8 @@
 
 Music by Kevin MacLeod (incompetech.com), licensed under CC BY 4.0.
 
-- Reminiscing: https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN1100097
-- Earnest: https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN1100248
+- Clear Waters: https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN1100290
+- Heartwarming: https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN1100207
 - Evening Fall (Piano): https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN1100235
 - Touching Story: https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN1100036
 - Reaching Out: https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN1100099
