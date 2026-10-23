@@ -23,7 +23,7 @@ export function ensureVisitor(base='/api/assistant/mahjong'):Promise<void>{
 function profileRequest(base:string,beforeRequest?:()=>Promise<unknown>|void){
   const request=async(path:string,method:string,body?:unknown)=>{
     const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),70000);
-    try{await beforeRequest?.();await ensureVisitor(base);const r=await fetch(base+path,{method,credentials:'same-origin',signal:controller.signal,headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});const data=await r.json();if(!r.ok)throw new Error(data.error||'画像服务暂时不可用。');return data;}
+    try{await beforeRequest?.();await ensureVisitor(base);const r=await fetch(base+path,{method,credentials:'same-origin',signal:controller.signal,headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});const data=await r.json();if(!r.ok)throw Object.assign(new Error(data.error||'画像服务暂时不可用。'),{status:r.status});return data;}
     catch(e){if(controller.signal.aborted)throw new Error('画像生成超时，练习记录仍保存在本地。');if(e instanceof SyntaxError)throw new Error('画像需要本站在线服务，普通练习仍可在本地继续。');throw e;}finally{clearTimeout(timeout);}
   };
   return request;
@@ -33,7 +33,7 @@ export function createTrainingClient(base='/api/assistant/mahjong',beforeRequest
 export function createDecisionClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):DecisionClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}
 export function createInsightClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):InsightClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}
 export function createStoryClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):StoryClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}
-export function createTableClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):TableClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}
+export function createTableClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):TableClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{try{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}catch(e){if((e as Error & {status?:number}).status!==404)throw e;}}};}
 export function createCompetitionClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):CompetitionClient{
  const request=async(path:string,method='GET',body?:unknown)=>{
   const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),20000);
