@@ -66,7 +66,7 @@ function StoryRound({journey:j}:{journey:JourneyState}){
   const {change,paused,immersive,assets,audio,state}=useStory(),n=nodeFor(j),q=n.question,chapter=chapters[n.chapter-1],root=useRef<HTMLDivElement>(null),quote=useRef<HTMLParagraphElement>(null),lock=useRef(false),[details,setDetails]=useState(false),[conditions,setConditions]=useState(false),heading=useRef<HTMLHeadingElement>(null);
   const patch=(p:Partial<JourneyState>)=>change(s=>patchJourney(s,j.id,p));
   const presentation=usePresentation({key:j.id+':'+n.id,first:!j.introSeen.includes(n.chapter),seen:j.presented.includes(n.id),submitted:j.submitted,paused:paused||conditions,assets,tiles:q.context.hand,nextTiles:[],root,quote,enter:()=>patch({introSeen:[...new Set([...j.introSeen,n.chapter])],presented:[...new Set([...j.presented,n.id])]}),immersive});
-  const elapsed=useActiveTime(j.id+':'+n.id,!presentation.ready||paused||conditions||details||j.submitted),answer=j.selected===null?undefined:q.context.hand[j.selected];
+  const elapsed=useActiveTime(j.id+':'+n.id,!presentation.ready||paused||details||j.submitted),answer=j.selected===null?undefined:q.context.hand[j.selected];
   useEffect(()=>{void audio?.play(chapter.music);},[audio,n.chapter]);
   useEffect(()=>{audio?.setThinking(presentation.ready&&!j.submitted);if(presentation.ready){audio?.effect(n.scenario?.observedDiscard?'opponent':'deal',j.id+':'+n.id+':deal');if(!j.submitted)heading.current?.focus();}},[presentation.ready,j.submitted,audio]);
   const submit=()=>{if(lock.current||!answer||!presentation.ready||j.submitted)return;lock.current=true;change(s=>submitStory(s,j.id,j.selected!,elapsed()));audio?.effect('discard',j.id+':'+n.id+':discard');};
