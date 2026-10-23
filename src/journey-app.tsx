@@ -70,20 +70,19 @@ export function MahjongApp({basePath='',assetsBaseUrl='/tiles/'+ARTWORK_VERSION,
 
 function PortraitImage({id,className=''}:{id?:Portrait;className?:string}){return id&&sceneryUrl(id)?<img className={'mj-novel-portrait '+className} src={sceneryUrl(id)} alt="" aria-hidden="true"/>:null;}
 function NovelReader({journey:j}:{journey:TableJourney}){
- const {change,paused,audio}=useTable(),beat=pageFor(j)!,reduced=useReducedMotion(),root=useRef<HTMLDivElement>(null),busy=useRef(false),[visible,setVisible]=useState(false);
- const saved=j.read.includes(beat.id+':'+j.line);
- useTimeline(!reduced&&!saved,beat.id+':'+j.line,paused,()=>root.current?[root.current.animate([{opacity:0},{opacity:1}],{duration:650,fill:'both',easing:'ease'})]:[],()=>setVisible(true));
- useEffect(()=>{setVisible(saved||reduced);busy.current=false;},[beat.id,j.line,saved,reduced]);
- useEffect(()=>{if(!visible)return;change(j.id,x=>({...x,read:[...new Set([...x.read,beat.id+':'+j.line])]}));},[visible,beat.id,j.line]);
- const advance=()=>{if(paused||busy.current)return;if(!visible){setVisible(true);return;}busy.current=true;audio?.effect(final&&beat.action==='合上本子'?'close':'page',j.id+':'+beat.id+':'+j.line);change(j.id,x=>x.line<beat.lines.length-1?{...x,line:x.line+1}:turnPage(x));};
- const final=j.line===beat.lines.length-1;
+ const {change,paused,audio}=useTable(),beat=pageFor(j)!,reduced=useReducedMotion(),root=useRef<HTMLDivElement>(null),word=useRef<HTMLSpanElement>(null),busy=useRef(false),[arrived,setArrived]=useState<string|null>(null);
+ const lineKey=beat.id+':'+j.line,saved=j.read.includes(lineKey),visible=saved||reduced||arrived===lineKey,final=j.line===beat.lines.length-1;
+ useTimeline(!reduced&&!saved,lineKey,paused,()=>root.current?[root.current.animate([{opacity:0},{opacity:1}],{duration:650,fill:'both',easing:'ease'}),...(final&&beat.action&&word.current?[word.current.animate([{opacity:0},{opacity:.72}],{delay:700,duration:1000,fill:'both',easing:'ease'})]:[])]:[],()=>setArrived(lineKey));
+ useEffect(()=>{busy.current=false;},[lineKey]);
+ useEffect(()=>{if(!visible||saved)return;change(j.id,x=>({...x,read:[...new Set([...x.read,lineKey])]}));},[visible,lineKey,saved]);
+ const advance=()=>{if(paused||busy.current)return;if(!visible){setArrived(lineKey);return;}busy.current=true;audio?.effect(final&&beat.action==='合上本子'?'close':'page',j.id+':'+lineKey);change(j.id,x=>x.line<beat.lines.length-1?{...x,line:x.line+1}:turnPage(x));};
  return <section className="mj-novel-reader" data-beat={beat.id}>
   {beat.period&&<div className="mj-novel-period">{beat.period}</div>}
   <PortraitImage id={beat.portrait}/>
   <div ref={root} className="mj-novel-passage" onKeyDown={e=>{if(e.repeat||e.nativeEvent.isComposing||!['Enter',' ','ArrowRight'].includes(e.key))return;e.preventDefault();advance();}} tabIndex={0} aria-label="故事">
    {beat.speaker&&<span className="mj-novel-speaker">{beat.speaker}</span>}<p>{beat.lines[j.line]}</p>
   </div>
-  <Button variant="ghost" className="mj-novel-turn" onKeyDown={e=>{if(e.repeat||e.nativeEvent.isComposing){e.preventDefault();e.stopPropagation();}}} aria-label={final&&beat.action?beat.action:'继续读'} onClick={advance} disabled={paused}>{final&&beat.action?beat.action:<Arrow/>}</Button>
+  <Button variant="ghost" className="mj-novel-turn" onKeyDown={e=>{if(e.repeat||e.nativeEvent.isComposing){e.preventDefault();e.stopPropagation();}}} aria-label={final&&beat.action?beat.action:'继续读'} onClick={advance} disabled={paused}><span ref={word} className="mj-novel-action-word">{final&&beat.action?beat.action:<Arrow/>}</span></Button>
  </section>;
 }
 

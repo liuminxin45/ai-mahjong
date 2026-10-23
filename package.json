@@ -1,6 +1,6 @@
 {
   "name": "@neo/mahjong-learning",
-  "version": "7.0.0",
+  "version": "7.0.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.0",
@@ -122,6 +122,7 @@
     "story:build": "tsx scripts/build-story.ts",
     "story:verify": "tsx scripts/verify-story.ts",
     "test:story-browser": "node scripts/journey-browser.mjs",
-    "journey:verify": "tsx scripts/verify-journey.ts"
+    "journey:verify": "tsx scripts/verify-journey.ts",
+    "test:journey-pacing": "node scripts/journey-pacing.mjs"
   }
 }

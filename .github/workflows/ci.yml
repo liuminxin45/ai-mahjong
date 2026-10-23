@@ -101,6 +101,7 @@ jobs:
           pnpm preview --port 5188 > /tmp/mahjong-preview.log 2>&1 &
           for i in $(seq 1 40); do curl --fail --silent http://127.0.0.1:5188/ >/dev/null && break; sleep 1; done
           xvfb-run -a pnpm test:journey-browser
+          pnpm test:journey-pacing
       - name: Retain browser evidence
         if: always()
         uses: actions/upload-artifact@v4
