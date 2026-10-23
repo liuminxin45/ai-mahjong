@@ -2,9 +2,11 @@ import { exercise, grade, MODES, packSnapshot, validateProfile, validateSnapshot
 import { TILES, type TileId } from '../engine/index.js';
 import { importTraining, type TrainingState } from '../training/core.js';
 import { importDecision, type DecisionState } from '../decision/core.js';
+import type { ExperienceState } from '../experience/core.js';
+import type { StoryState } from '../story/core.js';
 export type Mistake={ref:ExerciseRef;exerciseId:string;stage:number;due:string;favorite:boolean};
 export type SavedProfile={reportId:string;profile:LearningProfile;at:string;snapshot?:unknown};
-export type LearningData={version:1;attempts:Attempt[];mistakes:Mistake[];completed:string[];profiles:SavedProfile[];drafts:Record<string,unknown>;training?:TrainingState;decision?:DecisionState};
+export type LearningData={version:1;attempts:Attempt[];mistakes:Mistake[];completed:string[];profiles:SavedProfile[];drafts:Record<string,unknown>;training?:TrainingState;decision?:DecisionState;experience?:ExperienceState;story?:StoryState};
 export const emptyData=():LearningData=>({version:1,attempts:[],mistakes:[],completed:[],profiles:[],drafts:{}});
 export function localDate(date=new Date()):string{return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}
 export function dueDate(days:number,now=new Date()):string{const d=new Date(now);d.setDate(d.getDate()+days);return localDate(d);}
@@ -51,7 +53,7 @@ export class LearningRepository{
   async save(data:LearningData):Promise<void>{
     if(!this.db){this.temporary=true;return;}
     try{await new Promise<void>((resolve,reject)=>{const tx=this.db!.transaction('state','readwrite');tx.objectStore('state').put(data,'learning');tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);});}
-    catch{this.temporary=true;throw new Error('本地保存失败，请导出备份；当前练习仍可继续。');}
+    catch{this.temporary=true;throw new Error('这次进度暂不能保存，当前练习仍可继续。');}
   }
   close(){this.db?.close();this.db=null;}
 }

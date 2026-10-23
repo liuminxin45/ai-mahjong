@@ -45,9 +45,11 @@ describe('独立样本、分组和历史迁移',()=>{
   expect(()=>recordTraining(s,{...input(qs[2],7),answer:TILES.find(t=>!qs[2].context.hand.includes(t))!})).toThrow();vi.useRealTimers();
  });
  it('3当前新题、1到期复习、1新结构；无错题补新，例题不当作独立测量',()=>{
+  vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date(2026,9,22,12));try{
   let s=add(emptyTraining(),qs[0],0,false);const x=createSession(s,'pairs',false,new Date(2026,9,22),'session-01');expect(x.questions).toHaveLength(5);expect(x.questions[3]).toBe(qs[0].id);expect(new Set(x.questions).size).toBe(5);expect(sessionQuestion(s,x).topic).toBe('pairs');expect(x.questions.some(id=>id.endsWith(':01'))).toBe(false);
   expect(createSession(s,'pairs',true).questions[0]).toBe(qs[0].id);expect(createSession(emptyTraining()).questions).toHaveLength(5);
   for(let i=1;i<11;i++)s=add(s,qs[i],i);const exhausted=createSession(s,'shape');expect(exhausted.questions).toHaveLength(5);
+  }finally{vi.useRealTimers();}
  });
  it('最近10种结构8正确才引入下一课，手动指定优先，阅读不当作掌握',()=>{
   let s=emptyTraining();s.read=topics.map(t=>t.id);expect(recommendedTopic(s)).toBe('shape');

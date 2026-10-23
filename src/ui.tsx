@@ -5,6 +5,7 @@ import { analyze, tileName, type AnalysisResult, type HandContext, type TileId }
 import type { LearningData, LearningRepository } from './learning/storage.js';
 import type { ProfileClient,TrainingClient } from './client.js';
 import type { CompetitionClient } from './learning/competition.js';
+import { tileImageUrl } from './artwork.js';
 export type AppContext={data:LearningData;update:(fn:(data:LearningData)=>LearningData)=>void;assets:string;profileClient:ProfileClient;competitionClient:CompetitionClient;trainingClient:TrainingClient;base:string;repository:LearningRepository;notice:(message:string)=>void};
 export const LearningContext=createContext<AppContext>(null!);
 export const useLearning=()=>useContext(LearningContext);
@@ -12,12 +13,12 @@ export function AppLink({to,children,...props}:{to:string;children:ReactNode;act
   const nav=useNavigate(),resolved=useResolvedPath(to,{relative:'path'});return <RecordLink {...props} actionId={props.actionId??`mahjong.navigate.${to}`} href={resolved.pathname+resolved.search} onClick={e=>{if(e.button===0&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey){e.preventDefault();nav(to,{relative:'path'});}}}>{children}</RecordLink>;
 }
 export function Tile({tile,onClick,selected=false,disabled=false,small=false,detail}:{tile:TileId;onClick?:()=>void;selected?:boolean;disabled?:boolean;small?:boolean;detail?:string}){
-  const {assets}=useLearning();const [failed,setFailed]=useState(false);
-  const picture=<><img src={`${assets}/${tile}-96.webp`} srcSet={`${assets}/${tile}-96.webp 96w, ${assets}/${tile}-192.webp 192w, ${assets}/${tile}-384.webp 384w`} sizes={small?'32px':'64px'} alt={tileName(tile)} draggable={false} onError={()=>setFailed(true)} hidden={failed}/>{failed&&<span className="mj-missing-tile">{tileName(tile)}</span>}<span className="mj-tile-caption" aria-hidden="true">{tileName(tile)}</span>{selected&&<span className="mj-tile-selection" aria-hidden="true">✓</span>}</>;
+  const {assets}=useLearning();const [failed,setFailed]=useState(false),url=tileImageUrl(assets,tile);useEffect(()=>setFailed(false),[url]);
+  const picture=<><img src={url} decoding="async" alt={tileName(tile)} draggable={false} onError={()=>setFailed(true)} hidden={failed}/>{failed&&<span className="mj-missing-tile">{tileName(tile)}</span>}<span className="mj-tile-caption" aria-hidden="true">{tileName(tile)}</span>{selected&&<span className="mj-tile-selection" aria-hidden="true">✓</span>}</>;
   return onClick?<Button layout="surface" className={`mj-tile ${small?'mj-tile--small':''}`} aria-label={tileName(tile)} aria-pressed={selected} onClick={onClick} disabled={disabled}>{picture}{detail&&<span className="mj-tile-detail" aria-hidden="true">{detail}</span>}</Button>:<span className={`mj-tile mj-tile-static ${small?'mj-tile--small':''}`}>{picture}{detail&&<span className="mj-tile-detail">{detail}</span>}</span>;
 }
 export function Hand({tiles,onSelect,selected=[],selectedIndex,disabled=false}:{tiles:TileId[];onSelect?:(tile:TileId,index:number)=>void;selected?:TileId[];selectedIndex?:number;disabled?:boolean}){
-  return <div className="mj-hand" aria-label="手牌">{tiles.map((t,i)=><Tile key={`${t}-${i}`} tile={t} onClick={onSelect?()=>onSelect(t,i):undefined} selected={selectedIndex===undefined?selected.includes(t):selectedIndex===i} disabled={disabled}/>)}</div>;
+  return <div className="mj-hand" aria-label="手牌" onKeyDown={e=>{if(!onSelect||disabled||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key))return;const buttons=[...e.currentTarget.querySelectorAll<HTMLButtonElement>('button')],index=buttons.indexOf(e.target as HTMLButtonElement);if(index<0)return;e.preventDefault();const columns=getComputedStyle(e.currentTarget).gridTemplateColumns.split(' ').length,step=e.key==='ArrowUp'?-columns:e.key==='ArrowDown'?columns:e.key==='ArrowLeft'?-1:1;buttons[e.key==='Home'?0:e.key==='End'?buttons.length-1:Math.max(0,Math.min(buttons.length-1,index+step))]?.focus();}}>{tiles.map((t,i)=><Tile key={`${t}-${i}`} tile={t} onClick={onSelect?()=>onSelect(t,i):undefined} selected={selectedIndex===undefined?selected.includes(t):selectedIndex===i} disabled={disabled}/>)}</div>;
 }
 export function ErrorNotice({message}:{message:string}){return message?<InlineNotice tone="danger" title={message}/>:null;}
 export function useAnalysis(context:HandContext,createWorker?:()=>Worker,enabled=true){

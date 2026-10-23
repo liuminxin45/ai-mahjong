@@ -1,6 +1,6 @@
 import { type TileId, TILES, tileName } from '../engine/index.js';
 import { DECISION_VERSION, levels, skills, type SkillId } from './curriculum.js';
-import { decisionQuestion, decisionQuestions, type DecisionQuestion } from './questions.js';
+import { decisionQuestion, decisionQuestions, legacyDecisionQuestions, type DecisionQuestion } from './questions.js';
 import { decimal, fraction } from './solver.js';
 import { validateTrainingSnapshot, compressedTraining, type TrainingSnapshot } from '../training/core.js';
 
@@ -24,7 +24,7 @@ function checkedAttempt(input: DecisionSnapshot['attempts'][number], review: boo
 export function nextRecommendation(state: DecisionState) {
   const first = independentDecisions(state.attempts), observations = first.slice(state.recommendation.after).filter(a => a.level === state.recommendation.level), window = observations.slice(-10);
   if (window.length < 10) return state.recommendation;
-  const right = window.filter(a => a.correct).length, required = [...new Set(decisionQuestions.filter(q=>q.level===state.recommendation.level&&q.pool==='practice').map(q=>q.skill))];
+  const right = window.filter(a => a.correct).length, required = [...new Set(legacyDecisionQuestions.filter(q=>q.level===state.recommendation.level&&q.pool==='practice').map(q=>q.skill))];
   if (right >= 8 && !required.every(skill=>observations.some(a=>a.skill===skill))) return state.recommendation;
   const level = Math.max(1, Math.min(4, state.recommendation.level + (right >= 8 ? 1 : right < 5 ? -1 : 0)));
   return level === state.recommendation.level ? state.recommendation : { level, after: first.length };
@@ -108,7 +108,7 @@ export function validateDecisionSnapshot(raw: unknown) {
   for (const a of s.attempts) { if (!a || typeof a.id !== 'string' || !/^[a-zA-Z0-9_-]{8,80}$/.test(a.id) || ids.has(a.id) || typeof a.questionId !== 'string' || !TILES.includes(a.answer) || typeof a.assisted !== 'boolean' || typeof a.review !== 'boolean' || !Number.isInteger(a.durationMs) || a.durationMs < 0 || a.durationMs > 1800000 || typeof a.at !== 'string' || !Number.isFinite(Date.parse(a.at))) throw new Error('包含无效答题证据。'); ids.add(a.id); }
   for (const a of [...s.attempts].sort((a, b) => Date.parse(a.at) - Date.parse(b.at) || a.id.localeCompare(b.id))) { const q = decisionQuestion(a.questionId); state.attempts.push(checkedAttempt(a, a.review || families.has(q.family))); families.add(q.family); }
   const first=independentDecisions(state.attempts);let observed:DecisionAttempt[]=[];
-  first.forEach((a,index)=>{if(a.level!==state.recommendation.level)return;observed.push(a);if(observed.length<10)return;const correct=observed.slice(-10).filter(x=>x.correct).length,required=[...new Set(decisionQuestions.filter(q=>q.level===a.level&&q.pool==='practice').map(q=>q.skill))];if(correct>=8&&!required.every(skill=>observed.some(x=>x.skill===skill)))return;const level=Math.max(1,Math.min(4,a.level+(correct>=8?1:correct<5?-1:0)));if(level!==a.level){state.recommendation={level,after:index+1};observed=[];}});
+  first.forEach((a,index)=>{if(a.level!==state.recommendation.level)return;observed.push(a);if(observed.length<10)return;const correct=observed.slice(-10).filter(x=>x.correct).length,required=[...new Set(legacyDecisionQuestions.filter(q=>q.level===a.level&&q.pool==='practice').map(q=>q.skill))];if(correct>=8&&!required.every(skill=>observed.some(x=>x.skill===skill)))return;const level=Math.max(1,Math.min(4,a.level+(correct>=8?1:correct<5?-1:0)));if(level!==a.level){state.recommendation={level,after:index+1};observed=[];}});
   if(s.preferences){if(typeof s.preferences.deep!=='boolean'||s.preferences.level!=='auto'&&(!Number.isInteger(s.preferences.level)||s.preferences.level<1||s.preferences.level>4))throw new Error('练习偏好无效。');state.allowDeep=s.preferences.deep;if(s.preferences.level!=='auto')state.manualLevel=s.preferences.level;}
   const legacy = s.legacy ? validateTrainingSnapshot(s.legacy) : undefined;
   return { state, snapshot: decisionSnapshot(state, legacy?.snapshot), facts: decisionFacts(state), focus: focusSkill(state), ...(legacy ? { legacy: compressedTraining(legacy.state) } : {}) };

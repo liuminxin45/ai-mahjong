@@ -1,0 +1,24 @@
+.mj-experience-home h1 { font-weight:500; letter-spacing:.015em; }
+.mj-experience-home .mj-decision-home-hand { margin-block:48px; }
+.mj-experience-practice { padding-top:32px; }
+.mj-experience-practice > .mj-hand { margin-top:36px; }
+.mj-experience-practice[data-presenting=true] > .mj-hand > .mj-tile { opacity:0; }
+.mj-experience-intro { position:fixed; inset:0; z-index:30; display:grid; place-items:center; padding:32px; background:var(--desktop-color-background); color:var(--desktop-color-text); }
+.mj-experience-intro p { max-width:24em; text-align:center; font-size:clamp(18px,2vw,24px); font-weight:400; letter-spacing:.06em; line-height:1.9; margin:0; }
+.mj-condition-window { font-size:12px; color:var(--desktop-color-text-muted); margin:8px 0; }
+.mj-experience-response { margin-top:28px; padding-top:24px; border-top:1px solid var(--desktop-color-border); max-width:840px; }
+.mj-experience-response h2 { font-size:19px; font-weight:500; line-height:1.6; margin:0 0 10px; }
+.mj-experience-response > p { max-width:38em; margin:12px 0 20px; }
+.mj-experience-response > details > summary,.mj-experience-evidence > summary,.mj-experience-ending > details > summary,.mj-experience-insights > details > summary { padding-block:10px; cursor:pointer; font-size:13px; color:var(--desktop-color-text-muted); }
+.mj-experience-ending { max-width:800px; }
+.mj-experience-ending > h1 { font-size:25px; font-weight:500; }
+.mj-experience-ending > p { max-width:33em; }
+.mj-experience-question { color:var(--desktop-color-text-muted); line-height:1.9; margin-block:24px; }
+.mj-experience-observation { font-size:19px; line-height:1.85; font-weight:400; margin:4px 0 20px; }
+.mj-experience-insights { min-width:0; overflow-wrap:anywhere; }
+.mj-experience-evidence .mj-hand { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; }
+.mj-experience-evidence .mj-hand .mj-tile { width:100%; max-width:62px; }
+.mj-experience-evidence > section { margin-block:20px; }
+.mj-experience-insights .mj-actions { margin-top:28px; }
+@media(max-width:767px){ .mj-experience-practice > .mj-hand { margin-top:28px; } .mj-experience-ending > h1 { font-size:23px; } .mj-experience-observation { font-size:18px; } }
+@media(max-width:359px){ .mj-experience-evidence .mj-hand { grid-template-columns:repeat(6,minmax(0,1fr)); } }

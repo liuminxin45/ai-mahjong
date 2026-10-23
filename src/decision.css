@@ -30,7 +30,7 @@
 .mj-decision-questiontitle h1:focus { outline:0; }
 .mj-decision-window { color:var(--desktop-color-text-muted); font-size:13px; margin:12px 0 22px !important; }
 .mj-hand { display:flex; align-items:flex-start; flex-wrap:wrap; gap:6px; padding:10px 0; min-width:0; }
-.mj-tile { position:relative; display:inline-flex; flex-direction:column; align-items:center; flex:0 0 auto; width:54px; padding:0; min-width:0; vertical-align:top; }
+.mj-tile { position:relative; display:inline-flex; flex-direction:column; align-items:center; flex:0 0 auto; width:54px; padding:0; min-width:0; vertical-align:top; appearance:none; border:0; background:transparent; font:inherit; color:inherit; }
 .mj-tile img { display:block; width:100%; aspect-ratio:3 / 4; object-fit:contain; user-select:none; }
 .mj-tile-caption { color:var(--desktop-color-text-muted); font-size:10px; line-height:1.8; white-space:nowrap; margin-top:3px; }
 .mj-tile-selection { position:absolute; right:1px; top:-4px; width:18px; height:18px; border-radius:50%; display:grid; place-items:center; background:var(--desktop-color-text); color:var(--desktop-color-background); font-size:11px; }

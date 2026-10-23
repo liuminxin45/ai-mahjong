@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { decisionQuestions } from '../src/decision/questions.js';
+import { legacyDecisionQuestions as decisionQuestions } from '../src/decision/questions.js';
 import { structure } from '../src/training/questions.js';
 import { validateDecision } from '../src/decision/solver.js';
 import { verifyDecision, independentFan } from './decision-verifier.js';

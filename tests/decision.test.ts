@@ -3,7 +3,7 @@ import { analyze, countsOf, parseHand, TILES, type TileId } from '../src/engine/
 import { scoreCounts, scoreHand } from '../src/decision/score.js';
 import { DECISION_MODEL, decimal, fraction, percent, remainingBag, solveDecision, validateDecision, type DrawConditions } from '../src/decision/solver.js';
 import { independentFan, verifyDecision } from '../scripts/decision-verifier.js';
-import { decisionQuestions, decisionQuestion } from '../src/decision/questions.js';
+import { decisionQuestions, decisionQuestion, legacyDecisionQuestions } from '../src/decision/questions.js';
 import { choiceEvidence, compressedDecisions, createDecisionSession, decisionFacts, decisionSnapshot, decisionStats, emptyDecision, focusSkill, importDecision, independentDecisions, localDay, nextRecommendation, opportunityCount, recordDecision, reviewOutcomes, validateDecisionProfile, validateDecisionSnapshot, wilson } from '../src/decision/core.js';
 import { emptyData, importData } from '../src/learning/storage.js';
 import { emptyTraining, recordTraining, trainingSnapshot } from '../src/training/core.js';
@@ -47,6 +47,7 @@ describe('exact scoring and future strategies', () => {
 
 describe('training evidence and scheduling', () => {
   it('has 332 unique structures, 80 held-out transfers, simple beginner hands and explicit advanced bags', () => {
+    const decisionQuestions = legacyDecisionQuestions;
     expect(decisionQuestions).toHaveLength(332); expect(new Set(decisionQuestions.map(q=>q.family)).size).toBe(332);
     for (const level of [1,2,3,4]) { expect(decisionQuestions.filter(q=>q.level===level&&q.pool==='practice')).toHaveLength(60); expect(decisionQuestions.filter(q=>q.level===level&&q.pool==='transfer')).toHaveLength(20); expect(decisionQuestions.filter(q=>q.level===level&&q.pool==='example')).toHaveLength(3); }
     expect(decisionQuestions.filter(q=>q.level===1).every(q=>countsOf(q.context.hand).every(n=>n<=2))).toBe(true);

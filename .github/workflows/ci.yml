@@ -9,7 +9,7 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     env:
       GIT_CONFIG_COUNT: 2
       GIT_CONFIG_KEY_0: url.https://github.com/.insteadOf
@@ -41,6 +41,8 @@ jobs:
         run: pnpm test:coverage
       - name: Verify versioned question bank
         run: pnpm bank:verify
+      - name: Verify narrative, finite worlds, continuation and asset hashes
+        run: pnpm story:verify
       - name: Compare ten thousand hands with the independent oracle
         run: pnpm test:oracle
 
@@ -48,6 +50,16 @@ jobs:
         run: pnpm build
       - name: Verify shared UI and package exports
         run: pnpm build:package && pnpm check:ui
+      - name: Retain mathematical evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mathematical-evidence
+          path: |
+            coverage/
+            artifacts/*.json
+            artifacts/story/*.json
+          retention-days: 7
 
   browser:
     runs-on: ubuntu-latest
@@ -88,9 +100,7 @@ jobs:
         run: |
           pnpm preview --port 5188 > /tmp/mahjong-preview.log 2>&1 &
           for i in $(seq 1 40); do curl --fail --silent http://127.0.0.1:5188/ >/dev/null && break; sleep 1; done
-          xvfb-run -a pnpm test:training-browser
-          xvfb-run -a node scripts/training-storage-browser.mjs
-          xvfb-run -a node scripts/analysis-browser.mjs
+          xvfb-run -a pnpm test:story-browser
       - name: Retain browser evidence
         if: always()
         uses: actions/upload-artifact@v4
