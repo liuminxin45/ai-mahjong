@@ -1,6 +1,6 @@
 {
   "name": "@neo/mahjong-learning",
-  "version": "5.0.1",
+  "version": "6.0.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.0",
@@ -50,6 +50,9 @@
     "assets/tiles/web",
     "assets/tiles/manifest.json",
     "assets/tiles/prompts.json",
+    "assets/story/web",
+    "assets/story/manifest.json",
+    "assets/story/prompts.json",
     "README.md",
     "docs"
   ],
@@ -105,6 +108,6 @@
     "experience:verify": "tsx scripts/verify-story.ts --continuation",
     "story:build": "tsx scripts/build-story.ts",
     "story:verify": "tsx scripts/verify-story.ts",
-    "test:story-browser": "node scripts/story-browser.mjs"
+    "test:story-browser": "node scripts/sibling-browser.mjs"
   }
 }

@@ -1,0 +1,6 @@
+import {writeFile} from 'node:fs/promises';
+import {siblingStory,narrativeScene,siblingChapters,openingLines,chapterClosings,endingPages} from '../lib/story/index.js';
+const cards=siblingStory.nodes.map(n=>{const s=narrativeScene(n,{splitPair:n.variant==='changed',lost:n.variant==='loss'});return {node:n.id,position:n.position,chapter:n.chapter,variant:n.variant,question:n.question.id,family:n.question.family,hand:n.question.context.hand,visible:n.question.context.visible,challenge:n.challenge.kind,proof:n.witness?.summary??n.challenge.claims,assessment:n.scenario?'conditional-replay-only':'public-bag-exact',before:s.before,after:s.after,turn:s.next,music:siblingChapters[n.chapter-1].music};});
+await writeFile('docs/sibling-production-cards.json',JSON.stringify({version:'sibling-record-1',spoilers:true,opening:openingLines,chapters:siblingChapters,closings:chapterClosings,ending:endingPages,cards},null,2)+'\n');
+const path=siblingStory.nodes.filter(n=>n.variant==='shared'||n.variant==='kept'||n.variant==='clear'),text=[...openingLines,...path.flatMap(n=>{const s=narrativeScene(n,{});return [...s.before,...s.after];}),...Object.values(chapterClosings).flatMap(s=>s.lines),...endingPages.flatMap(s=>s.lines)].join('');
+console.log(JSON.stringify({cards:cards.length,onePathAuthoredCharacters:text.length,generatedResponseExcluded:true}));

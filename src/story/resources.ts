@@ -2,10 +2,11 @@ import audioManifest from './audio-manifest.json' with { type: 'json' };
 import tileManifest from './tile-manifest.json' with { type: 'json' };
 import { AUDIO_COMMIT } from './audio-source.js';
 import { artworkSize, preloadTiles, registerTileImage } from '../artwork.js';
+import {sceneryFiles,sceneryWidth,sceneryBase,registerScenery,decodeScenery} from './scenery.js';
 export type AudioAsset={id:string;path:string;sha256:string;bytes:number;duration:number;mime:string;kind:string;title:string;author:string;license:string;licenseUrl:string;source:string;sourcePage?:string;modifications:string};
 export const audioAssets=audioManifest.files as AudioAsset[];
 export type Preparation={phase:'checking'|'downloading'|'preparing'|'ready'|'failed';loaded:number;total:number;temporary:boolean;error?:string};
-type Resource={id:string;url:string;sha256:string;bytes:number;mime:string;audio?:AudioAsset;tile?:string};
+type Resource={id:string;url:string;sha256:string;bytes:number;mime:string;audio?:AudioAsset;tile?:string;scene?:string};
 const mediaCache='neo-mahjong-media-v1';
 async function prepareMedia(blob:Blob,duration:number){
   const player=new Audio(),url=URL.createObjectURL(blob);
@@ -22,6 +23,7 @@ export class ResourceStore {
   prepare(){if(this.pending)return this.pending;this.pending=this.load().catch(e=>{this.pending=null;this.update({phase:'failed',error:e instanceof Error?e.message:'资源还没到齐。'});throw e;});return this.pending;}
   private async load(){
     const tiles=tileManifest.filter(t=>t.size===artworkSize()),resources:Resource[]=[...audioAssets.map(a=>({id:a.id,url:this.audioBase+a.path,sha256:a.sha256,bytes:a.bytes,mime:a.mime,audio:a})),...tiles.map(t=>({id:'tile:'+t.id,url:this.tileBase+'/'+t.file,sha256:t.sha256,bytes:t.bytes,mime:'image/webp',tile:t.id}))];
+    resources.push(...sceneryFiles.filter(f=>f.width===sceneryWidth()).map(f=>({id:'scene:'+f.id,url:sceneryBase(this.tileBase)+'/'+f.file,sha256:f.sha256,bytes:f.bytes,mime:f.mime,scene:f.id})));
     const total=resources.reduce((n,r)=>n+r.bytes,0),done=new Map<string,number>();this.update({phase:'checking',loaded:0,total,error:undefined});
     const batchAbort=new AbortController();let cache:Cache|undefined;try{cache=await caches.open(mediaCache);}catch{this.temporary=true;}
     const emit=()=>this.update({loaded:[...done.values()].reduce((a,b)=>a+b,0)});
@@ -40,13 +42,14 @@ export class ResourceStore {
       }
       this.blobs.set(r.id,new Blob([bytes],{type:r.mime}));done.set(r.id,r.bytes);emit();
       if(r.tile)registerTileImage(r.url,this.blobs.get(r.id)!);
+      if(r.scene)registerScenery(r.scene,this.blobs.get(r.id)!);
     };
     let index=0;const workers=await Promise.allSettled(Array.from({length:3},async()=>{while(index<resources.length&&!batchAbort.signal.aborted)try{await obtain(resources[index++]);}catch(e){batchAbort.abort();throw e;}}));const failed=workers.find(r=>r.status==='rejected');if(failed?.status==='rejected')throw failed.reason;
     this.update({phase:'preparing',loaded:total});
     const AudioCtor=globalThis.AudioContext??(globalThis as typeof globalThis & {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;
     if(AudioCtor)this.context??=new AudioCtor();
     for(const asset of audioAssets){if(this.context){const buffer=await this.context.decodeAudioData(await this.blobs.get(asset.id)!.arrayBuffer());if(!buffer.length||Math.abs(buffer.duration-asset.duration)>0.5)throw Error('声音准备没有完成，请重试。');if(asset.kind==='effect')this.effects.set(asset.id,buffer);}else await prepareMedia(this.blobs.get(asset.id)!,asset.duration);}
-    await preloadTiles(this.tileBase,tiles.map(t=>t.id));this.update({phase:'ready'});
+    await Promise.all([preloadTiles(this.tileBase,tiles.map(t=>t.id)),decodeScenery()]);this.update({phase:'ready'});
   }
 }
 
@@ -57,7 +60,7 @@ export class AudioDirector {
   get preferences(){return {muted:this.muted,volume:this.volume};}
   async unlock(){
     const context=this.resources.context;if(this.disposed)return;
-    const first=!this.players.length;this.current||='reminiscing';
+    const first=!this.players.length;this.current||='clear-waters';
     if(first)for(let i=0;i<2;i++){const player=new Audio();player.preload='auto';player.loop=true;if(context){const gain=context.createGain();gain.gain.value=0;context.createMediaElementSource(player).connect(gain).connect(context.destination);this.gains.push(gain);}else player.volume=0;this.players.push(player);}
     this.started=true;this.channel?.postMessage(this.token);
     try{

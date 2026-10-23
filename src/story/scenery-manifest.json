@@ -1,0 +1,87 @@
+{
+  "version": "7b7cf4861187a6a5",
+  "author": "OpenAI imagegen; original illustrations for 未完的牌谱",
+  "direction": "Warm ivory watercolor, pencil, sparse everyday objects, abstract romantic storybook. No copied game assets.",
+  "files": [
+    {
+      "id": "table",
+      "width": 960,
+      "file": "table-960-02576fa5814c.webp",
+      "sha256": "02576fa5814c9ae4686b4215020b66060dedf32804c509df9c7de1f495852dca",
+      "bytes": 24886,
+      "mime": "image/webp"
+    },
+    {
+      "id": "table",
+      "width": 1600,
+      "file": "table-1600-32a8457207b3.webp",
+      "sha256": "32a8457207b3b7c8daf869c9a473f087b3dcd9049ee65bd0d5280d6e1e3c4d26",
+      "bytes": 65676,
+      "mime": "image/webp"
+    },
+    {
+      "id": "notebook",
+      "width": 960,
+      "file": "notebook-960-d44586d5ec4b.webp",
+      "sha256": "d44586d5ec4b5cf42c0dea8e738ff6373aebf5b04c916b9c071d48581facffd7",
+      "bytes": 25706,
+      "mime": "image/webp"
+    },
+    {
+      "id": "notebook",
+      "width": 1600,
+      "file": "notebook-1600-6dbafee47f3a.webp",
+      "sha256": "6dbafee47f3a2f2f96d5989d66c49e68c73777258e6298b8d980d594bc47dd93",
+      "bytes": 62894,
+      "mime": "image/webp"
+    },
+    {
+      "id": "tea",
+      "width": 960,
+      "file": "tea-960-b1bf685c23a7.webp",
+      "sha256": "b1bf685c23a7251b935236555735cc52de52c7ac6c23ff85618fc511ef9436d2",
+      "bytes": 25984,
+      "mime": "image/webp"
+    },
+    {
+      "id": "tea",
+      "width": 1600,
+      "file": "tea-1600-b753d16ab390.webp",
+      "sha256": "b753d16ab3903f0e3bb85662f435f8c4d20870aa33ba2a8ba18a2d0699daf30f",
+      "bytes": 65162,
+      "mime": "image/webp"
+    },
+    {
+      "id": "door",
+      "width": 960,
+      "file": "door-960-234d64c352ea.webp",
+      "sha256": "234d64c352ead9f7d7671434fc3cf06fe6dc1c1cdcedd8e75ba341391dc7c6df",
+      "bytes": 24998,
+      "mime": "image/webp"
+    },
+    {
+      "id": "door",
+      "width": 1600,
+      "file": "door-1600-3a89d47784a9.webp",
+      "sha256": "3a89d47784a923038310917dc92d4dbf6fad439c476440aa95f5bbdef92707b4",
+      "bytes": 62610,
+      "mime": "image/webp"
+    },
+    {
+      "id": "present",
+      "width": 960,
+      "file": "present-960-14c37e7558ce.webp",
+      "sha256": "14c37e7558ce5275af05d1e5ee61aec106466fea325c5018252d12ae6229cf32",
+      "bytes": 28146,
+      "mime": "image/webp"
+    },
+    {
+      "id": "present",
+      "width": 1600,
+      "file": "present-1600-e35b883d00a0.webp",
+      "sha256": "e35b883d00a05e3f5293a993333c63706e5172806d5495593eff97b471fde568",
+      "bytes": 67264,
+      "mime": "image/webp"
+    }
+  ]
+}

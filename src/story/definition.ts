@@ -3,12 +3,16 @@ import type { Challenge, ChallengeKind } from '../experience/definitions.js';
 import type { ScenarioCertificate, ScenarioModel } from './model.js';
 import type { HandContext, TileId } from '../engine/index.js';
 import raw from './catalog.json' with { type: 'json' };
+import { NARRATIVE_VERSION, type NarrativeVersion } from './edition.js';
 export const STORY_VERSION = 'unfinished-record-1' as const;
 export type StoryWitness={basis:string;summary:string;alternative:TileId;tiles:TileId[];before?:{context:HandContext;model:ScenarioModel;certificate:ScenarioCertificate}};
 export type DecisionNode = { id: string; position: number; variant: 'shared' | 'changed' | 'kept' | 'loss' | 'clear'; chapter: number; question: DecisionQuestion; challenge: Challenge; scenario?: ScenarioModel; certificate?: ScenarioCertificate; witness?:StoryWitness; note: string; noteTime: '当年的注记' | '后来补记' | '随信附言'; pair?: string };
-export type StoryDefinition = { version: typeof STORY_VERSION; nodes: DecisionNode[]; mirror: { opening: string; endings: string[] }; };
+export type StoryDefinition = { version: typeof STORY_VERSION | NarrativeVersion; nodes: DecisionNode[]; mirror: { opening: string; endings: string[] }; };
 export const story = raw as StoryDefinition;
-const registry = new Map(story.nodes.map(n => [n.id, n]));
+const siblingId = (id: string) => id.replace(STORY_VERSION, NARRATIVE_VERSION);
+export const siblingStory: StoryDefinition = {version:NARRATIVE_VERSION,nodes:story.nodes.map(n=>({...n,id:siblingId(n.id),...(n.pair?{pair:siblingId(n.pair)}:{})})),mirror:{opening:siblingId(story.mirror.opening),endings:story.mirror.endings.map(siblingId)}};
+export function storyFor(edition?: NarrativeVersion): StoryDefinition {return edition === NARRATIVE_VERSION ? siblingStory : story;}
+const registry = new Map([...story.nodes,...siblingStory.nodes].map(n => [n.id, n]));
 export function storyNode(id: string): DecisionNode { const n = registry.get(id); if (!n) throw Error('这份牌谱的节点版本无法识别。'); return n; }
 export const chapters = [
   { title: '落座', quote: '你还欠我一张牌。', question: '刚才那张牌，你为什么愿意放下？', music: 'reminiscing', level: 1 },

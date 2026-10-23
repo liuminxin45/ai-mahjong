@@ -14,7 +14,7 @@ export function AppLink({to,children,...props}:{to:string;children:ReactNode;act
 }
 export function Tile({tile,onClick,selected=false,disabled=false,small=false,detail}:{tile:TileId;onClick?:()=>void;selected?:boolean;disabled?:boolean;small?:boolean;detail?:string}){
   const {assets}=useLearning();const [failed,setFailed]=useState(false),url=tileImageUrl(assets,tile);useEffect(()=>setFailed(false),[url]);
-  const picture=<><img src={url} decoding="async" alt={tileName(tile)} draggable={false} onError={()=>setFailed(true)} hidden={failed}/>{failed&&<span className="mj-missing-tile">{tileName(tile)}</span>}<span className="mj-tile-caption" aria-hidden="true">{tileName(tile)}</span>{selected&&<span className="mj-tile-selection" aria-hidden="true">✓</span>}</>;
+  const picture=<><img src={url} decoding="async" alt={tileName(tile)} draggable={false} onError={()=>setFailed(true)} hidden={failed}/>{failed&&<span className="mj-missing-tile">{tileName(tile)}</span>}{selected&&<span className="mj-tile-selection" aria-hidden="true">✓</span>}</>;
   return onClick?<Button layout="surface" className={`mj-tile ${small?'mj-tile--small':''}`} aria-label={tileName(tile)} aria-pressed={selected} onClick={onClick} disabled={disabled}>{picture}{detail&&<span className="mj-tile-detail" aria-hidden="true">{detail}</span>}</Button>:<span className={`mj-tile mj-tile-static ${small?'mj-tile--small':''}`}>{picture}{detail&&<span className="mj-tile-detail">{detail}</span>}</span>;
 }
 export function Hand({tiles,onSelect,selected=[],selectedIndex,disabled=false}:{tiles:TileId[];onSelect?:(tile:TileId,index:number)=>void;selected?:TileId[];selectedIndex?:number;disabled?:boolean}){

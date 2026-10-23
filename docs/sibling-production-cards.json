@@ -1,0 +1,1671 @@
+{
+  "version": "sibling-record-1",
+  "spoilers": true,
+  "opening": [
+    "母亲让我把餐边柜里的旧书收出来。",
+    "她下楼找纸箱，我留在餐桌边。窗外还没有全黑。",
+    "抽屉总卡在同一个地方。我往上抬了一下，才拉开。",
+    "一本薄本子压在最里面。",
+    "封面原来写着我的名字，后来被人用铅笔划掉了。",
+    "旁边补了两个字：我的。",
+    "妹妹的字。",
+    "前面几页，是我刚工作那年回来过春节时，她记下的牌。",
+    "“哥，快来。”",
+    "她把椅子往旁边挪了挪，又把自己那副牌拢住。",
+    "“你帮我打一把。”",
+    "我刚把外套搭在椅背上，她又补了一句：",
+    "“赢了算我的。”"
+  ],
+  "chapters": [
+    {
+      "title": "替我打一把",
+      "music": "clear-waters",
+      "time": "那个除夕",
+      "scene": "table"
+    },
+    {
+      "title": "这把算我的",
+      "music": "heartwarming",
+      "time": "还是那一晚",
+      "scene": "notebook"
+    },
+    {
+      "title": "她后来写的",
+      "music": "evening",
+      "time": "纸页往后",
+      "scene": "tea"
+    },
+    {
+      "title": "再坐一会儿",
+      "music": "touching",
+      "time": "回到桌边",
+      "scene": "door"
+    },
+    {
+      "title": "留给我的题",
+      "music": "reaching",
+      "time": "最后几页",
+      "scene": "notebook"
+    }
+  ],
+  "closings": {
+    "1": {
+      "lines": [
+        "舅舅说，那一把得算我头上。",
+        "她把本子往怀里一收：“可是我坐在这儿。”",
+        "我没跟她争。她得意了一小会儿，才往旁边挪，让我坐得松快一点。"
+      ],
+      "next": "坐得近一点"
+    },
+    "2": {
+      "lines": [
+        "我说了车次。她用笔在纸上点了一下，没有写。",
+        "“那还有时间。”",
+        "这句话我记得。后面她又说过什么，我已经记不全。",
+        "纸上的牌倒还在，有些是当场记的，有些是她后来补的。"
+      ],
+      "next": "看她后来补的几页"
+    },
+    "3": {
+      "lines": [
+        "楼道里传来脚步声。母亲回来了。",
+        "她把明早去墓园的袋子放在门边，转身看见桌上摊开的本子。",
+        "“这个，也带上？”",
+        "我把压在纸角的手挪开，没有合上。",
+        "母亲站了一会儿，说饭还要等一等，让我慢慢收。"
+      ],
+      "next": "再坐一会儿"
+    },
+    "4": {
+      "lines": [
+        "后面几页，有一行字被她框了起来。",
+        "“给哥留着。”",
+        "我往后摸了摸，纸还挺厚。原来她说自己会一点的时候，已经写了这么多。",
+        "我把椅子往桌边拉近，照她记下的顺序，重新摆牌。"
+      ],
+      "next": "把她留的题摆好"
+    }
+  },
+  "ending": [
+    {
+      "lines": [
+        "横线后面，是她给这一手写的解释。",
+        "有几处字被改过，最后一句倒写得很干脆。",
+        "“先看看桌上有什么。”",
+        "“这句是你以前说我的。现在还给你。”"
+      ],
+      "next": "看完她写的最后几行"
+    },
+    {
+      "lines": [
+        "我又翻了两页。",
+        "前面常写着“哥说的”。后来有一处被她划掉，改成了“我试过了”。",
+        "我想起她当时递来本子，问我要不要看看。",
+        "原来她已经准备好，要跟我讲这些了。"
+      ],
+      "next": "把那页夹回原处"
+    },
+    {
+      "lines": [
+        "“收好了吗？”母亲在门外问。",
+        "我把本子从纸箱里拿出来，放进自己的包。",
+        "“这本我带走。”",
+        "她看了一眼，没再问。"
+      ],
+      "next": "收好那本牌谱"
+    },
+    {
+      "lines": [
+        "窗外已经全黑了。楼下有人喊吃饭。",
+        "我把笔夹回本子里，拉上包。",
+        "起身时，顺手把旁边那把椅子推回桌下。",
+        "椅脚擦过地面，和我记得的声音一样。"
+      ],
+      "next": "合上牌谱"
+    }
+  ],
+  "cards": [
+    {
+      "node": "sibling-record-1:1:shared",
+      "position": 1,
+      "chapter": 1,
+      "variant": "shared",
+      "question": "discard-value-1:1:practice:02",
+      "family": "[[\"1p\",\"2p\",\"3p\",\"4p\",\"4p\",\"8p\",\"9p\",\"1s\",\"2s\",\"3s\",\"4s\",\"7s\",\"8s\",\"9s\"],[],[]]",
+      "hand": [
+        "1p",
+        "2p",
+        "3p",
+        "4p",
+        "4p",
+        "8p",
+        "9p",
+        "1s",
+        "2s",
+        "3s",
+        "4s",
+        "7s",
+        "8s",
+        "9s"
+      ],
+      "challenge": "entanglement",
+      "assessment": "public-bag-exact",
+      "before": [
+        "她原本把几张牌叠在一起，见我坐下，才一张张摊开。",
+        "“这几张，你先别动。”她用手背挡了一下，又挪开。",
+        "“算了，你先看。”"
+      ],
+      "after": [
+        "她歪着头，看我落下的那张牌。",
+        "“你怎么这么快就不要了？”",
+        "我把剩下的牌往她面前推了推。她没急着摸，先照我的样子重新摆了一遍。"
+      ],
+      "turn": "看她怎么摆",
+      "music": "clear-waters"
+    },
+    {
+      "node": "sibling-record-1:2:shared",
+      "position": 2,
+      "chapter": 1,
+      "variant": "shared",
+      "question": "discard-value-1:1:practice:03",
+      "family": "[[\"1p\",\"2p\",\"2p\",\"3p\",\"4p\",\"5p\",\"6p\",\"1s\",\"2s\",\"3s\",\"4s\",\"5s\",\"6s\",\"9s\"],[],[]]",
+      "hand": [
+        "1p",
+        "2p",
+        "3p",
+        "4p",
+        "5p",
+        "6p",
+        "9p",
+        "1s",
+        "2s",
+        "2s",
+        "3s",
+        "4s",
+        "5s",
+        "6s"
+      ],
+      "challenge": "temptation",
+      "assessment": "public-bag-exact",
+      "before": [
+        "她摆牌很有自己的规矩。好看的放中间，不好看的挤到边上。",
+        "“这样顺眼。”",
+        "舅舅笑她。我还没开口，她先把牌往我这边推了半寸。"
+      ],
+      "after": [
+        "妹妹盯了那张牌一会儿。",
+        "“它长得还挺好的。”",
+        "舅舅说，长得好看也不能当饭吃。她顺手从他那边拿走一颗橘子，剥了起来。"
+      ],
+      "turn": "接过半个橘子",
+      "music": "clear-waters"
+    },
+    {
+      "node": "sibling-record-1:3:shared",
+      "position": 3,
+      "chapter": 1,
+      "variant": "shared",
+      "question": "five-hands-1:1:gap:practice-09",
+      "family": "[[\"1p\",\"2p\",\"2p\",\"3p\",\"4p\",\"5p\",\"6p\",\"8p\",\"1s\",\"2s\",\"3s\",\"4s\",\"5s\",\"6s\"],[],[]]",
+      "hand": [
+        "4p",
+        "5p",
+        "6p",
+        "7p",
+        "8p",
+        "9p",
+        "1s",
+        "2s",
+        "2s",
+        "3s",
+        "4s",
+        "5s",
+        "6s",
+        "8s"
+      ],
+      "visible": {
+        "7s": 4
+      },
+      "challenge": "gap",
+      "assessment": "public-bag-exact",
+      "before": [
+        "她去厨房倒茶，回来还在念刚才那手。",
+        "“我就差一点。”",
+        "我把桌上已经打过的牌挪给她看。她放下杯子，蹲在椅边重新数。"
+      ],
+      "after": [
+        "她数到最后，停了一下。",
+        "“……这张也在这儿啊。”",
+        "说完又把杯子塞进我手里，像是刚才只是过来送茶。"
+      ],
+      "turn": "把茶放稳",
+      "music": "clear-waters"
+    },
+    {
+      "node": "sibling-record-1:4:shared",
+      "position": 4,
+      "chapter": 1,
+      "variant": "shared",
+      "question": "discard-value-1:1:practice:01",
+      "family": "[[\"1p\",\"2p\",\"3p\",\"4p\",\"5p\",\"6p\",\"7p\",\"8p\",\"1s\",\"2s\",\"3s\",\"6s\",\"6s\",\"9s\"],[],[]]",
+      "hand": [
+        "1p",
+        "2p",
+        "3p",
+        "4p",
+        "5p",
+        "6p",
+        "7p",
+        "8p",
+        "1s",
+        "2s",
+        "3s",
+        "6s",
+        "6s",
+        "9s"
+      ],
+      "challenge": "cost",
+      "assessment": "public-bag-exact",
+      "before": [
+        "她开始护着对子。两张一样的，她总要并得严严实实。",
+        "“这个我好不容易才凑到的。”",
+        "我伸手，她先按住牌，想了想，又松开。"
+      ],
+      "after": [
+        "“反正这一手是你打的。”",
+        "她把这句话说得很清楚，舅舅都听见了。",
+        "我刚点头，她就拿铅笔在本子上写了一小行。写完用胳膊盖住。"
+      ],
+      "turn": "看她藏起本子",
+      "music": "clear-waters"
+    },
+    {
+      "node": "sibling-record-1:5:shared",
+      "position": 5,
+      "chapter": 1,
+      "variant": "shared",
+      "question": "discard-value-1:1:practice:04",
+      "family": "[[\"1p\",\"1p\",\"2p\",\"4p\",\"5p\",\"6p\",\"7p\",\"8p\",\"9p\",\"2s\",\"3s\",\"4s\",\"5s\",\"6s\"],[],[]]",
+      "hand": [
+        "4p",
+        "5p",
+        "6p",
+        "7p",
+        "8p",
+        "1s",
+        "1s",
+        "2s",
+        "4s",
+        "5s",
+        "6s",
+        "7s",
+        "8s",
+        "9s"
+      ],
+      "challenge": "adaptability",
+      "assessment": "public-bag-exact",
+      "before": [
+        "轮到另一段牌，她主动把靠边的两张拨给我看。",
+        "“这回是不是又不要这边？”",
+        "我没接话。她看了看手里的牌，又看了看桌面，把手收了回去。"
+      ],
+      "after": [
+        "她把这一手记进本子，边写边问我刚才那几张的顺序。",
+        "我说不着急，她却越写越快。",
+        "“等会儿忘了，你又要说我。”"
+      ],
+      "turn": "替她压住纸角",
+      "music": "clear-waters"
+    },
+    {
+      "node": "sibling-record-1:6:shared",
+      "position": 6,
+      "chapter": 2,
+      "variant": "shared",
+      "question": "discard-value-1:2:practice:02",
+      "family": "[[\"1p\",\"1p\",\"3p\",\"4p\",\"4p\",\"5p\",\"6p\",\"8p\",\"9p\",\"1s\",\"2s\",\"2s\",\"3s\",\"4s\"],[],[]]",
+      "hand": [
+        "1p",
+        "1p",
+        "3p",
+        "4p",
+        "4p",
+        "5p",
+        "6p",
+        "8p",
+        "9p",
+        "1s",
+        "2s",
+        "2s",
+        "3s",
+        "4s"
+      ],
+      "challenge": "cost",
+      "assessment": "public-bag-exact",
+      "before": [
+        "茶喝到一半，她忽然说这回要弄个大的。",
+        "“你别总替我把牌拆散。”",
+        "我把本子转过来，给她留了一块空地方，让她自己摆两种走法。"
+      ],
+      "after": [
+        "她把两边看了很久。",
+        "“大的那个，等得是要久一点。”",
+        "说完拿铅笔在旁边加了个小字。她嫌自己写得不好，又把它涂成一团。"
+      ],
+      "turn": "给她换一支笔",
+      "music": "heartwarming"
+    },
+    {
+      "node": "sibling-record-1:7:shared",
+      "position": 7,
+      "chapter": 2,
+      "variant": "shared",
+      "question": "unfinished-record-1:intro:discard-value-1:3:practice:01",
+      "family": "[[\"1p\",\"1p\",\"2p\",\"2p\",\"3p\",\"7p\",\"7p\",\"9p\",\"1s\",\"1s\",\"3s\",\"5s\",\"5s\",\"6s\"],[],[]]",
+      "hand": [
+        "1p",
+        "3p",
+        "3p",
+        "7p",
+        "8p",
+        "8p",
+        "9p",
+        "9p",
+        "4s",
+        "5s",
+        "5s",
+        "7s",
+        "9s",
+        "9s"
+      ],
+      "challenge": "entanglement",
+      "assessment": "public-bag-exact",
+      "before": [
+        "她照着别人的话攒对子，攒着攒着，又舍不得几张挨着的牌。",
+        "同一张被她往两边都摆了一次。",
+        "“要是两边都算呢？”她问。"
+      ],
+      "after": [
+        "她伸出两只手，想同时把那张牌拿走，自己先笑了。",
+        "“行，知道了。就这一张。”",
+        "她在纸上把其中一个圈擦掉，橡皮屑扫到了我的袖子上。"
+      ],
+      "turn": "拂掉袖上的纸屑",
+      "music": "heartwarming"
+    },
+    {
+      "node": "sibling-record-1:8:shared",
+      "position": 8,
+      "chapter": 2,
+      "variant": "shared",
+      "question": "discard-value-1:2:practice:04",
+      "family": "[[\"1p\",\"1p\",\"2p\",\"2p\",\"3p\",\"5p\",\"5p\",\"6p\",\"6p\",\"6p\",\"7p\",\"8p\",\"3s\",\"3s\"],[],[[\"1s\",4],[\"3p\",3],[\"5p\",2],[\"6p\",1],[\"6s\",4],[\"7s\",4]]]",
+      "hand": [
+        "1p",
+        "1p",
+        "2p",
+        "2p",
+        "3p",
+        "5p",
+        "5p",
+        "6p",
+        "6p",
+        "6p",
+        "7p",
+        "8p",
+        "3s",
+        "3s"
+      ],
+      "visible": {
+        "1s": 4,
+        "6s": 4,
+        "6p": 1,
+        "5p": 2,
+        "7s": 4,
+        "3p": 3
+      },
+      "challenge": "adaptability",
+      "assessment": "public-bag-exact",
+      "before": [
+        "下一页上，她把几张相同花色的牌排得很长。",
+        "“这回总能留吧？”",
+        "语气还硬，眼睛已经先来看我的反应。"
+      ],
+      "after": [
+        "她拿笔在这手旁边画了一个大圈，差点画到桌子上。",
+        "“先记上。你以后别说我只会瞎留。”",
+        "我把本子往里挪了挪。她又把那个圈描了一遍。"
+      ],
+      "turn": "听她往下说",
+      "music": "heartwarming"
+    },
+    {
+      "node": "sibling-record-1:9:shared",
+      "position": 9,
+      "chapter": 2,
+      "variant": "shared",
+      "question": "unfinished-record-1:flush-pair-gap:1:1s-9s-5p-8p:1s",
+      "family": "story-family:3d7f61b0a61d6107bcee8417d8cb2353d7694df2d46e15faaa1b0363427e00f3",
+      "hand": [
+        "5p",
+        "5p",
+        "1s",
+        "2s",
+        "2s",
+        "3s",
+        "3s",
+        "4s",
+        "5s",
+        "6s",
+        "7s",
+        "8s",
+        "9s",
+        "9s"
+      ],
+      "visible": {
+        "1s": 2
+      },
+      "challenge": "gap",
+      "assessment": "public-bag-exact",
+      "before": [
+        "她找了一手和刚才很像的，照旧想往一起凑。",
+        "我把旁边记下的几张余牌推近。",
+        "她看了一眼，又多看了一眼：“怎么剩得不一样？”"
+      ],
+      "after": [
+        "她在两手牌中间画了一条线。",
+        "“看着差不多。”",
+        "铅笔在纸上停了停，她又添上：“不一样。”"
+      ],
+      "turn": "翻过这一小页",
+      "music": "heartwarming"
+    },
+    {
+      "node": "sibling-record-1:10:shared",
+      "position": 10,
+      "chapter": 2,
+      "variant": "shared",
+      "question": "discard-value-1:2:practice:01",
+      "family": "[[\"1p\",\"2p\",\"3p\",\"3p\",\"8p\",\"8p\",\"8p\",\"1s\",\"3s\",\"4s\",\"4s\",\"4s\",\"6s\",\"7s\"],[],[]]",
+      "hand": [
+        "1p",
+        "2p",
+        "3p",
+        "3p",
+        "8p",
+        "8p",
+        "8p",
+        "3s",
+        "4s",
+        "6s",
+        "6s",
+        "6s",
+        "7s",
+        "9s"
+      ],
+      "challenge": "temptation",
+      "assessment": "public-bag-exact",
+      "before": [
+        "我的手机在桌沿亮了一下。是同事问我哪天回去。",
+        "妹妹没说话，把本子挪过来，正好压住半个屏幕。",
+        "“先把这个看完。”这回她指着那对牌，没有再伸手拦。"
+      ],
+      "after": [
+        "我把手机扣在桌上。",
+        "她看见了，装作没看见，低头把这一手补完。",
+        "过了一会儿才问：“你车几点的？”"
+      ],
+      "turn": "把手机收进口袋",
+      "music": "heartwarming"
+    },
+    {
+      "node": "sibling-record-1:11:changed",
+      "position": 11,
+      "chapter": 3,
+      "variant": "changed",
+      "question": "five-hands-1:3:gap:practice-05",
+      "family": "[[\"1p\",\"1p\",\"1p\",\"4p\",\"5p\",\"7p\",\"7p\",\"1s\"],[[\"quad\",\"3p\"],[\"triplet\",\"9p\"]],[]]",
+      "hand": [
+        "1p",
+        "3s",
+        "3s",
+        "5s",
+        "6s",
+        "9s",
+        "9s",
+        "9s"
+      ],
+      "visible": {
+        "4s": 4
+      },
+      "challenge": "gap",
+      "assessment": "public-bag-exact",
+      "before": [
+        "前面那对牌，被我拆开的地方，她在纸上画了两条短线。",
+        "除夕那几页之后，还有她后来抄的牌。日期隔了几个月，字也小了。",
+        "有些牌她记漏了，有些把余牌也抄在旁边。我照着纸上的记号，重新摆开。",
+        "这一页有一处被擦了很多次，纸都薄了。"
+      ],
+      "after": [
+        "旁边有她后来补的小字：“不能一直等这张。”",
+        "“我数过了。”",
+        "最后四个字写得很重，隔着纸背也能摸到铅笔印。"
+      ],
+      "turn": "摸平那道笔痕",
+      "music": "evening"
+    },
+    {
+      "node": "sibling-record-1:12:changed",
+      "position": 12,
+      "chapter": 3,
+      "variant": "changed",
+      "question": "five-hands-1:3:adaptability:practice-04",
+      "family": "[[\"1p\",\"1p\",\"6p\",\"2s\",\"2s\",\"4s\",\"4s\",\"5s\",\"5s\",\"6s\",\"6s\",\"6s\",\"6s\",\"7s\"],[],[]]",
+      "hand": [
+        "2p",
+        "2p",
+        "4p",
+        "4p",
+        "5p",
+        "5p",
+        "6p",
+        "6p",
+        "6p",
+        "6p",
+        "7p",
+        "1s",
+        "1s",
+        "6s"
+      ],
+      "visible": {
+        "6s": 2
+      },
+      "challenge": "adaptability",
+      "assessment": "public-bag-exact",
+      "before": [
+        "有一手，她在旁边补了好几个记号。",
+        "几张已经打出的牌被单独圈出来，箭头连着另一种走法。",
+        "我把前面的答案盖住，照她新记的这一页看。"
+      ],
+      "after": [
+        "她在箭头下面写：“不是刚才那回事了。”",
+        "后面还跟着一个很小的问号。",
+        "我看着那个问号，想起她问完话，常常自己又想了一遍才等我答。"
+      ],
+      "turn": "顺着箭头往后看",
+      "music": "evening"
+    },
+    {
+      "node": "sibling-record-1:13:changed",
+      "position": 13,
+      "chapter": 3,
+      "variant": "changed",
+      "question": "five-hands-1:3:adaptability:practice-10",
+      "family": "[[\"1p\",\"1p\",\"2p\",\"3p\",\"3p\",\"5p\",\"1s\",\"1s\",\"6s\",\"6s\",\"6s\",\"6s\",\"7s\",\"7s\"],[],[]]",
+      "hand": [
+        "3p",
+        "3p",
+        "4p",
+        "4p",
+        "4p",
+        "4p",
+        "9p",
+        "9p",
+        "1s",
+        "1s",
+        "2s",
+        "3s",
+        "3s",
+        "5s"
+      ],
+      "visible": {
+        "5s": 2
+      },
+      "challenge": "temptation",
+      "assessment": "public-bag-exact",
+      "before": [
+        "下一页的纸角折起来了。",
+        "一条她原来画得很粗的线，后来被划掉。新画的线细，走向也不同。",
+        "她把旧的留在那里，没有擦。"
+      ],
+      "after": [
+        "页边写着：“这回换了。”",
+        "我小时候总嫌她写错了不肯改，她那时也总有话回我。",
+        "这些后来改过的地方，我以前没有翻到。"
+      ],
+      "turn": "把折角展开",
+      "music": "evening"
+    },
+    {
+      "node": "sibling-record-1:14:changed",
+      "position": 14,
+      "chapter": 3,
+      "variant": "changed",
+      "question": "discard-value-1:3:practice:06",
+      "family": "[[\"1p\",\"1p\",\"1s\",\"2s\",\"2s\",\"3s\",\"3s\",\"4s\",\"5s\",\"6s\",\"7s\",\"7s\",\"7s\",\"8s\"],[],[[\"1p\",1],[\"2p\",1],[\"6s\",3],[\"9s\",4]]]",
+      "hand": [
+        "1p",
+        "1p",
+        "1s",
+        "2s",
+        "2s",
+        "3s",
+        "3s",
+        "4s",
+        "5s",
+        "6s",
+        "7s",
+        "7s",
+        "7s",
+        "8s"
+      ],
+      "visible": {
+        "6s": 3,
+        "9s": 4,
+        "1p": 1,
+        "2p": 1
+      },
+      "challenge": "entanglement",
+      "assessment": "public-bag-exact",
+      "before": [
+        "有一手被她圈得密密麻麻。",
+        "几条线都经过中间那张牌，她在旁边画了个小叉，又加上一行：“不能多算。”",
+        "我把牌从纸上移回桌面。"
+      ],
+      "after": [
+        "那一页的末尾，有一句与牌无关的话。",
+        "“哥今天回来，忘了拿给他看。”",
+        "下面空了两行，才接着记下一手。"
+      ],
+      "turn": "让纸页平下来",
+      "music": "evening"
+    },
+    {
+      "node": "sibling-record-1:15:changed",
+      "position": 15,
+      "chapter": 3,
+      "variant": "changed",
+      "question": "discard-value-1:3:practice:02",
+      "family": "[[\"1p\",\"2p\",\"2p\",\"3p\",\"3p\",\"4p\",\"4p\",\"4p\",\"4p\",\"7p\",\"7p\",\"1s\",\"4s\",\"5s\"],[],[]]",
+      "hand": [
+        "5p",
+        "6p",
+        "9p",
+        "3s",
+        "3s",
+        "6s",
+        "6s",
+        "6s",
+        "6s",
+        "7s",
+        "7s",
+        "8s",
+        "8s",
+        "9s"
+      ],
+      "challenge": "cost",
+      "assessment": "public-bag-exact",
+      "before": [
+        "我记起有一年回来，她说自己现在也会一点了。",
+        "我正忙着找充电器，只回了句“是吗”。",
+        "她把话咽回去，没和我争，转身去另一个抽屉里找。"
+      ],
+      "after": [
+        "现在我才看见，她在这里留了两种走法。",
+        "一条后面画着圈，另一条边上写：“原来这样也行。”",
+        "我没有急着翻页，把两边都摆了一遍。"
+      ],
+      "turn": "再看一会儿",
+      "music": "evening"
+    },
+    {
+      "node": "sibling-record-1:11:kept",
+      "position": 11,
+      "chapter": 3,
+      "variant": "kept",
+      "question": "five-hands-1:3:gap:practice-07",
+      "family": "[[\"1p\",\"2p\",\"2p\",\"3p\",\"3p\",\"7p\",\"1s\",\"2s\",\"2s\",\"3s\",\"7s\",\"7s\",\"8s\",\"8s\"],[],[]]",
+      "hand": [
+        "1p",
+        "2p",
+        "2p",
+        "3p",
+        "7p",
+        "7p",
+        "8p",
+        "8p",
+        "1s",
+        "2s",
+        "2s",
+        "3s",
+        "3s",
+        "7s"
+      ],
+      "visible": {
+        "1s": 3
+      },
+      "challenge": "gap",
+      "assessment": "public-bag-exact",
+      "before": [
+        "前面那对牌还留着。她在旁边画了一个小小的圈。",
+        "除夕那几页之后，还有她后来抄的牌。日期隔了几个月，字也小了。",
+        "有些牌她记漏了，有些把余牌也抄在旁边。我照着纸上的记号，重新摆开。",
+        "这一页有一处被擦了很多次，纸都薄了。"
+      ],
+      "after": [
+        "旁边有她后来补的小字：“不能一直等这张。”",
+        "“我数过了。”",
+        "最后四个字写得很重，隔着纸背也能摸到铅笔印。"
+      ],
+      "turn": "摸平那道笔痕",
+      "music": "evening"
+    },
+    {
+      "node": "sibling-record-1:12:kept",
+      "position": 12,
+      "chapter": 3,
+      "variant": "kept",
+      "question": "five-hands-1:3:adaptability:practice-16",
+      "family": "[[\"1p\",\"1p\",\"1p\",\"1p\",\"3p\",\"5p\",\"7p\",\"7p\",\"1s\",\"1s\",\"7s\",\"7s\",\"8s\",\"8s\"],[],[]]",
+      "hand": [
+        "3p",
+        "3p",
+        "5p",
+        "7p",
+        "9p",
+        "9p",
+        "9p",
+        "9p",
+        "1s",
+        "1s",
+        "7s",
+        "7s",
+        "8s",
+        "8s"
+      ],
+      "visible": {
+        "7p": 2
+      },
+      "challenge": "adaptability",
+      "assessment": "public-bag-exact",
+      "before": [
+        "有一手，她在旁边补了好几个记号。",
+        "几张已经打出的牌被单独圈出来，箭头连着另一种走法。",
+        "我把前面的答案盖住，照她新记的这一页看。"
+      ],
+      "after": [
+        "她在箭头下面写：“不是刚才那回事了。”",
+        "后面还跟着一个很小的问号。",
+        "我看着那个问号，想起她问完话，常常自己又想了一遍才等我答。"
+      ],
+      "turn": "顺着箭头往后看",
+      "music": "evening"
+    },
+    {
+      "node": "sibling-record-1:13:kept",
+      "position": 13,
+      "chapter": 3,
+      "variant": "kept",
+      "question": "five-hands-1:3:adaptability:practice-19",
+      "family": "[[\"1p\",\"1p\",\"2p\",\"2p\",\"8p\",\"8p\",\"9p\",\"9p\",\"1s\",\"2s\",\"5s\",\"5s\",\"6s\",\"9s\"],[],[]]",
+      "hand": [
+        "1p",
+        "4p",
+        "5p",
+        "5p",
+        "8p",
+        "9p",
+        "1s",
+        "1s",
+        "2s",
+        "2s",
+        "8s",
+        "8s",
+        "9s",
+        "9s"
+      ],
+      "visible": {
+        "4p": 2
+      },
+      "challenge": "temptation",
+      "assessment": "public-bag-exact",
+      "before": [
+        "下一页的纸角折起来了。",
+        "一条她原来画得很粗的线，后来被划掉。新画的线细，走向也不同。",
+        "她把旧的留在那里，没有擦。"
+      ],
+      "after": [
+        "页边写着：“这回换了。”",
+        "我小时候总嫌她写错了不肯改，她那时也总有话回我。",
+        "这些后来改过的地方，我以前没有翻到。"
+      ],
+      "turn": "把折角展开",
+      "music": "evening"
+    },
+    {
+      "node": "sibling-record-1:14:kept",
+      "position": 14,
+      "chapter": 3,
+      "variant": "kept",
+      "question": "discard-value-1:3:practice:11",
+      "family": "[[\"2p\",\"3p\",\"4p\",\"4p\",\"4p\",\"8p\",\"3s\",\"4s\",\"5s\",\"6s\",\"7s\"],[[\"triplet\",\"2s\"]],[]]",
+      "hand": [
+        "2p",
+        "3p",
+        "4p",
+        "4p",
+        "4p",
+        "8p",
+        "3s",
+        "4s",
+        "5s",
+        "6s",
+        "7s"
+      ],
+      "challenge": "entanglement",
+      "assessment": "public-bag-exact",
+      "before": [
+        "有一手被她圈得密密麻麻。",
+        "几条线都经过中间那张牌，她在旁边画了个小叉，又加上一行：“不能多算。”",
+        "我把牌从纸上移回桌面。"
+      ],
+      "after": [
+        "那一页的末尾，有一句与牌无关的话。",
+        "“哥今天回来，忘了拿给他看。”",
+        "下面空了两行，才接着记下一手。"
+      ],
+      "turn": "让纸页平下来",
+      "music": "evening"
+    },
+    {
+      "node": "sibling-record-1:15:kept",
+      "position": 15,
+      "chapter": 3,
+      "variant": "kept",
+      "question": "discard-value-1:3:practice:03",
+      "family": "[[\"1p\",\"1p\",\"1p\",\"3p\",\"3p\",\"5p\",\"5p\",\"5p\",\"8p\",\"8p\",\"2s\",\"2s\",\"2s\",\"7s\"],[],[]]",
+      "hand": [
+        "2p",
+        "2p",
+        "2p",
+        "7p",
+        "2s",
+        "2s",
+        "5s",
+        "5s",
+        "5s",
+        "7s",
+        "7s",
+        "9s",
+        "9s",
+        "9s"
+      ],
+      "challenge": "cost",
+      "assessment": "public-bag-exact",
+      "before": [
+        "我记起有一年回来，她说自己现在也会一点了。",
+        "我正忙着找充电器，只回了句“是吗”。",
+        "她把话咽回去，没和我争，转身去另一个抽屉里找。"
+      ],
+      "after": [
+        "现在我才看见，她在这里留了两种走法。",
+        "一条后面画着圈，另一条边上写：“原来这样也行。”",
+        "我没有急着翻页，把两边都摆了一遍。"
+      ],
+      "turn": "再看一会儿",
+      "music": "evening"
+    },
+    {
+      "node": "sibling-record-1:16:shared",
+      "position": 16,
+      "chapter": 4,
+      "variant": "shared",
+      "question": "unfinished-record-1:unfinished-record-1:16:shared",
+      "family": "[[\"1p\",\"1p\",\"1p\",\"2p\",\"3p\",\"6p\",\"6p\",\"7p\",\"7p\",\"8p\",\"8p\",\"2s\",\"6s\",\"7s\"],[],[]]",
+      "hand": [
+        "3p",
+        "4p",
+        "8p",
+        "2s",
+        "2s",
+        "3s",
+        "3s",
+        "4s",
+        "4s",
+        "7s",
+        "8s",
+        "9s",
+        "9s",
+        "9s"
+      ],
+      "visible": {
+        "7p": 2,
+        "4s": 1,
+        "8s": 2,
+        "3s": 1,
+        "7s": 2,
+        "5p": 2,
+        "4p": 1
+      },
+      "challenge": "adaptability",
+      "proof": "观察到对面打四筒后，候选减少，最优舍牌也改变了。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "那晚的事，我记起来一点。",
+        "舅舅刚落了一张，妹妹就凑到我耳边，声音并没有比平时小多少。",
+        "“他是不是快好了？”舅舅听见了，笑着让她自己看。"
+      ],
+      "after": [
+        "她看着桌上的牌，把刚才那句话收了一半回去。",
+        "“我是说，可能。”",
+        "舅舅说这还差不多。她在桌下轻轻碰了碰我的鞋，叫我别跟着笑。"
+      ],
+      "turn": "把目光放回桌上",
+      "music": "touching"
+    },
+    {
+      "node": "sibling-record-1:17:shared",
+      "position": 17,
+      "chapter": 4,
+      "variant": "shared",
+      "question": "unfinished-record-1:unfinished-record-1:17:shared",
+      "family": "[[\"2p\",\"2p\",\"2p\",\"3p\",\"3p\",\"5p\",\"5p\",\"5p\",\"6p\",\"6p\",\"6p\",\"2s\",\"2s\",\"8s\"],[],[]]",
+      "hand": [
+        "2p",
+        "2p",
+        "2p",
+        "3p",
+        "3p",
+        "5p",
+        "5p",
+        "5p",
+        "6p",
+        "6p",
+        "6p",
+        "2s",
+        "8s",
+        "8s"
+      ],
+      "visible": {
+        "2s": 2,
+        "4s": 1,
+        "6s": 1,
+        "1s": 1,
+        "9s": 1,
+        "7p": 2,
+        "7s": 1,
+        "8s": 1,
+        "5s": 1
+      },
+      "challenge": "cost",
+      "proof": "推荐舍牌放弃了部分进攻机会，同时减少了题设中的失分机会。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "她不再只盯着自己的牌了。",
+        "我手指停了一下，她也跟着停。",
+        "舅舅把杯子挪开，给桌边空出一点地方。"
+      ],
+      "after": [
+        "妹妹伸手把本子挪到自己这边。",
+        "“刚刚那张也记吗？”",
+        "我点头。她把原来预留给自己画圈的地方，认真填了几笔。"
+      ],
+      "turn": "看她记下这一段",
+      "music": "touching"
+    },
+    {
+      "node": "sibling-record-1:18:shared",
+      "position": 18,
+      "chapter": 4,
+      "variant": "shared",
+      "question": "unfinished-record-1:unfinished-record-1:18:shared",
+      "family": "[[\"1p\",\"2p\",\"3p\",\"2s\",\"2s\",\"2s\",\"3s\",\"3s\",\"4s\",\"5s\",\"5s\",\"7s\",\"7s\",\"7s\"],[],[[\"1p\",1],[\"2s\",1],[\"3p\",3],[\"4p\",3]]]",
+      "hand": [
+        "3p",
+        "3p",
+        "3p",
+        "5p",
+        "5p",
+        "6p",
+        "7p",
+        "7p",
+        "8p",
+        "8p",
+        "8p",
+        "1s",
+        "2s",
+        "3s"
+      ],
+      "visible": {
+        "4s": 3,
+        "1s": 2,
+        "3s": 3,
+        "8p": 1,
+        "9s": 1,
+        "6s": 1
+      },
+      "challenge": "entanglement",
+      "proof": "六筒参与自己的重叠连接，也可能补成对面的和牌。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "同一张牌，她先指给我看，又去看舅舅刚才打过的。",
+        "“那我们要的，他会不会也要？”",
+        "她问完就把手收回来了，怕自己碰乱。"
+      ],
+      "after": [
+        "舅舅抬头看她。",
+        "“开始管起我来了？”",
+        "她坐直了一点：“我就问问。”笔尖还压在刚才那张旁边。"
+      ],
+      "turn": "等桌边静下来",
+      "music": "touching"
+    },
+    {
+      "node": "sibling-record-1:19:shared",
+      "position": 19,
+      "chapter": 4,
+      "variant": "shared",
+      "question": "unfinished-record-1:unfinished-record-1:19:shared",
+      "family": "[[\"1p\",\"1p\",\"6p\",\"6p\",\"7p\",\"7p\",\"8p\",\"8p\",\"9p\",\"1s\",\"3s\",\"3s\",\"5s\",\"6s\"],[],[]]",
+      "hand": [
+        "4p",
+        "5p",
+        "7p",
+        "7p",
+        "9p",
+        "1s",
+        "2s",
+        "2s",
+        "3s",
+        "3s",
+        "4s",
+        "4s",
+        "9s",
+        "9s"
+      ],
+      "visible": {
+        "7s": 1,
+        "9p": 2,
+        "5s": 1,
+        "2p": 1,
+        "1p": 1,
+        "8p": 2,
+        "9s": 1,
+        "3s": 1,
+        "4p": 1
+      },
+      "challenge": "temptation",
+      "proof": "当前仍有10种对手手牌与行为相容，不能把一种猜测当成确定。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "她忽然认定舅舅在等某一张。",
+        "理由说了半天，舅舅越听越乐。",
+        "我把桌面往她那边让了一点，叫她再看看。"
+      ],
+      "after": [
+        "她一会儿看舅舅，一会儿看牌，最后先笑了。",
+        "“算了，你别告诉我。”",
+        "她把刚才那句猜测写进本子，后面留了一个问号。"
+      ],
+      "turn": "把这一段记完",
+      "music": "touching"
+    },
+    {
+      "node": "sibling-record-1:20:shared",
+      "position": 20,
+      "chapter": 4,
+      "variant": "shared",
+      "question": "unfinished-record-1:unfinished-record-1:20:shared",
+      "family": "[[\"1p\",\"1p\",\"1p\",\"2p\",\"2p\",\"5p\",\"6p\",\"6p\",\"7p\",\"7p\",\"8p\",\"1s\",\"2s\",\"9s\"],[],[]]",
+      "hand": [
+        "1p",
+        "1p",
+        "1p",
+        "2p",
+        "2p",
+        "5p",
+        "6p",
+        "6p",
+        "7p",
+        "7p",
+        "8p",
+        "1s",
+        "2s",
+        "9s"
+      ],
+      "visible": {
+        "3s": 4,
+        "6s": 1,
+        "4s": 1,
+        "9p": 1,
+        "7s": 1,
+        "3p": 1,
+        "9s": 1,
+        "8s": 1
+      },
+      "challenge": "gap",
+      "proof": "三条已经见尽；将其放回合法对照局面后，最优选择改变。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "厨房里有人喊茶要凉了。妹妹应了一声，人还坐着。",
+        "她把桌边散着的牌拢到一处，一张张看。",
+        "“先把这段打完。”"
+      ],
+      "after": [
+        "她把铅笔夹进本子，压在杯子旁。",
+        "“等会儿再看，别让他们收了。”",
+        "我把杯子往外移了一点，免得茶水洇到纸上。"
+      ],
+      "turn": "把本子放在干处",
+      "music": "touching"
+    },
+    {
+      "node": "sibling-record-1:21:loss",
+      "position": 21,
+      "chapter": 5,
+      "variant": "loss",
+      "question": "unfinished-record-1:unfinished-record-1:21:loss",
+      "family": "[[\"1p\",\"2p\",\"3p\",\"3p\",\"4p\",\"5p\",\"8p\",\"8p\",\"1s\",\"2s\",\"4s\",\"5s\",\"6s\",\"8s\"],[],[]]",
+      "hand": [
+        "1p",
+        "2p",
+        "3p",
+        "3p",
+        "4p",
+        "5p",
+        "8p",
+        "8p",
+        "2s",
+        "4s",
+        "5s",
+        "6s",
+        "8s",
+        "9s"
+      ],
+      "visible": {
+        "1s": 1,
+        "8s": 2,
+        "4s": 1,
+        "7p": 1,
+        "3p": 1,
+        "2p": 1,
+        "5s": 1,
+        "6p": 1,
+        "6s": 1,
+        "4p": 1
+      },
+      "challenge": "temptation",
+      "proof": "留下更多局部连接的方案，放回整手牌后有更低的平均净分。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "本子后面，有几页字写得很整齐。",
+        "这已经不是那年除夕当场记下的了。我照她抄下来的牌，重新摆开。",
+        "页边画着一颗很小的星星，像怕自己下回找不到。",
+        "刚才那一段失手，我没有往回翻。她给后面的题另画了记号。"
+      ],
+      "after": [
+        "她给这手补了两个注解，还把其中一个划掉。",
+        "我仿佛又听见她嫌我看得太慢。",
+        "“你先做。后面才有。”"
+      ],
+      "turn": "先不往后翻",
+      "music": "reaching"
+    },
+    {
+      "node": "sibling-record-1:22:loss",
+      "position": 22,
+      "chapter": 5,
+      "variant": "loss",
+      "question": "unfinished-record-1:unfinished-record-1:22:loss",
+      "family": "[[\"1p\",\"2p\",\"2p\",\"2p\",\"3p\",\"6p\",\"7p\",\"8p\",\"8p\",\"9p\",\"3s\",\"3s\",\"4s\",\"5s\"],[],[]]",
+      "hand": [
+        "1p",
+        "2p",
+        "2p",
+        "2p",
+        "3p",
+        "6p",
+        "7p",
+        "8p",
+        "8p",
+        "9p",
+        "5s",
+        "6s",
+        "7s",
+        "7s"
+      ],
+      "visible": {
+        "7p": 3,
+        "8s": 2,
+        "9s": 1,
+        "2s": 1,
+        "4s": 1,
+        "2p": 1,
+        "1p": 1,
+        "7s": 1
+      },
+      "challenge": "gap",
+      "proof": "七筒已经见尽；将其放回合法对照局面后，最优选择改变。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "有几张已经打过的牌，被她单独画在旁边。",
+        "她把其中一张的边框描得特别重。",
+        "我把纸转正，让它和手里的牌摆在同一个方向。"
+      ],
+      "after": [
+        "这一页的注解很短。",
+        "“先数。”",
+        "她还在旁边画了一只手，伸着几根歪歪扭扭的指头。我看了好一会儿。"
+      ],
+      "turn": "翻到下一面",
+      "music": "reaching"
+    },
+    {
+      "node": "sibling-record-1:23:loss",
+      "position": 23,
+      "chapter": 5,
+      "variant": "loss",
+      "question": "unfinished-record-1:unfinished-record-1:23:loss",
+      "family": "[[\"1p\",\"1p\",\"2p\",\"2p\",\"3p\",\"3p\",\"5p\",\"5p\",\"6p\",\"6p\",\"6p\",\"6p\",\"7p\",\"9p\"],[],[]]",
+      "hand": [
+        "1p",
+        "1p",
+        "2p",
+        "2p",
+        "3p",
+        "3p",
+        "5p",
+        "5p",
+        "6p",
+        "6p",
+        "6p",
+        "6p",
+        "7p",
+        "9p"
+      ],
+      "visible": {
+        "8p": 2,
+        "7s": 1,
+        "3p": 1,
+        "4p": 1,
+        "8s": 1,
+        "2s": 1,
+        "1p": 1,
+        "5s": 1,
+        "7p": 1,
+        "6s": 1
+      },
+      "challenge": "cost",
+      "proof": "两种舍牌保留了不同的成牌、分值或失分机会，代价已计入平均净分。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "下一手有两处改过。",
+        "她在原来那条线上压了一条新的，旁边写着：“前面已经等过几回，不算理由。”",
+        "字有点挤，但每一张都记清了。"
+      ],
+      "after": [
+        "再往下，是她从我这里听过的一句老话。",
+        "她没有照抄，换成了自己的说法。",
+        "后面加了两个字：“试过。”"
+      ],
+      "turn": "接着看她的办法",
+      "music": "reaching"
+    },
+    {
+      "node": "sibling-record-1:24:loss",
+      "position": 24,
+      "chapter": 5,
+      "variant": "loss",
+      "question": "unfinished-record-1:unfinished-record-1:24:loss",
+      "family": "[[\"1p\",\"1p\",\"2p\",\"4p\",\"4p\",\"5p\",\"7p\",\"1s\",\"5s\",\"5s\",\"6s\",\"6s\",\"8s\",\"8s\"],[],[]]",
+      "hand": [
+        "2p",
+        "2p",
+        "4p",
+        "4p",
+        "5p",
+        "5p",
+        "9p",
+        "1s",
+        "1s",
+        "2s",
+        "4s",
+        "4s",
+        "5s",
+        "7s"
+      ],
+      "visible": {
+        "9p": 1,
+        "7p": 1,
+        "8s": 2,
+        "3p": 1,
+        "6p": 1,
+        "1p": 2,
+        "1s": 1,
+        "5s": 2
+      },
+      "challenge": "adaptability",
+      "proof": "这一次，留下九筒、打四筒，比先拆边张有更高的平均净分。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "她也有坚持留大牌的时候。",
+        "这一页没有把原来的圈擦掉，反而又描了一遍。",
+        "我把她写的几种可能都摊在眼前，慢慢看。"
+      ],
+      "after": [
+        "页边写着：“这次真不是舍不得。”",
+        "后面是她算过的几行。算到最后，笔画明显轻快起来。",
+        "她在最下面留了一句：“拿给哥看。”"
+      ],
+      "turn": "翻到她留的那一页",
+      "music": "reaching"
+    },
+    {
+      "node": "sibling-record-1:25:loss",
+      "position": 25,
+      "chapter": 5,
+      "variant": "loss",
+      "question": "unfinished-record-1:unfinished-record-1:25:loss",
+      "family": "[[\"1p\",\"2p\",\"3p\",\"4p\",\"4p\",\"8p\",\"9p\",\"1s\",\"2s\",\"3s\",\"4s\",\"7s\",\"8s\",\"9s\"],[],[]]",
+      "hand": [
+        "1p",
+        "2p",
+        "3p",
+        "4p",
+        "4p",
+        "8p",
+        "9p",
+        "1s",
+        "2s",
+        "3s",
+        "4s",
+        "7s",
+        "8s",
+        "9s"
+      ],
+      "visible": {
+        "6p": 1,
+        "7p": 1,
+        "6s": 1,
+        "7s": 1,
+        "2s": 2,
+        "2p": 2,
+        "5s": 2,
+        "5p": 1,
+        "8p": 1,
+        "1p": 2,
+        "9s": 1
+      },
+      "challenge": "entanglement",
+      "proof": "二筒、三筒被多种连接共用，不能把局部拆解直接相加。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "最后一手，我一眼就认出来了。最初那副牌，她又抄了一遍。",
+        "旁边多记了几张桌上已经打出的牌，位置画得清清楚楚。",
+        "上面一行字：“下次哥回来，先拿这手考他。”",
+        "再往下，她画了一道横线：“不许先翻后面。”"
+      ],
+      "after": [
+        "我把手放在她画的横线上。",
+        "后面那几行，还没有读。"
+      ],
+      "turn": "翻过她画的横线",
+      "music": "reaching"
+    },
+    {
+      "node": "sibling-record-1:21:clear",
+      "position": 21,
+      "chapter": 5,
+      "variant": "clear",
+      "question": "unfinished-record-1:unfinished-record-1:21:clear",
+      "family": "[[\"1p\",\"2p\",\"3p\",\"3p\",\"4p\",\"5p\",\"8p\",\"8p\",\"1s\",\"2s\",\"4s\",\"5s\",\"6s\",\"8s\"],[],[]]",
+      "hand": [
+        "1p",
+        "2p",
+        "3p",
+        "3p",
+        "4p",
+        "5p",
+        "8p",
+        "8p",
+        "2s",
+        "4s",
+        "5s",
+        "6s",
+        "8s",
+        "9s"
+      ],
+      "visible": {
+        "4s": 1,
+        "5s": 1,
+        "7s": 1,
+        "1p": 1,
+        "1s": 1,
+        "4p": 2,
+        "3s": 1,
+        "3p": 1,
+        "7p": 1,
+        "9p": 1
+      },
+      "challenge": "temptation",
+      "proof": "留下更多局部连接的方案，放回整手牌后有更低的平均净分。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "本子后面，有几页字写得很整齐。",
+        "这已经不是那年除夕当场记下的了。我照她抄下来的牌，重新摆开。",
+        "页边画着一颗很小的星星，像怕自己下回找不到。",
+        "刚才那一段得失还放在桌上。我把它拢好，照她留下的下一手重摆。"
+      ],
+      "after": [
+        "她给这手补了两个注解，还把其中一个划掉。",
+        "我仿佛又听见她嫌我看得太慢。",
+        "“你先做。后面才有。”"
+      ],
+      "turn": "先不往后翻",
+      "music": "reaching"
+    },
+    {
+      "node": "sibling-record-1:22:clear",
+      "position": 22,
+      "chapter": 5,
+      "variant": "clear",
+      "question": "unfinished-record-1:unfinished-record-1:22:clear",
+      "family": "[[\"1p\",\"2p\",\"2p\",\"2p\",\"3p\",\"6p\",\"7p\",\"8p\",\"8p\",\"9p\",\"3s\",\"3s\",\"4s\",\"5s\"],[],[]]",
+      "hand": [
+        "1p",
+        "2p",
+        "2p",
+        "2p",
+        "3p",
+        "6p",
+        "7p",
+        "8p",
+        "8p",
+        "9p",
+        "5s",
+        "6s",
+        "7s",
+        "7s"
+      ],
+      "visible": {
+        "7p": 3,
+        "6p": 2,
+        "8s": 1,
+        "4s": 1,
+        "1s": 1,
+        "9p": 1,
+        "3p": 1,
+        "6s": 1
+      },
+      "challenge": "gap",
+      "proof": "七筒已经见尽；将其放回合法对照局面后，最优选择改变。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "有几张已经打过的牌，被她单独画在旁边。",
+        "她把其中一张的边框描得特别重。",
+        "我把纸转正，让它和手里的牌摆在同一个方向。"
+      ],
+      "after": [
+        "这一页的注解很短。",
+        "“先数。”",
+        "她还在旁边画了一只手，伸着几根歪歪扭扭的指头。我看了好一会儿。"
+      ],
+      "turn": "翻到下一面",
+      "music": "reaching"
+    },
+    {
+      "node": "sibling-record-1:23:clear",
+      "position": 23,
+      "chapter": 5,
+      "variant": "clear",
+      "question": "unfinished-record-1:unfinished-record-1:23:clear",
+      "family": "[[\"1p\",\"1p\",\"2p\",\"2p\",\"3p\",\"3p\",\"5p\",\"5p\",\"6p\",\"6p\",\"6p\",\"6p\",\"7p\",\"9p\"],[],[]]",
+      "hand": [
+        "1p",
+        "1p",
+        "2p",
+        "2p",
+        "3p",
+        "3p",
+        "5p",
+        "5p",
+        "6p",
+        "6p",
+        "6p",
+        "6p",
+        "7p",
+        "9p"
+      ],
+      "visible": {
+        "1p": 1,
+        "5s": 2,
+        "2p": 1,
+        "4p": 1,
+        "7s": 2,
+        "9p": 1,
+        "5p": 1,
+        "8p": 1,
+        "2s": 1
+      },
+      "challenge": "cost",
+      "proof": "两种舍牌保留了不同的成牌、分值或失分机会，代价已计入平均净分。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "下一手有两处改过。",
+        "她在原来那条线上压了一条新的，旁边写着：“前面已经等过几回，不算理由。”",
+        "字有点挤，但每一张都记清了。"
+      ],
+      "after": [
+        "再往下，是她从我这里听过的一句老话。",
+        "她没有照抄，换成了自己的说法。",
+        "后面加了两个字：“试过。”"
+      ],
+      "turn": "接着看她的办法",
+      "music": "reaching"
+    },
+    {
+      "node": "sibling-record-1:24:clear",
+      "position": 24,
+      "chapter": 5,
+      "variant": "clear",
+      "question": "unfinished-record-1:unfinished-record-1:24:clear",
+      "family": "[[\"1p\",\"1p\",\"2p\",\"4p\",\"4p\",\"5p\",\"7p\",\"1s\",\"5s\",\"5s\",\"6s\",\"6s\",\"8s\",\"8s\"],[],[]]",
+      "hand": [
+        "2p",
+        "2p",
+        "4p",
+        "4p",
+        "5p",
+        "5p",
+        "9p",
+        "1s",
+        "1s",
+        "2s",
+        "4s",
+        "4s",
+        "5s",
+        "7s"
+      ],
+      "visible": {
+        "6s": 2,
+        "2s": 1,
+        "6p": 1,
+        "3s": 2,
+        "9s": 1,
+        "7s": 1,
+        "3p": 2,
+        "8s": 1
+      },
+      "challenge": "adaptability",
+      "proof": "这一次，留下九筒、打二条，比先拆边张有更高的平均净分。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "她也有坚持留大牌的时候。",
+        "这一页没有把原来的圈擦掉，反而又描了一遍。",
+        "我把她写的几种可能都摊在眼前，慢慢看。"
+      ],
+      "after": [
+        "页边写着：“这次真不是舍不得。”",
+        "后面是她算过的几行。算到最后，笔画明显轻快起来。",
+        "她在最下面留了一句：“拿给哥看。”"
+      ],
+      "turn": "翻到她留的那一页",
+      "music": "reaching"
+    },
+    {
+      "node": "sibling-record-1:25:clear",
+      "position": 25,
+      "chapter": 5,
+      "variant": "clear",
+      "question": "unfinished-record-1:unfinished-record-1:25:clear",
+      "family": "[[\"1p\",\"2p\",\"3p\",\"4p\",\"4p\",\"8p\",\"9p\",\"1s\",\"2s\",\"3s\",\"4s\",\"7s\",\"8s\",\"9s\"],[],[]]",
+      "hand": [
+        "1p",
+        "2p",
+        "3p",
+        "4p",
+        "4p",
+        "8p",
+        "9p",
+        "1s",
+        "2s",
+        "3s",
+        "4s",
+        "7s",
+        "8s",
+        "9s"
+      ],
+      "visible": {
+        "4p": 1,
+        "4s": 2,
+        "8p": 1,
+        "7s": 1,
+        "6p": 2,
+        "6s": 1,
+        "3s": 1,
+        "1s": 1,
+        "5s": 1,
+        "2s": 1,
+        "8s": 1,
+        "3p": 1,
+        "9s": 1
+      },
+      "challenge": "entanglement",
+      "proof": "二筒、三筒被多种连接共用，不能把局部拆解直接相加。",
+      "assessment": "conditional-replay-only",
+      "before": [
+        "最后一手，我一眼就认出来了。最初那副牌，她又抄了一遍。",
+        "旁边多记了几张桌上已经打出的牌，位置画得清清楚楚。",
+        "上面一行字：“下次哥回来，先拿这手考他。”",
+        "再往下，她画了一道横线：“不许先翻后面。”"
+      ],
+      "after": [
+        "我把手放在她画的横线上。",
+        "后面那几行，还没有读。"
+      ],
+      "turn": "翻过她画的横线",
+      "music": "reaching"
+    }
+  ]
+}
