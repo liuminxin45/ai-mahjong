@@ -16,7 +16,7 @@ const logs=[];
 for(const type of process.env.MAHJONG_BROWSER==='chromium'?[chromium]:[chromium,webkit]){
  let context,browser,profile;
  try{
-  if(type===webkit){profile=await mkdtemp(join(tmpdir(),'neo-table-webkit-'));context=await type.launchPersistentContext(profile,{headless:true,viewport:{width:1280,height:900},reducedMotion:'reduce'});}
+  if(type===webkit){profile=await mkdtemp(join(tmpdir(),'neo-table-webkit-'));context=await type.launchPersistentContext(profile,{headless:process.env.MAHJONG_WEBKIT_HEADED!=='1',viewport:{width:1280,height:900},reducedMotion:'reduce'});}
   else{browser=await type.launch();context=await browser.newContext({viewport:{width:1280,height:900},reducedMotion:'reduce'});}
   if(type===webkit&&process.platform==='win32')await context.addInitScript(assets=>{
    class Media{src='';currentTime=0;volume=0;play(){return Promise.resolve();}pause(){}load(){}removeAttribute(){}}
