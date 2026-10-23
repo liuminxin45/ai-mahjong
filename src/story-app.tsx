@@ -41,7 +41,10 @@ export function MahjongApp({basePath='',assetsBaseUrl='/tiles/'+ARTWORK_VERSION,
   useEffect(()=>{scroll.current?.scrollTo({top:0});},[journey?.id,journey?.position,journey?.phase,journey?.endingStep]);
   useEffect(()=>{if(new URLSearchParams(location.search).get('panel')==='habits'||/profile|habits|progress/.test(location.pathname))setMirror(true);},[location.search,location.pathname]);
   const flip=()=>{
-    void audio?.unlock().then(()=>audio.play('clear-waters'));
+    const opening=!journey||journey.phase==='done'||!journey.opened;
+    const quiet=!opening&&(journey.phase==='chapter'&&journey.position===15||journey.phase==='ending'&&journey.endingStep===0);
+    const music=opening||journey?.phase==='ending'?'clear-waters':siblingChapters[Math.ceil(journey!.position/5)-1].music;
+    void audio?.unlock(music,quiet);
     if(!journey||journey.phase==='done')setData(d=>({...d,story:startNarrativeJourney(d.story??emptyStory())}));
     setEntered(true);navigate(base+'/practice',{replace:true});
   };
@@ -69,7 +72,7 @@ export function MahjongApp({basePath='',assetsBaseUrl='/tiles/'+ARTWORK_VERSION,
       <Dialog open={history} onClose={()=>setHistory(false)} title="刚才的话"><div className="mj-story-transcript">{journey?.readingLog?.map(line=><p key={line.id}>{line.text}</p>)}</div></Dialog>
       <Dialog open={about} onClose={()=>setAbout(false)} title="未完的牌谱"><p>一段原创的兄妹故事。牌谱里的重演，保留选择和得失；那次相聚与后来发生的事，各有自己的时间。</p><p>音乐：Kevin MacLeod（incompetech.com），CC BY 4.0。音效：Kenney，CC0。</p><ul>{audioAssets.filter(a=>a.kind==='music').map(a=><li key={a.id}><a href={a.sourcePage} target="_blank" rel="noreferrer">{a.title}</a></li>)}</ul><p><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">音乐许可</a> · 配乐经过响度统一、重新编码及播放淡化。</p></Dialog>
       <Dialog open={clearing} onClose={()=>setClearing(false)} title="清除这个浏览器的记录？" description="新旧作答和阅读位置都会清除。云端回望需要另行删除。" footer={<><Button onClick={()=>setClearing(false)}>留下</Button><Button variant="danger" onClick={()=>{setData(emptyData());setClearing(false);setMirror(false);setEntered(false);navigate(base);}}>清除</Button></>}/>
-      <Dialog open={replaying} onClose={()=>setReplaying(false)} title="从头翻开？" description="先前的阅读与选择都会留下。" footer={<><Button onClick={()=>setReplaying(false)}>留在这页</Button><Button variant="primary" onClick={()=>{setData(d=>({...d,story:startNarrativeJourney(d.story??emptyStory())}));setReplaying(false);setEntered(true);void audio?.unlock().then(()=>audio.play('clear-waters'));navigate(base+'/practice');}}>从头翻开</Button></>}/>
+      <Dialog open={replaying} onClose={()=>setReplaying(false)} title="从头翻开？" description="先前的阅读与选择都会留下。" footer={<><Button onClick={()=>setReplaying(false)}>留在这页</Button><Button variant="primary" onClick={()=>{setData(d=>({...d,story:startNarrativeJourney(d.story??emptyStory())}));setReplaying(false);setEntered(true);void audio?.unlock('clear-waters');navigate(base+'/practice');}}>从头翻开</Button></>}/>
     </ChatAppSurface></StorySurface.Provider></LearningContext.Provider>
   </AIResponseProvider></UIStringsProvider></DesktopProvider>;
 }
@@ -133,6 +136,6 @@ function Finale({journey:j}:{journey:JourneyState}){
 
 function Sound({open,onClose,audio}:{open:boolean;onClose():void;audio:AudioDirector|null}){
   const [prefs,setPrefs]=useState(audio?.preferences??{muted:false,volume:0.55});useEffect(()=>{if(audio)setPrefs(audio.preferences);},[audio,open]);
-  const update=(muted:boolean,volume=prefs.volume)=>{audio?.settings(muted,volume);setPrefs({muted,volume});if(!muted)void audio?.unlock().then(()=>audio.play('clear-waters'));};
+  const update=(muted:boolean,volume=prefs.volume)=>{audio?.settings(muted,volume);setPrefs({muted,volume});if(!muted)void audio?.unlock('clear-waters');};
   return <Dialog open={open} onClose={onClose} title="声音"><div className="mj-sound-controls"><Button variant="ghost" onClick={()=>update(!prefs.muted)}>{prefs.muted?'让声音回来':'静音'}</Button><Select aria-label="音量" value={String(prefs.volume)} onValueChange={v=>update(false,Number(v))} options={[{value:'0.35',label:'轻声'},{value:'0.55',label:'适中'},{value:'0.8',label:'清晰'}]}/></div></Dialog>;
 }
