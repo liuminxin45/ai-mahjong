@@ -91,4 +91,8 @@ describe('saved journey integrity',()=>{
     const base=walk(),state=emptyStory();for(let i=0;i<200;i++){const id='historical-journey-'+i,shift=i*86400000;state.journeys.push({...base.journeys[0],id,startedAt:new Date(+now+shift).toISOString(),attemptIds:base.journeys[0].attemptIds.map(x=>x.replace(journeyId,id))});state.attempts.push(...base.attempts.map(a=>({...a,id:a.id.replace(journeyId,id),journeyId:id,at:new Date(Date.parse(a.at)+shift).toISOString()})));}
     const checked=validateStorySnapshot(storySnapshot(emptyDecision(),state));expect(checked.compressed.story.total).toBe(5000);expect(checked.compressed.story.independent).toBe(independentStory(base).length);expect(checked.compressed.story.paired).toBe(200);expect(checked.story.attempts).toHaveLength(5000);expect(checked.compressed.story.repeat).toBe(5000-checked.compressed.story.independent);
   });
+  it('does not turn a hinted first encounter into a new independent sample when the story is replayed',()=>{
+    const s=walk(),a=s.attempts[0],family=storyNode(a.nodeId).question.family,copy={...s,attempts:[{...a,assisted:true},...s.attempts.slice(1),{...a,id:a.id+'-retry',journeyId:'retry-journey',at:new Date(+now+86400000).toISOString()}]};expect(independentStory(copy).some(x=>storyNode(x.nodeId).question.family===family)).toBe(false);
+    const q=storyNode(a.nodeId).question,legacy=recordDecision(emptyDecision(),{id:'previous-hinted-shape',questionId:q.id,answer:accepted(storyNode(a.nodeId))[0],assisted:true,review:false,durationMs:1000,at:new Date(+now-86400000).toISOString()});expect(independentStory(s,legacy).some(x=>storyNode(x.nodeId).question.family===family)).toBe(false);
+  });
 });

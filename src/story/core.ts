@@ -59,8 +59,9 @@ export function response(n:DecisionNode,answer:TileId):string {
 export function endLabel(kind:Ending){return {you:'这一局，你先和了。',opponent:'这一局，他先和了。',draw:'牌墙见底，这一局没有人和。',unfinished:'这一段推演，到这里停下。'}[kind];}
 
 export function independentStory(state:StoryState,decision=emptyDecision()):StoryAttempt[]{
-  const seen=new Set(independentDecisions(decision.attempts).map(a=>a.family));
-  return [...state.attempts].sort((a,b)=>Date.parse(a.at)-Date.parse(b.at)||a.id.localeCompare(b.id)).filter(a=>{const n=storyNode(a.nodeId);if(a.assisted||n.position===25||seen.has(n.question.family))return false;seen.add(n.question.family);return true;});
+  const seen=new Set(decision.attempts.map(a=>a.family));
+  // A hinted first encounter has already exposed the shape; replaying cannot make it new.
+  return [...state.attempts].sort((a,b)=>Date.parse(a.at)-Date.parse(b.at)||a.id.localeCompare(b.id)).filter(a=>{const n=storyNode(a.nodeId),fresh=!seen.has(n.question.family);seen.add(n.question.family);return fresh&&!a.assisted&&n.position!==25;});
 }
 export function storyObservations(state:StoryState,decision=emptyDecision()):StoryObservation[]{
   const result:StoryObservation[]=[],first=independentStory(state,decision),attemptsById=new Map(state.attempts.map(a=>[a.id,a])),times=new Map([...state.attempts,...decision.attempts].map(a=>[a.id,a.at]));
