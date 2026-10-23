@@ -4,9 +4,10 @@ import { importTraining, type TrainingState } from '../training/core.js';
 import { importDecision, type DecisionState } from '../decision/core.js';
 import type { ExperienceState } from '../experience/core.js';
 import type { StoryState } from '../story/core.js';
+import type { TableHistory } from '../journey/core.js';
 export type Mistake={ref:ExerciseRef;exerciseId:string;stage:number;due:string;favorite:boolean};
 export type SavedProfile={reportId:string;profile:LearningProfile;at:string;snapshot?:unknown};
-export type LearningData={version:1;attempts:Attempt[];mistakes:Mistake[];completed:string[];profiles:SavedProfile[];drafts:Record<string,unknown>;training?:TrainingState;decision?:DecisionState;experience?:ExperienceState;story?:StoryState};
+export type LearningData={version:1;attempts:Attempt[];mistakes:Mistake[];completed:string[];profiles:SavedProfile[];drafts:Record<string,unknown>;training?:TrainingState;decision?:DecisionState;experience?:ExperienceState;story?:StoryState;tables?:TableHistory};
 export const emptyData=():LearningData=>({version:1,attempts:[],mistakes:[],completed:[],profiles:[],drafts:{}});
 export function localDate(date=new Date()):string{return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}
 export function dueDate(days:number,now=new Date()):string{const d=new Date(now);d.setDate(d.getDate()+days);return localDate(d);}

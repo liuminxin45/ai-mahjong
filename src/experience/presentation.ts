@@ -32,7 +32,7 @@ export function usePresentation({ key, first, seen, submitted, paused, assets, t
   useEffect(() => { immersive(!introDone); return () => immersive(false); }, [introDone]);
   useEffect(() => { if (reduced) { setIntroDone(true); setDealt(true); } }, [reduced]);
   useTimeline(!introDone, key + ':intro', paused, () => quote.current ? [quote.current.animate([{ opacity: 0 }, { opacity: 1, offset: 500 / 2200 }, { opacity: 1, offset: 1600 / 2200 }, { opacity: 0, offset: 2100 / 2200 }, { opacity: 0 }], { duration: 2200, fill: 'both', easing: 'linear' })] : [], () => setIntroDone(true));
-  useTimeline(introDone && loaded && !dealt, key + ':cards', paused, () => [...(root.current?.querySelectorAll<HTMLElement>(':scope > .mj-hand > .mj-tile') ?? [])].map((tile, i) => tile.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)' }], { delay: i * (initial.current.first ? 65 : 40), duration: initial.current.first ? 420 : 300, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' })), () => setDealt(true));
+  useTimeline(introDone && loaded && !dealt, key + ':cards', paused, () => [...(root.current?.querySelectorAll<HTMLElement>(':scope > .mj-hand > .mj-tile,:scope > .mj-hand > .mj-physical-tile') ?? [])].map((tile, i) => tile.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)' }], { delay: i * (initial.current.first ? 65 : 40), duration: initial.current.first ? 420 : 300, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' })), () => setDealt(true));
   const ready = introDone && loaded && dealt;
   useEffect(() => {
     if (ready || paused || error || introDone && !loaded) return;

@@ -1,0 +1,72 @@
+.mj-novel-shell{position:relative;isolation:isolate;display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden;background:#fbf4e8;color:#423d36}
+.mj-novel-scenery{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.mj-novel-scenery>img{position:absolute;width:100%;height:100%;inset:0;object-fit:cover;opacity:0;transition:opacity 1.8s ease}
+.mj-novel-scenery>img.is-visible{opacity:.4}
+.mj-novel-shell[data-scene=family-table] .mj-novel-scenery>img.is-visible{opacity:.24}
+.mj-novel-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:64px 32px 36px;scroll-padding-block:64px}
+.mj-novel-cover,.mj-novel-reader{font-family:Georgia,'Noto Serif SC','Songti SC',SimSun,serif;min-height:calc(100dvh - 100px);box-sizing:border-box;max-width:1080px;margin-inline:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+.mj-novel-cover{gap:28px;text-align:center}
+.mj-novel-cover h1{font-size:clamp(26px,3.4vw,40px);font-weight:400;letter-spacing:.2em;margin:0}
+.mj-novel-cover>p{font-size:15px;letter-spacing:.07em;line-height:2;color:#7e7569;margin:0}
+.mj-novel-cover>button{margin-top:12px;min-width:88px}
+.mj-novel-period{position:absolute;top:10%;font-size:11px;letter-spacing:.14em;color:#91887b}
+.mj-novel-passage{position:relative;z-index:2;max-width:35em;text-align:center;padding:28px 20px;outline:none}
+.mj-novel-passage p{font-size:clamp(18px,2.1vw,25px);line-height:2;letter-spacing:.025em;margin:0;white-space:pre-line}
+.mj-novel-passage:focus-visible{background:rgba(255,255,255,.18);border-radius:16px}
+.mj-novel-speaker{display:block;font-family:var(--desktop-font-sans,system-ui,sans-serif);font-size:11px;letter-spacing:.16em;color:#827868;margin-bottom:18px}
+.mj-novel-turn{position:relative;z-index:3;margin-top:30px;min-width:60px;min-height:44px;opacity:.72}
+.mj-novel-portrait{position:absolute;object-fit:contain;pointer-events:none}
+.mj-novel-reader>.mj-novel-portrait{width:clamp(160px,24vw,310px);height:48%;max-height:380px;left:-4%;bottom:4%;opacity:.85;z-index:0}
+.mj-novel-table{max-width:1000px;margin:auto;padding-block:12px 36px}
+.mj-table-heading{font-size:12px;color:#837869;display:flex;justify-content:center;gap:20px;letter-spacing:.08em;line-height:1.8;margin:2px 0 18px}
+.mj-seat-map{max-width:760px;margin:auto;display:flex;flex-direction:column;align-items:center;gap:12px}
+.mj-seat-river{min-width:0;display:flex;gap:12px;align-items:center;min-height:58px;border-radius:16px;padding:4px 10px;max-width:100%;transition:background .4s}
+.mj-seat-river.is-active{background:rgba(157,138,109,.075)}
+.mj-seat-name{position:relative;flex:none;width:68px;min-height:54px;display:flex;align-items:flex-end;justify-content:center;font-size:11px;letter-spacing:.06em;padding-top:35px;color:#7c7163;box-sizing:border-box}
+.mj-seat-name>.mj-novel-portrait{width:60px;height:60px;bottom:15px;left:4px;opacity:.72;object-position:top}
+.mj-seat-tiles{display:flex;flex-wrap:wrap;gap:2px;min-width:30px;max-width:290px;min-height:35px;align-items:center}
+.mj-seat-tiles .mj-tile--small,.mj-own-river .mj-tile--small{width:25px;min-width:0}
+.mj-table-sides{display:flex;justify-content:space-between;gap:28px;width:100%}
+.mj-table-sides .mj-seat-river{width:46%}
+.mj-table-turn{text-align:center;font-size:12px;color:#82745f;line-height:2;min-height:24px;margin:18px 0 10px;letter-spacing:.06em}
+.mj-player-area{position:relative;max-width:940px;margin:auto}
+.mj-player-label{min-height:26px;font-size:11px;color:#7c7163;letter-spacing:.06em;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.mj-table-sister{height:106px;width:100px;right:0;top:-80px;opacity:.75}
+.mj-player-area>.mj-continuous-hand{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:6px;width:100%;max-width:none;margin:0}
+.mj-physical-tile{min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;box-sizing:border-box}
+.mj-physical-tile>.mj-tile{width:100%;min-width:44px;max-width:65px}
+.mj-just-drawn{padding-top:0}
+.mj-new-tile-label{font-size:10px;letter-spacing:.06em;color:#8b754e;position:absolute;bottom:-18px;white-space:nowrap}
+.mj-own-river{display:flex;gap:3px;justify-content:center;min-height:32px;margin:32px 0 12px;flex-wrap:wrap}
+.mj-player-area .mj-story-action{margin-top:14px;min-height:48px}
+.mj-first-guide{max-width:620px;margin:22px auto 0;text-align:center;padding:18px 16px 10px;background:rgba(255,252,247,.7);border-radius:20px}
+.mj-first-guide p{font-size:13px;line-height:1.8;margin:8px 0;color:#776a57}
+.mj-winning-example{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:16px 0}
+.mj-winning-example .mj-hand{display:flex;gap:1px;width:auto;flex-wrap:nowrap}
+.mj-winning-example .mj-tile{width:25px;min-width:0}
+.mj-table-end{display:flex;justify-content:center;margin-top:22px}
+.mj-small-mirror{max-width:600px}
+.mj-mirror-observation{font-size:18px;line-height:1.9;margin:10px 0 20px}
+.mj-mirror-question{font-family:Georgia,'Noto Serif SC','Songti SC',serif;line-height:2;color:var(--desktop-color-text-muted)}
+.mj-mirror-scope{font-size:12px;color:var(--desktop-color-text-muted);line-height:1.8;margin:24px 0 12px}
+.mj-mirror-secondary{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.mj-mirror-evidence{margin:24px 0;padding:18px 0;border-block:1px solid var(--desktop-color-border-subtle)}
+.mj-mirror-evidence p{font-size:13px;line-height:1.9}
+.mj-mirror-evidence .mj-hand{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));max-width:460px;gap:3px}
+.mj-mirror-evidence .mj-tile{width:100%;min-width:0}
+.desktop-ui-root[data-theme=dark] .mj-novel-shell{background:#292824;color:#e4dccd}
+.desktop-ui-root[data-theme=dark] .mj-novel-scenery>img.is-visible{opacity:.1;filter:saturate(.6)}
+.desktop-ui-root[data-theme=dark] .mj-novel-shell[data-scene=family-table] .mj-novel-scenery>img.is-visible{opacity:.07}
+.desktop-ui-root[data-theme=dark] .mj-novel-shell :is(.mj-table-heading,.mj-player-label,.mj-seat-name,.mj-table-turn,.mj-novel-speaker,.mj-novel-period,.mj-novel-cover>p){color:#b0a696}
+.desktop-ui-root[data-theme=dark] .mj-first-guide{background:rgba(55,52,44,.82)}
+.desktop-ui-root[data-theme=dark] .mj-first-guide p{color:#c0b5a2}
+.desktop-ui-root[data-theme=dark] .mj-novel-portrait{opacity:.65}
+@media(max-width:1279px){.mj-player-area>.mj-continuous-hand{grid-template-columns:repeat(7,minmax(0,1fr));max-width:530px;margin:auto;gap:6px}.mj-table-sister{right:5%;top:-65px;height:90px}.mj-novel-reader>.mj-novel-portrait{left:0;bottom:3%;height:38%}}
+@media(max-width:767px){.mj-novel-scroll{padding:54px 12px 26px}.mj-novel-cover,.mj-novel-reader{min-height:calc(100dvh - 80px)}.mj-novel-scenery>img{object-position:center;object-fit:cover}.mj-novel-reader>.mj-novel-portrait{width:150px;height:31%;bottom:2%;left:0;opacity:.7}.mj-novel-passage{padding:24px 12px;max-width:90%;margin-bottom:25px}.mj-novel-passage p{font-size:18px;line-height:2}.mj-novel-period{top:7%}.mj-novel-table{padding-block:0 20px}.mj-table-heading{margin:0 0 12px;font-size:11px;gap:12px}.mj-seat-map{gap:5px}.mj-seat-river{padding:0 3px;gap:5px;min-height:52px}.mj-seat-name{width:45px;font-size:10px;min-height:50px}.mj-seat-name>.mj-novel-portrait{width:46px;height:48px;left:0;bottom:13px}.mj-table-sides{gap:10px}.mj-table-sides .mj-seat-river{width:48%}.mj-seat-tiles{max-width:210px;gap:1px;min-width:20px}.mj-seat-tiles .mj-tile--small,.mj-own-river .mj-tile--small{width:20px}.mj-table-turn{margin:12px 0 8px;font-size:11px}.mj-player-label{margin:0 0 10px;min-height:22px}.mj-table-sister{width:70px;height:75px;top:-48px;right:2px}.mj-player-area>.mj-continuous-hand{gap:4px}.mj-physical-tile>.mj-tile{min-width:0;max-width:none;min-height:44px}.mj-new-tile-label{font-size:9px;bottom:-15px}.mj-own-river{margin-top:25px;min-height:27px}.mj-first-guide{padding:12px 6px;margin:10px 0}.mj-winning-example{gap:6px}.mj-winning-example .mj-tile{width:21px}.mj-first-guide p{font-size:12px}.mj-novel-end{gap:40px}}
+@media(max-width:359px){.mj-player-area>.mj-continuous-hand{grid-template-columns:repeat(6,minmax(0,1fr))}.mj-novel-passage p{font-size:17px}.mj-winning-example{gap:4px}.mj-winning-example .mj-tile{width:18px}}
+@media(max-width:767px){
+ .mj-novel-shell:is([data-scene=eve-door],[data-scene=winter-window],[data-scene=dinner-table]) .mj-novel-scenery>img{object-position:left center}
+ .mj-novel-shell:is([data-scene=present-cabinet],[data-scene=open-notebook]) .mj-novel-scenery>img{object-position:right center}
+}
+@media(prefers-reduced-motion:no-preference){.mj-draw-arrives{animation:mj-single-draw .42s ease both}@keyframes mj-single-draw{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}}
+@media(prefers-reduced-motion:reduce){.mj-novel-scenery>img{transition:none}.mj-draw-arrives{animation:none}}

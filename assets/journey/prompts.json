@@ -1,0 +1,72 @@
+[
+  {
+    "id": "eve-door",
+    "transparent": false,
+    "prompt": "Create an original wide 16:9 illustrated background for a quiet Chinese literary mahjong story game. Sparse watercolor and pencil on warm ivory paper; apricot lamplight, muted blue-gray winter night, charming imperfect hand-drawn lines, romantic and gently playful, no realism, no game UI, no text or lettering, no copied DEEMO elements. Composition: viewed from just inside an ordinary family apartment on Lunar New Year's Eve, an open door at the LEFT with a tiny red-paper decoration with NO written characters, winter coat and overnight bag near doorway, soft warm light falling diagonally across empty floor, distant small mahjong table suggested to the RIGHT rear. Large quiet pale center for reading text. This is a complete spatial scene, NOT a row of objects along bottom edge. No people; people will be separate sprites. Reference image is STYLE ONLY: maintain watercolor paper, don't copy its composition."
+  },
+  {
+    "id": "family-table",
+    "transparent": false,
+    "prompt": "Create an original wide 16:9 story-game background, charming watercolor and pencil on ivory paper, muted apricot and blue-gray, soft organic edges, whimsical restrained storybook, not photorealistic, no lettering/no UI. High oblique view of a Chinese family mahjong table on New Year's Eve: round warm pendant light at upper right, wooden table seen in perspective occupies lower half, four mismatched chairs, modest orange bowl, teacup and penciled notebook near edge. Red winter window at upper left, room mostly disappears into pale paper. Keep CENTER pale and low contrast for a real interactive mahjong hand overlay, table is atmosphere not a rendered mahjong puzzle. No visible tile markings; no people. Clearly different spatial view from doorway or still life. Reference is watercolor style only."
+  },
+  {
+    "id": "sister-smile",
+    "transparent": true,
+    "prompt": "Original transparent-background character sprite for a literary Chinese family story game. One cute young adult Chinese younger sister, early twenties, petite stylized proportions, short dark bob with small amber hairclip, warm apricot cardigan over ivory shirt, slate-blue skirt. Delicate graphite outlines with soft watercolor fills, minimal friendly face, tiny eyes and a mischievous closed-mouth smile, lightly flushed cheeks. Waist-up three-quarter front view, looking toward viewer as brother, one hand playfully gesturing to the empty seat. Full head and hands visible, generous transparent margin, no props/text/room/shadows/backdrop, genuinely transparent PNG. Whimsical hand-painted storybook, not anime rendering, not photorealistic, not a DEEMO character. Reference image is watercolor paper and color style ONLY. This sprite establishes the recurring sister's consistent design."
+  },
+  {
+    "id": "winter-window",
+    "transparent": false,
+    "prompt": "Original 16:9 watercolor-and-pencil illustrated background for a Chinese literary story game. Warm ivory textured paper, muted apricot and slate-blue, soft uneven hand-drawn forms, poetic restrained storybook, no photorealism, no text, no UI, no copied game assets, no people. Pale quiet negative space in center for text. Reference is ONLY style; make a different complete spatial scene. A small New Year's Eve living-room window fills the LEFT half; beyond glass, blue winter night and distant tiny soft gold fireworks. Windowseat with one half-peeled orange, faded red curtain, light from a family mahjong game falls from offscreen RIGHT. Most of right half empty ivory wash. Intimate close perspective, not a row of decorative objects."
+  },
+  {
+    "id": "present-cabinet",
+    "transparent": false,
+    "prompt": "Original 16:9 watercolor-and-pencil illustrated background for a Chinese literary story game. Warm ivory textured paper, muted apricot and slate-blue, soft uneven hand-drawn forms, poetic restrained storybook, no photorealism, no text, no UI, no copied game assets, no people. Pale quiet negative space in center for text. Reference is ONLY style; make a different complete spatial scene. Present day, quiet cool morning in an ordinary family apartment. An open old wooden cabinet fills the RIGHT edge, pale drawer half pulled out containing folded cardigan, paper notebook and a pencil. A cloth shopping bag with white flowers sits on chair at LEFT. A thin slant of pale sun across floor, with blue-gray shadows. Spacious stillness, no supernatural imagery, no memorial portrait, no literal cemetery. Composition tall cabinet and low diagonal light, distinct from warm table."
+  },
+  {
+    "id": "open-notebook",
+    "transparent": false,
+    "prompt": "Original 16:9 watercolor-and-pencil illustrated background for a Chinese literary story game. Warm ivory textured paper, muted apricot and slate-blue, soft uneven hand-drawn forms, poetic restrained storybook, no photorealism, no text, no UI, no copied game assets, no people. Pale quiet negative space in center for text. Reference is ONLY style; make a different complete spatial scene. Present-day tabletop viewed almost directly from ABOVE. A well-used small squared paper notebook lies OPEN across the right third, faint abstract pencil marks (NO legible writing), tiny mahjong tile thumbnail doodles not a playable hand. A short yellow pencil tucked between pages, pale blue cup edge cropped at upper left, small paper crane at lower left. Huge light ivory paper space across left and middle for story. Tender, calm, a real overhead composition, not an illustrated bottom border."
+  },
+  {
+    "id": "sister-think",
+    "transparent": true,
+    "prompt": "Create a second transparent-background pose of EXACTLY the young woman in the reference character image: short black-brown bob, small amber flower clip, apricot cardigan, ivory collared blouse and slate-blue skirt. Same cute pencil and watercolor style, same proportions/age/colors. Waist-up three-quarter view, one elbow on an implied table (no table drawn), holding a short yellow pencil near chin, brow slightly thoughtful but gentle, gazing down to lower right as she studies her brother's hand of tiles. Both hands/head fully inside image, no text, no props beyond pencil, no shadows/room/background, true transparent PNG. Keep her natural and playful, no tragic/supernatural sign."
+  },
+  {
+    "id": "sister-orange",
+    "transparent": true,
+    "prompt": "Create a third transparent-background sprite of EXACTLY the reference young Chinese sister: short dark bob, tiny amber flower hairclip, apricot cardigan over ivory blouse, slate blue skirt. Same pencil outlines and textured watercolor, cute simple face. Waist-up, looking warmly toward viewer, offering a small peeled mandarin orange segment with one hand; another hand rests at chest holding remaining orange. Cheerful restrained closed-mouth smile, full head and hands visible with generous transparent margin, no text, no room or floor or background, transparent PNG. Preserve the same character as reference, do not make a different girl."
+  },
+  {
+    "id": "dinner-table",
+    "transparent": false,
+    "prompt": "Original wide 16:9 watercolor pencil story-game background, warm ivory paper, muted apricot and blue-gray, delicate and slightly whimsical, quiet poetic Chinese home, no photorealism or copied game assets, no text/people/UI. Evening after clearing away a mahjong game, ordinary dining table at LEFT seen diagonally with two bowls, chopsticks, a simple bowl of warm soup with subtle steam, a wooden chair pushed neatly beneath the table at lower right. A cloth bag with a notebook corner visible hangs beside the door at rear right. Warm kitchen light, large empty pale middle/right space for the final short sentence. Real spatial composition, no melodrama, no ghosts/memorial portrait. The reference is watercolor/color style only."
+  },
+  {
+    "id": "uncle-smile",
+    "transparent": true,
+    "prompt": "Transparent-background waist-up single character sprite for an original literary Chinese family game. Delicate pencil and warm watercolor, muted apricot and slate-blue, cute restrained storybook proportions and small expressive face. Genuinely transparent PNG, no room/background, no text, full head and both hands inside frame. Same family/style as reference younger sister, but a distinct older relative. Uncle, Chinese man about fifty, short salt-and-pepper hair, thin round wire glasses, dark blue knit cardigan over pale beige shirt, soft rounded face, slightly impish warm smile, seated three-quarter facing viewer, one hand with index finger lifted as he teases his niece, other hand loosely resting. No tiles in hands. Not a realistic portrait."
+  },
+  {
+    "id": "uncle-think",
+    "transparent": true,
+    "prompt": "Transparent-background waist-up single character sprite for an original literary Chinese family game. Delicate pencil and warm watercolor, muted apricot and slate-blue, cute restrained storybook proportions and small expressive face. Genuinely transparent PNG, no room/background, no text, full head and both hands inside frame. Same family/style as reference younger sister, but a distinct older relative. Uncle, Chinese man about fifty, short salt-and-pepper hair, thin round wire glasses, dark blue knit cardigan and beige shirt, soft rounded face. Seated with chin slightly lowered, one hand touching glasses and other resting gently, thoughtfully studying a game in front, half-smiling, no tile faces or extra props. Must remain a warm ordinary uncle."
+  },
+  {
+    "id": "aunt",
+    "transparent": true,
+    "prompt": "Transparent-background waist-up single character sprite for an original literary Chinese family game. Delicate pencil and warm watercolor, muted apricot and slate-blue, cute restrained storybook proportions and small expressive face. Genuinely transparent PNG, no room/background, no text, full head and both hands inside frame. Same family/style as reference younger sister, but a distinct older relative. Aunt, Chinese woman in her late forties, dark chestnut hair in a loose low bun, dusty sage-green cardigan over cream blouse, round friendly face, small amused smile, relaxed shoulders and forearms loosely folded as she watches her niece and nephew dawdle at the table. No accessories/text/props, no realistic portrait."
+  },
+  {
+    "id": "mother-eve",
+    "transparent": true,
+    "prompt": "Original transparent-background watercolor-and-pencil character sprite, same gentle cute hand-painted Chinese family style as reference. One Chinese mother, soft oval face, narrow kind eyes, small closed-mouth smile, dark hair in a low bun with a few wisps, wearing a dusty muted rose cardigan and cream blouse, waist-up three-quarter facing viewer. Not photorealistic, no lettering, no furniture/background/shadow. Full head and both hands with transparent margin. Genuinely transparent PNG. New Year's Eve several years ago, in her forties, relaxed sitting pose, one hand loosely resting and other holding a small plain porcelain teacup. A fond mildly amused expression watching her son and daughter."
+  },
+  {
+    "id": "mother-present",
+    "transparent": true,
+    "prompt": "Original transparent-background watercolor-and-pencil character sprite, same gentle cute hand-painted Chinese family style as reference. One Chinese mother, soft oval face, narrow kind eyes, small closed-mouth smile, dark hair in a low bun with a few wisps, wearing a dusty muted rose cardigan and cream blouse, waist-up three-quarter facing viewer. Not photorealistic, no lettering, no furniture/background/shadow. Full head and both hands with transparent margin. Genuinely transparent PNG. Present day some years later, same mother now about fifty: same low bun, oval face and dusty rose cardigan/cream blouse, a few silver hair strands, no dramatic tears. Standing calmly, holding the folded handles of a simple pale canvas shopping bag below waist (bag only partly visible), looking toward her son gently as she calls him to dinner. Emotion restrained and ordinary."
+  }
+]

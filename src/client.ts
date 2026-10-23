@@ -4,6 +4,8 @@ import type { TrainingSnapshot,SavedBrief } from './training/core.js';
 import type { DecisionSnapshot,SavedDecisionProfile } from './decision/core.js';
 import type { ExperienceSnapshot, SavedInsight } from './experience/core.js';
 import type { StorySnapshot, SavedStoryProfile } from './story/core.js';
+import type {TableSnapshot,SavedTableProfile} from './journey/core.js';
+export type TableClient={generate(snapshot:TableSnapshot):Promise<SavedTableProfile>;read(id:string):Promise<SavedTableProfile>;remove(id:string):Promise<void>};
 export type StoryClient={generate(snapshot:StorySnapshot):Promise<SavedStoryProfile>;read(id:string):Promise<SavedStoryProfile>;remove(id:string):Promise<void>};
 export type InsightClient={generate(snapshot:ExperienceSnapshot):Promise<SavedInsight>;read(id:string):Promise<SavedInsight>;remove(id:string):Promise<void>};
 export type DecisionClient={generate(snapshot:DecisionSnapshot):Promise<SavedDecisionProfile>;read(id:string):Promise<SavedDecisionProfile>;remove(id:string):Promise<void>};
@@ -31,6 +33,7 @@ export function createTrainingClient(base='/api/assistant/mahjong',beforeRequest
 export function createDecisionClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):DecisionClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}
 export function createInsightClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):InsightClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}
 export function createStoryClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):StoryClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}
+export function createTableClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):TableClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}
 export function createCompetitionClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):CompetitionClient{
  const request=async(path:string,method='GET',body?:unknown)=>{
   const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),20000);

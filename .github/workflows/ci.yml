@@ -42,7 +42,7 @@ jobs:
       - name: Verify versioned question bank
         run: pnpm bank:verify
       - name: Verify narrative, finite worlds, continuation and asset hashes
-        run: pnpm story:verify
+        run: pnpm story:verify && pnpm journey:verify
       - name: Compare ten thousand hands with the independent oracle
         run: pnpm test:oracle
 
@@ -100,7 +100,7 @@ jobs:
         run: |
           pnpm preview --port 5188 > /tmp/mahjong-preview.log 2>&1 &
           for i in $(seq 1 40); do curl --fail --silent http://127.0.0.1:5188/ >/dev/null && break; sleep 1; done
-          xvfb-run -a pnpm test:story-browser
+          xvfb-run -a pnpm test:journey-browser
       - name: Retain browser evidence
         if: always()
         uses: actions/upload-artifact@v4

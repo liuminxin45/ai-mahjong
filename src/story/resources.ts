@@ -3,6 +3,7 @@ import tileManifest from './tile-manifest.json' with { type: 'json' };
 import { AUDIO_COMMIT } from './audio-source.js';
 import { artworkSize, preloadTiles, registerTileImage } from '../artwork.js';
 import {sceneryFiles,sceneryWidth,sceneryBase,registerScenery,decodeScenery} from './scenery.js';
+import journeyArt from '../journey/scenery-manifest.json' with {type:'json'};
 export type AudioAsset={id:string;path:string;sha256:string;bytes:number;duration:number;mime:string;kind:string;title:string;author:string;license:string;licenseUrl:string;source:string;sourcePage?:string;modifications:string};
 export const audioAssets=audioManifest.files as AudioAsset[];
 export type Preparation={phase:'checking'|'downloading'|'preparing'|'ready'|'failed';loaded:number;total:number;temporary:boolean;error?:string};
@@ -17,13 +18,15 @@ export class ResourceStore {
   readonly blobs=new Map<string,Blob>(); readonly effects=new Map<string,AudioBuffer>();
   context:AudioContext|null=null; temporary=false;
   private pending:Promise<void>|null=null;private listeners=new Set<(p:Preparation)=>void>();private state:Preparation={phase:'checking',loaded:0,total:0,temporary:false};
-  constructor(readonly tileBase:string,readonly audioBase=`https://raw.githubusercontent.com/liuminxin45/ai-mahjong/${AUDIO_COMMIT}/`,readonly fetcher:typeof fetch=(input,init)=>fetch(input,init)){}
+  constructor(readonly tileBase:string,readonly audioBase=`https://raw.githubusercontent.com/liuminxin45/ai-mahjong/${AUDIO_COMMIT}/`,readonly fetcher:typeof fetch=(input,init)=>fetch(input,init),readonly edition:'legacy'|'journey'='legacy'){}
   subscribe(fn:(p:Preparation)=>void){this.listeners.add(fn);fn(this.state);return()=>{this.listeners.delete(fn);};}
   private update(p:Partial<Preparation>){this.state={...this.state,...p,temporary:this.temporary};for(const listener of this.listeners)listener(this.state);}
   prepare(){if(this.pending)return this.pending;this.pending=this.load().catch(e=>{this.pending=null;this.update({phase:'failed',error:e instanceof Error?e.message:'资源还没到齐。'});throw e;});return this.pending;}
   private async load(){
     const tiles=tileManifest.filter(t=>t.size===artworkSize()),resources:Resource[]=[...audioAssets.map(a=>({id:a.id,url:this.audioBase+a.path,sha256:a.sha256,bytes:a.bytes,mime:a.mime,audio:a})),...tiles.map(t=>({id:'tile:'+t.id,url:this.tileBase+'/'+t.file,sha256:t.sha256,bytes:t.bytes,mime:'image/webp',tile:t.id}))];
-    resources.push(...sceneryFiles.filter(f=>f.width===sceneryWidth()).map(f=>({id:'scene:'+f.id,url:sceneryBase(this.tileBase)+'/'+f.file,sha256:f.sha256,bytes:f.bytes,mime:f.mime,scene:f.id})));
+    const art=this.edition==='journey'?journeyArt.files as {id:string;width:number;category:string;file:string;sha256:string;bytes:number;mime:string}[]:sceneryFiles;
+    const base=this.edition==='journey'?this.tileBase.replace(/\/tiles(?:\/[^/]*)?\/?$/,'')+'/journey/'+journeyArt.version:sceneryBase(this.tileBase);
+    resources.push(...art.filter(f=>f.width===('category' in f&&f.category==='portrait'?(sceneryWidth()===1600?768:384):sceneryWidth())).map(f=>({id:'scene:'+f.id,url:base+'/'+f.file,sha256:f.sha256,bytes:f.bytes,mime:f.mime,scene:f.id})));
     const total=resources.reduce((n,r)=>n+r.bytes,0),done=new Map<string,number>();this.update({phase:'checking',loaded:0,total,error:undefined});
     const batchAbort=new AbortController();let cache:Cache|undefined;try{cache=await caches.open(mediaCache);}catch{this.temporary=true;}
     const emit=()=>this.update({loaded:[...done.values()].reduce((a,b)=>a+b,0)});

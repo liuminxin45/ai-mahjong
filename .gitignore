@@ -8,6 +8,7 @@ test-results/
 *.tgz
 public/tiles/
 public/scenes/
+public/journey/
 
 # Build output
 dist/

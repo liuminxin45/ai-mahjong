@@ -1,0 +1,259 @@
+{
+  "version": "0b030b2b733242ce",
+  "author": "OpenAI imagegen",
+  "direction": "Original pencil and watercolor family story. Six spatial scenes and eight transparent poses. No copied game assets.",
+  "files": [
+    {
+      "id": "eve-door",
+      "category": "scene",
+      "width": 960,
+      "file": "eve-door-960-791b29528779.webp",
+      "sha256": "791b29528779e0c131ac95f8905a1e7281fc3c2e0af95964cda2110adf48e5ba",
+      "bytes": 68404,
+      "mime": "image/webp"
+    },
+    {
+      "id": "eve-door",
+      "category": "scene",
+      "width": 1600,
+      "file": "eve-door-1600-c85acd9b2092.webp",
+      "sha256": "c85acd9b20928444ec8f33f52942496576756f1112d44bbc6854a28c66c89fdf",
+      "bytes": 155436,
+      "mime": "image/webp"
+    },
+    {
+      "id": "family-table",
+      "category": "scene",
+      "width": 960,
+      "file": "family-table-960-5e1179bab12f.webp",
+      "sha256": "5e1179bab12f32b886e02b56702136da0664d0e96f61576ea8ce86255ab556c2",
+      "bytes": 59710,
+      "mime": "image/webp"
+    },
+    {
+      "id": "family-table",
+      "category": "scene",
+      "width": 1600,
+      "file": "family-table-1600-b09332add9be.webp",
+      "sha256": "b09332add9be68e518321ee5a0e9f767a377b104b8d0d311c0084811811d025d",
+      "bytes": 136390,
+      "mime": "image/webp"
+    },
+    {
+      "id": "sister-smile",
+      "category": "portrait",
+      "width": 384,
+      "file": "sister-smile-384-56d24ac8adfd.webp",
+      "sha256": "56d24ac8adfd31075169df7a68f9bed4f6f4179b5d46e0c938520917e5e80ae3",
+      "bytes": 29580,
+      "mime": "image/webp"
+    },
+    {
+      "id": "sister-smile",
+      "category": "portrait",
+      "width": 768,
+      "file": "sister-smile-768-5a9bd6c39855.webp",
+      "sha256": "5a9bd6c39855d8faab2071f0537568d5be7558e9940ec4f889ce591e51a5d5c6",
+      "bytes": 93696,
+      "mime": "image/webp"
+    },
+    {
+      "id": "winter-window",
+      "category": "scene",
+      "width": 960,
+      "file": "winter-window-960-d5de2807d689.webp",
+      "sha256": "d5de2807d689e0aec89bd7f2dbe7ff5031d5224de60cdc621110dab8d8d2d519",
+      "bytes": 44744,
+      "mime": "image/webp"
+    },
+    {
+      "id": "winter-window",
+      "category": "scene",
+      "width": 1600,
+      "file": "winter-window-1600-27331aabf99c.webp",
+      "sha256": "27331aabf99cd284c0d8ee16a7ba5fc06ac66656e06f5f94cf0e5d48762090d2",
+      "bytes": 106202,
+      "mime": "image/webp"
+    },
+    {
+      "id": "present-cabinet",
+      "category": "scene",
+      "width": 960,
+      "file": "present-cabinet-960-3987e8cf30c7.webp",
+      "sha256": "3987e8cf30c717c3505bdeafddc038e1aec80dd503a6a9933fd4506faae5057c",
+      "bytes": 47672,
+      "mime": "image/webp"
+    },
+    {
+      "id": "present-cabinet",
+      "category": "scene",
+      "width": 1600,
+      "file": "present-cabinet-1600-f3b6d3c68a4e.webp",
+      "sha256": "f3b6d3c68a4e3a592eb69de2c102236c7fb9537503e84c01fa9e325f2c6f2db7",
+      "bytes": 111890,
+      "mime": "image/webp"
+    },
+    {
+      "id": "open-notebook",
+      "category": "scene",
+      "width": 960,
+      "file": "open-notebook-960-c0c539e06808.webp",
+      "sha256": "c0c539e06808a8296a445e5965ce27314d27d55bc560925c8d8c4a555941091c",
+      "bytes": 32144,
+      "mime": "image/webp"
+    },
+    {
+      "id": "open-notebook",
+      "category": "scene",
+      "width": 1600,
+      "file": "open-notebook-1600-fb9dcfe2b530.webp",
+      "sha256": "fb9dcfe2b530adc10a569c8f0596ead11c89af5ce0db004e1e3092b0f6f93fe8",
+      "bytes": 80526,
+      "mime": "image/webp"
+    },
+    {
+      "id": "sister-think",
+      "category": "portrait",
+      "width": 384,
+      "file": "sister-think-384-3e06c47bbbbb.webp",
+      "sha256": "3e06c47bbbbb297abd0616b17573bc4db81e1e72108c34079c45988689808e79",
+      "bytes": 31590,
+      "mime": "image/webp"
+    },
+    {
+      "id": "sister-think",
+      "category": "portrait",
+      "width": 768,
+      "file": "sister-think-768-c902884eac9c.webp",
+      "sha256": "c902884eac9c6ad0e7a1013aa0f54cbce830c755dd24a9f5ed867a076ec9ac13",
+      "bytes": 96946,
+      "mime": "image/webp"
+    },
+    {
+      "id": "sister-orange",
+      "category": "portrait",
+      "width": 384,
+      "file": "sister-orange-384-6e23c4ced367.webp",
+      "sha256": "6e23c4ced367045162f1ea5e85612676fb15cda209f6f03bb8406031c637540f",
+      "bytes": 25644,
+      "mime": "image/webp"
+    },
+    {
+      "id": "sister-orange",
+      "category": "portrait",
+      "width": 768,
+      "file": "sister-orange-768-80b58c7cc14c.webp",
+      "sha256": "80b58c7cc14c96648f80cac86f0a9e3c8476bfcd5afdd6f8900828c5b13a58d1",
+      "bytes": 77924,
+      "mime": "image/webp"
+    },
+    {
+      "id": "dinner-table",
+      "category": "scene",
+      "width": 960,
+      "file": "dinner-table-960-4a94c4bb3f2e.webp",
+      "sha256": "4a94c4bb3f2ea25e6b9f76bffc4a9f5a0c932f9d2631108124c7890e7a306960",
+      "bytes": 53284,
+      "mime": "image/webp"
+    },
+    {
+      "id": "dinner-table",
+      "category": "scene",
+      "width": 1600,
+      "file": "dinner-table-1600-19685f4bd28b.webp",
+      "sha256": "19685f4bd28bd6d1e416be2c7badd3eddaa23a5378a6c8fb35b18578af421c48",
+      "bytes": 124168,
+      "mime": "image/webp"
+    },
+    {
+      "id": "uncle-smile",
+      "category": "portrait",
+      "width": 384,
+      "file": "uncle-smile-384-6a745c8fca81.webp",
+      "sha256": "6a745c8fca816ed3c6d0b059c4ed6dc46c6abb6fe0ea9618b58abc5aa881e344",
+      "bytes": 28868,
+      "mime": "image/webp"
+    },
+    {
+      "id": "uncle-smile",
+      "category": "portrait",
+      "width": 768,
+      "file": "uncle-smile-768-56fd43724a2a.webp",
+      "sha256": "56fd43724a2ad118274a7068bd2bdb4b947bfdacf1889b381e8d42e6e31a1e1f",
+      "bytes": 91582,
+      "mime": "image/webp"
+    },
+    {
+      "id": "uncle-think",
+      "category": "portrait",
+      "width": 384,
+      "file": "uncle-think-384-133bb4ce458a.webp",
+      "sha256": "133bb4ce458a95a1eab8276735e10d10e1ea403595ecc4ed4fb4698f9b79e06e",
+      "bytes": 31692,
+      "mime": "image/webp"
+    },
+    {
+      "id": "uncle-think",
+      "category": "portrait",
+      "width": 768,
+      "file": "uncle-think-768-d6670872688b.webp",
+      "sha256": "d6670872688b02d6a11fd4df1f9723d85f357249fc626811358291df92dd3622",
+      "bytes": 99902,
+      "mime": "image/webp"
+    },
+    {
+      "id": "aunt",
+      "category": "portrait",
+      "width": 384,
+      "file": "aunt-384-3040e9714d33.webp",
+      "sha256": "3040e9714d330db15b0911bd1c13a3d36830f7721bf727107779dee61da4d8d5",
+      "bytes": 27464,
+      "mime": "image/webp"
+    },
+    {
+      "id": "aunt",
+      "category": "portrait",
+      "width": 768,
+      "file": "aunt-768-bbb104b04e14.webp",
+      "sha256": "bbb104b04e1497cb5eb04b369126148936e4d98789af586e4e40a601f42e4dc7",
+      "bytes": 85880,
+      "mime": "image/webp"
+    },
+    {
+      "id": "mother-eve",
+      "category": "portrait",
+      "width": 384,
+      "file": "mother-eve-384-1e11cefb4aa0.webp",
+      "sha256": "1e11cefb4aa0ba0d08254824d8ba8dc42b02c74e410ad5534bbb060aa020dff8",
+      "bytes": 26624,
+      "mime": "image/webp"
+    },
+    {
+      "id": "mother-eve",
+      "category": "portrait",
+      "width": 768,
+      "file": "mother-eve-768-a8bced8b1227.webp",
+      "sha256": "a8bced8b122741f55c0e51f44d2b958dc084836ddcb2d618ce3ba105a9af96b3",
+      "bytes": 80314,
+      "mime": "image/webp"
+    },
+    {
+      "id": "mother-present",
+      "category": "portrait",
+      "width": 384,
+      "file": "mother-present-384-6680db62fc2e.webp",
+      "sha256": "6680db62fc2e448c0ad96c170d3518260c4d6b954a4956938f37164d0a9c452a",
+      "bytes": 22566,
+      "mime": "image/webp"
+    },
+    {
+      "id": "mother-present",
+      "category": "portrait",
+      "width": 768,
+      "file": "mother-present-768-fd531739de5a.webp",
+      "sha256": "fd531739de5aaa847d24035a7557600004fa90b0a0a8a8a12c1645563967cf2b",
+      "bytes": 68294,
+      "mime": "image/webp"
+    }
+  ]
+}

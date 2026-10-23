@@ -7,3 +7,6 @@ catch { console.warn('牌图尚未生成：界面将显示可读牌名。'); }
 const scenes=JSON.parse(await readFile('assets/story/manifest.json','utf8'));
 await mkdir('public/scenes/'+scenes.version,{recursive:true});
 await cp('assets/story/web','public/scenes/'+scenes.version,{recursive:true});
+const journey=JSON.parse(await readFile('assets/journey/manifest.json','utf8'));
+await mkdir('public/journey/'+journey.version,{recursive:true});
+await cp('assets/journey/web','public/journey/'+journey.version,{recursive:true});
