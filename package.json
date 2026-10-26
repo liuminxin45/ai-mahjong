@@ -1,6 +1,6 @@
 {
   "name": "@neo/mahjong-learning",
-  "version": "7.0.2",
+  "version": "8.0.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.0",
@@ -52,6 +52,14 @@
     "./legacy-app": {
       "types": "./lib/decision-app.d.ts",
       "import": "./lib/decision-app.js"
+    },
+    "./practice": {
+      "types": "./lib/practice/index.d.ts",
+      "import": "./lib/practice/index.js"
+    },
+    "./legacy-journey-app": {
+      "types": "./lib/journey-app.d.ts",
+      "import": "./lib/journey-app.js"
     }
   },
   "files": [
@@ -123,6 +131,7 @@
     "story:verify": "tsx scripts/verify-story.ts",
     "test:story-browser": "node scripts/journey-browser.mjs",
     "journey:verify": "tsx scripts/verify-journey.ts",
-    "test:journey-pacing": "node scripts/journey-pacing.mjs"
+    "test:journey-pacing": "node scripts/journey-pacing.mjs",
+    "test:practice-browser": "node scripts/practice-browser.mjs && node scripts/practice-resilience.mjs"
   }
 }

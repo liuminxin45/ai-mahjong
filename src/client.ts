@@ -5,6 +5,8 @@ import type { DecisionSnapshot,SavedDecisionProfile } from './decision/core.js';
 import type { ExperienceSnapshot, SavedInsight } from './experience/core.js';
 import type { StorySnapshot, SavedStoryProfile } from './story/core.js';
 import type {TableSnapshot,SavedTableProfile} from './journey/core.js';
+import type {PracticeSnapshot,SavedPracticeProfile} from './practice/core.js';
+export type PracticeClient={generate(snapshot:PracticeSnapshot):Promise<SavedPracticeProfile>;read(id:string):Promise<SavedPracticeProfile>;remove(id:string):Promise<void>};
 export type TableClient={generate(snapshot:TableSnapshot):Promise<SavedTableProfile>;read(id:string):Promise<SavedTableProfile>;remove(id:string):Promise<void>};
 export type StoryClient={generate(snapshot:StorySnapshot):Promise<SavedStoryProfile>;read(id:string):Promise<SavedStoryProfile>;remove(id:string):Promise<void>};
 export type InsightClient={generate(snapshot:ExperienceSnapshot):Promise<SavedInsight>;read(id:string):Promise<SavedInsight>;remove(id:string):Promise<void>};
@@ -28,6 +30,7 @@ function profileRequest(base:string,beforeRequest?:()=>Promise<unknown>|void){
   };
   return request;
 }
+export function createPracticeClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):PracticeClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{try{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}catch(e){if((e as Error & {status?:number}).status!==404)throw e;}}};}
 export function createProfileClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):ProfileClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:packSnapshot(s)}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}
 export function createTrainingClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):TrainingClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}
 export function createDecisionClient(base='/api/assistant/mahjong',beforeRequest?:()=>Promise<unknown>|void):DecisionClient{const request=profileRequest(base,beforeRequest);return {generate:s=>request('/profile','POST',{snapshot:s}),read:id=>request(`/profile/${encodeURIComponent(id)}`,'GET'),remove:async id=>{await request(`/profile/${encodeURIComponent(id)}`,'DELETE');}};}

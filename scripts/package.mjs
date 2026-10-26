@@ -6,6 +6,7 @@ await cp('src/decision.css','lib/decision.css');
 await cp('src/experience.css','lib/experience.css');
 await cp('src/story.css','lib/story.css');
 await cp('src/journey.css','lib/journey.css');
+await cp('src/practice.css','lib/practice.css');
 await cp('src/journey/runtime.worker.js','lib/journey/runtime.worker.js');
 let sourceCommit=process.env.MAHJONG_SOURCE_COMMIT;
 if(!sourceCommit)try{sourceCommit=execFileSync('git',['rev-parse','HEAD'],{stdio:['ignore','pipe','ignore']}).toString().trim();}catch{sourceCommit='unversioned';}
@@ -13,4 +14,4 @@ const manifest=JSON.parse(await readFile('package.json','utf8'));
 const audioCommit=(await readFile('src/story/audio-source.ts','utf8')).match(/[a-f0-9]{40}/)[0];
 const scenery=JSON.parse(await readFile('assets/story/manifest.json','utf8'));
 const journeyArt=JSON.parse(await readFile('assets/journey/manifest.json','utf8'));
-await writeFile('lib/build-info.json',JSON.stringify({sourceCommit,packageVersion:manifest.version,engineVersion:'family-table-1',contentVersion:'sit-with-me-1',snapshotVersion:8,reportVersion:6,artworkVersion:'7522fdb84290ee3c',sceneryVersion:scenery.version,journeyArtVersion:journeyArt.version,audioCommit})+'\n');
+await writeFile('lib/build-info.json',JSON.stringify({sourceCommit,packageVersion:manifest.version,engineVersion:'1.0.2',contentVersion:'discard-practice-1',snapshotVersion:9,reportVersion:7,artworkVersion:'7522fdb84290ee3c',sceneryVersion:scenery.version,journeyArtVersion:journeyArt.version,audioCommit})+'\n');
