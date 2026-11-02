@@ -2,6 +2,16 @@
 
 安静地练习打哪张。每组五副起手，每副最多三次舍牌；先回应，再沿着自己的真实选择继续。
 
+Mahjong Practice is a browser-based discard trainer with successive choices, saved practice records, and feedback about hand shape and effective tiles.
+
+## 适合谁，能练到什么
+
+适合想练习牌形判断和舍牌取舍的学习者。当前正常入口使用条、筒两门牌，每组五副起手，每副最多三次舍牌；练习后可以回看自己的选择与反馈。
+
+评分优先比较向听数，再比较有效余量。它不计算完整实战胜率，也不提供完整攻防决策。AI 进步反馈需要上传前确认；日常选择记录由浏览器保存。
+
+[在线练习](https://www.liuminxin.cn/works/mahjong) · [练习规则与实现说明](docs/practice.md)
+
 ## 运行
 
 Node 24.19.0，pnpm 9.15。安装后运行 pnpm dev；pnpm build 构建独立页面，pnpm build:package 导出 @neo/mahjong-learning。宿主引用 GitHub Release 完整提交版本，嵌入时共用宿主路由。
